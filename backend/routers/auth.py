@@ -6,13 +6,14 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from database import get_db
 from models.player import Player
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE
+from services.starter_deck import create_random_starter_deck
 
-from uuid import uuid4
-from pydantic import BaseModel
+
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,6 +36,7 @@ class TokenRes(BaseModel):
     token_type: str = "bearer"
     player_id: int
     nickname: str
+    default_deck_id: int | None = None
 
 
 def create_token(player_id: int, username: str) -> str:
@@ -93,13 +95,19 @@ async def guest_login(req: GuestReq, db: AsyncSession = Depends(get_db)):
             nickname=nickname,
         )
         db.add(p)
+        await db.flush()   # 여기서 p.id 확보
+
+        deck = await create_random_starter_deck(db, p.id)
+
         await db.commit()
         await db.refresh(p)
+        await db.refresh(deck)
 
         return TokenRes(
             access_token=create_token(p.id, p.username),
             player_id=p.id,
             nickname=p.nickname,
+            default_deck_id=deck.id,
         )
 
     except HTTPException:

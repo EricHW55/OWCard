@@ -236,7 +236,8 @@ const LobbyPage: React.FC = () => {
             sessionStorage.setItem('nickname', nextSession.nickname);
 
             setSession(nextSession);
-            addLog(`게스트 입장 완료: ${nextSession.nickname}`);
+            setDeckId(data.default_deck_id ?? 1);
+            addLog(`게스트 입장 완료: ${nextSession.nickname} / 기본 덱 ${data.default_deck_id ?? 1}`);
         } catch (e: any) {
             addLog(`게스트 입장 실패: ${e.message}`);
         } finally {
