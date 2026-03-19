@@ -1,0 +1,589 @@
+"""
+게임 엔진 (v2).
+
+GameState: 스킬 함수에 전달되는 게임 상태 객체.
+  - get_skill_damage(caster, skill_key) → DB에서 읽은 데미지값
+  - get_my_field(card) → 이 카드가 속한 필드
+  - get_enemy_field(card) → 상대 필드
+  - get_distance_between(a, b) → 두 카드 사이 거리
+
+GameEngine: 게임 인스턴스 관리.
+  - 턴 흐름: 멀리건 → 동전던지기 → (배치→액션→턴종료) 반복
+  - 스킬 사용 시 레지스트리에서 함수 조회 → 실행
+"""
+from __future__ import annotations
+import random
+import uuid
+from enum import Enum
+from dataclasses import dataclass, field as dc_field
+from typing import Optional
+
+from game_engine.field import Field, FieldCard, Role, Zone
+from game_engine.skill_registry import get_skill, get_passive, get_hero_skills
+from config import DECK_SIZE, HAND_SIZE, MAX_MULLIGAN, CARDS_PER_TURN
+
+
+class GamePhase(str, Enum):
+    WAITING = "waiting"
+    MULLIGAN = "mulligan"
+    PLACEMENT = "placement"
+    ACTION = "action"
+    GAME_OVER = "game_over"
+
+
+# ═══════════════════════════════════════════════════════
+#  PlayerState — 한 플레이어의 인게임 상태
+# ═══════════════════════════════════════════════════════
+
+@dataclass
+class PlayerState:
+    player_id: int
+    username: str
+    deck: list[dict] = dc_field(default_factory=list)
+    hand: list[dict] = dc_field(default_factory=list)
+    draw_pile: list[dict] = dc_field(default_factory=list)
+    trash: list[dict] = dc_field(default_factory=list)  # 파괴된 카드
+    field: Field = dc_field(default_factory=Field)
+    mulligan_done: bool = False
+    placement_cost_used: int = 0
+    connected: bool = False
+    commander_skill_uses: int = 0  # 이번 라운드 지휘관 스킬 사용 횟수
+
+    def to_dict(self, reveal_hand: bool = True) -> dict:
+        return {
+            "player_id": self.player_id,
+            "username": self.username,
+            "hand_count": len(self.hand),
+            "hand": list(self.hand) if reveal_hand else [],
+            "draw_pile_count": len(self.draw_pile),
+            "trash_count": len(self.trash),
+            "trash": [{"name": c.get("name", "?"), "role": c.get("role", "?")} for c in self.trash] if reveal_hand else [],
+            "field": self.field.to_dict(for_opponent=not reveal_hand),
+            "mulligan_done": self.mulligan_done,
+            "placement_cost_used": self.placement_cost_used,
+        }
+
+
+# ═══════════════════════════════════════════════════════
+#  GameState — 스킬 함수에 전달되는 헬퍼 객체
+# ═══════════════════════════════════════════════════════
+
+class GameState:
+    """스킬 함수가 게임 상태에 접근하기 위한 인터페이스.
+
+    스킬 함수 시그니처:
+      fn(caster: FieldCard, target: FieldCard | None, game: GameState) -> dict
+    """
+
+    def __init__(self, engine: GameEngine):
+        self._engine = engine
+
+    def get_skill_damage(self, caster: FieldCard, skill_key: str):
+        """DB에서 읽어온 스킬 데미지값."""
+        return caster.skill_damages.get(skill_key, 0)
+
+    def get_my_field(self, card: FieldCard) -> Field:
+        """이 카드가 속한 플레이어의 필드."""
+        for ps in self._engine.players.values():
+            if ps.field.find_card(card.uid):
+                return ps.field
+        return Field()
+
+    def get_enemy_field(self, card: FieldCard) -> Field:
+        """상대 플레이어의 필드."""
+        my_pid = None
+        for pid, ps in self._engine.players.items():
+            if ps.field.find_card(card.uid):
+                my_pid = pid
+                break
+        for pid, ps in self._engine.players.items():
+            if pid != my_pid:
+                return ps.field
+        return Field()
+
+    def get_my_player(self, card: FieldCard) -> Optional[PlayerState]:
+        """이 카드의 소유 플레이어."""
+        for ps in self._engine.players.values():
+            if ps.field.find_card(card.uid):
+                return ps
+        return None
+
+    def get_enemy_player(self, card: FieldCard) -> Optional[PlayerState]:
+        """상대 플레이어."""
+        my_pid = None
+        for pid, ps in self._engine.players.items():
+            if ps.field.find_card(card.uid):
+                my_pid = pid
+                break
+        for pid, ps in self._engine.players.items():
+            if pid != my_pid:
+                return ps
+        return None
+
+    def get_distance_between(self, a: FieldCard, b: FieldCard) -> int:
+        """두 카드 사이 거리 (같은 필드면 레이어 차이, 다른 필드면 레이어 합)."""
+        enemy_field = self.get_enemy_field(a)
+        return enemy_field.get_distance(b)
+
+    def draw_cards(self, card: FieldCard, count: int) -> list[dict]:
+        """카드 드로우."""
+        ps = self.get_my_player(card)
+        if not ps:
+            return []
+        drawn = []
+        for _ in range(count):
+            if ps.draw_pile:
+                drawn.append(ps.draw_pile.pop(0))
+        ps.hand.extend(drawn)
+        return drawn
+
+
+# ═══════════════════════════════════════════════════════
+#  GameEngine — 게임 인스턴스
+# ═══════════════════════════════════════════════════════
+
+class GameEngine:
+
+    def __init__(self, game_id: str):
+        self.game_id = game_id
+        self.players: dict[int, PlayerState] = {}
+        self.player_order: list[int] = []
+        self.current_turn_index: int = 0
+        self.turn_number: int = 0
+        self.round_number: int = 1  # 라운드 (지휘관 스킬 횟수 결정)
+        self.phase: GamePhase = GamePhase.WAITING
+        self.winner: Optional[int] = None
+        self.action_log: list[dict] = []
+
+        # 스킬 함수 호출용 헬퍼
+        self.state = GameState(self)
+
+    @property
+    def current_player_id(self) -> int:
+        return self.player_order[self.current_turn_index]
+
+    @property
+    def opponent_player_id(self) -> int:
+        return self.player_order[1 - self.current_turn_index]
+
+    # ── 플레이어 등록 ─────────────────────────
+
+    def add_player(self, player_id: int, username: str, deck_cards: list[dict]) -> bool:
+        if len(self.players) >= 2 or player_id in self.players:
+            return False
+        if len(deck_cards) != DECK_SIZE:
+            return False
+        self.players[player_id] = PlayerState(
+            player_id=player_id, username=username, deck=deck_cards,
+        )
+        self.player_order.append(player_id)
+        return True
+
+    # ── 게임 시작 ─────────────────────────────
+
+    def start_game(self) -> dict:
+        if len(self.players) != 2:
+            return {"error": "Need 2 players"}
+        for ps in self.players.values():
+            shuffled = list(ps.deck)
+            random.shuffle(shuffled)
+            ps.hand = shuffled[:HAND_SIZE]
+            ps.draw_pile = shuffled[HAND_SIZE:]
+        self.phase = GamePhase.MULLIGAN
+        return {"phase": self.phase.value}
+
+    # ── 멀리건 ────────────────────────────────
+
+    def mulligan(self, player_id: int, card_indices: list[int]) -> dict:
+        ps = self.players.get(player_id)
+        if not ps or self.phase != GamePhase.MULLIGAN:
+            return {"error": "Not in mulligan phase"}
+        if ps.mulligan_done:
+            return {"error": "Already done"}
+        if len(card_indices) > MAX_MULLIGAN:
+            return {"error": f"Max {MAX_MULLIGAN} cards"}
+
+        for idx in sorted(card_indices, reverse=True):
+            if 0 <= idx < len(ps.hand) and ps.draw_pile:
+                old = ps.hand.pop(idx)
+                ps.draw_pile.append(old)
+                ps.hand.insert(idx, ps.draw_pile.pop(0))
+
+        ps.mulligan_done = True
+        if all(p.mulligan_done for p in self.players.values()):
+            return self._coin_flip()
+        return {"phase": self.phase.value, "message": "Waiting for opponent"}
+
+    def skip_mulligan(self, player_id: int) -> dict:
+        return self.mulligan(player_id, [])
+
+    def _coin_flip(self) -> dict:
+        first_idx = random.randint(0, 1)
+        self.current_turn_index = first_idx
+        self.turn_number = 1
+        self.phase = GamePhase.PLACEMENT
+        fid = self.player_order[first_idx]
+        return {
+            "phase": self.phase.value,
+            "coin_result": "heads" if first_idx == 0 else "tails",
+            "first_player": fid,
+            "first_player_name": self.players[fid].username,
+            "turn": self.turn_number,
+        }
+
+    # ── 배치 ──────────────────────────────────
+
+    def place_card(self, player_id: int, hand_index: int, zone: str) -> dict:
+        if player_id != self.current_player_id or self.phase != GamePhase.PLACEMENT:
+            return {"error": "Not your turn / wrong phase"}
+
+        ps = self.players[player_id]
+        if hand_index < 0 or hand_index >= len(ps.hand):
+            return {"error": "Invalid hand index"}
+
+        card_data = ps.hand[hand_index]
+        cost = card_data.get("cost", 1)
+        if ps.placement_cost_used + cost > CARDS_PER_TURN:
+            return {"error": f"Placement full ({ps.placement_cost_used}/{CARDS_PER_TURN})"}
+
+        # 스킬 카드는 즉시 사용 대기 (타겟 선택 필요)
+        if card_data.get("is_spell", False):
+            ps.hand.pop(hand_index)
+            ps.placement_cost_used += cost
+            # 스킬 카드를 TRASH로 보냄
+            ps.trash.append(card_data)
+            return {
+                "success": True, "type": "spell_played",
+                "card": card_data, "needs_target": True,
+                "hero_key": card_data.get("hero_key", ""),
+                "placement_cost_used": ps.placement_cost_used,
+            }
+
+        # 영웅 카드 → 필드에 배치
+        target_zone = Zone(zone)
+        role = Role(card_data["role"])
+        hero_name = card_data.get("hero_key", card_data["name"].lower())
+
+        fc = FieldCard(
+            uid=uuid.uuid4().hex[:8],
+            template_id=card_data["id"],
+            name=card_data["name"],
+            role=role,
+            max_hp=card_data["hp"],
+            base_attack=card_data.get("attack", 0),
+            base_defense=card_data.get("defense", 0),
+            base_attack_range=card_data.get("attack_range", 1),
+            zone=target_zone,
+            skills=get_hero_skills(hero_name),
+            skill_damages=card_data.get("skill_damages", {}),
+            extra=card_data.get("extra", {}),
+        )
+
+        if not ps.field.place_card(fc, target_zone):
+            return {"error": f"Cannot place {role.value} in {zone}"}
+
+        ps.hand.pop(hand_index)
+        ps.placement_cost_used += cost
+
+        # 패시브 발동
+        passive_result = {}
+        passive_fn = get_passive(hero_name)
+        if passive_fn:
+            passive_result = passive_fn(fc, self.state)
+
+        result = {
+            "success": True, "type": "card_placed",
+            "card_uid": fc.uid, "card": fc.to_dict(),
+            "zone": zone, "placement_cost_used": ps.placement_cost_used,
+        }
+        if passive_result:
+            result["passive_triggered"] = passive_result
+
+        self._log("place", player_id, result)
+        return result
+
+    def end_placement(self, player_id: int) -> dict:
+        if player_id != self.current_player_id or self.phase != GamePhase.PLACEMENT:
+            return {"error": "Not your turn / wrong phase"}
+        ps = self.players[player_id]
+        if ps.field.is_empty() and len(ps.hand) > 0:
+            return {"error": "Must place at least 1 card when field is empty"}
+        self.phase = GamePhase.ACTION
+        return {"phase": self.phase.value}
+
+    # ── 스킬 카드 실행 ───────────────────────
+
+    def execute_spell(self, player_id: int, hero_key: str,
+                      target_uid: str | None = None) -> dict:
+        """스킬 카드 효과 실행.
+
+        place_card에서 spell이 감지되면 클라이언트가 타겟을 선택한 후
+        이 메서드를 호출합니다.
+        """
+        if player_id != self.current_player_id:
+            return {"error": "Not your turn"}
+
+        ps = self.players[player_id]
+        opp = self.players[self.opponent_player_id]
+
+        # 스킬 함수 찾기
+        spell_fn = get_skill(hero_key, "skill_1")
+        if not spell_fn:
+            return {"error": f"Spell function not found: {hero_key}"}
+
+        # 타겟 찾기 (아군 또는 적군)
+        target = None
+        if target_uid:
+            target = ps.field.find_card(target_uid) or opp.field.find_card(target_uid)
+
+        # 임시 caster (스킬 카드는 필드에 없으므로 더미 생성)
+        dummy_caster = FieldCard(
+            uid="spell_dummy",
+            template_id=-1,
+            name=hero_key,
+            role=Role.DEALER,
+            max_hp=0,
+            base_attack=0,
+            base_defense=0,
+            base_attack_range=0,
+        )
+        # dummy의 owner를 현재 플레이어로 인식시키기 위해 잠시 필드에 추가
+        ps.field.main_cards.append(dummy_caster)
+
+        result = spell_fn(dummy_caster, target, self.state)
+
+        # dummy 제거
+        ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
+
+        # 사망 처리
+        opp.field.remove_dead()
+        ps.field.remove_dead()
+
+        self._log("spell", player_id, {"hero_key": hero_key, **result})
+        self._check_game_over()
+        return result
+
+    # ── 액션: 스킬 사용 ──────────────────────
+
+    def use_skill(self, player_id: int, caster_uid: str,
+                  skill_key: str, target_uid: str | None = None) -> dict:
+        """스킬 사용. 레지스트리에서 함수를 찾아 실행."""
+        if player_id != self.current_player_id or self.phase != GamePhase.ACTION:
+            return {"error": "Not your turn / wrong phase"}
+
+        ps = self.players[player_id]
+        opp = self.players[self.opponent_player_id]
+
+        caster = ps.field.find_card(caster_uid)
+        if not caster:
+            return {"error": "Caster not found"}
+
+        can_use, reason = caster.can_use_skill(skill_key)
+        if not can_use:
+            return {"error": reason}
+
+        # 대상 찾기 (아군 또는 적군)
+        target = None
+        if target_uid:
+            target = ps.field.find_card(target_uid) or opp.field.find_card(target_uid)
+
+        # 스킬 함수 실행
+        skill_fn = caster.skills.get(skill_key)
+        if not skill_fn:
+            return {"error": "Skill function not found"}
+
+        result = skill_fn(caster, target, self.state)
+
+        if result.get("success"):
+            # 쿨다운 설정 (card_data에서 읽어야 하지만 일단 스킬 함수가 반환)
+            cd = result.get("cooldown", 0)
+            if cd > 0:
+                caster.skill_cooldowns[skill_key] = cd
+            # 사용 횟수 차감
+            if skill_key in caster.skill_uses:
+                caster.skill_uses[skill_key] -= 1
+
+            # 반사 데미지 처리
+            for target_card_logs in [result.get("damage_log", {})]:
+                if isinstance(target_card_logs, dict) and target_card_logs.get("reflected"):
+                    reflect_dmg = target_card_logs["reflected"]
+                    caster.take_raw_damage(reflect_dmg)
+                    result["reflected_to_caster"] = reflect_dmg
+
+        # 사망 처리
+        opp.field.remove_dead()
+        ps.field.remove_dead()
+
+        self._log("skill", player_id, result)
+        self._check_game_over()
+        return result
+
+    # ── 액션: 기본 공격 ──────────────────────
+
+    def basic_attack(self, player_id: int, attacker_uid: str, target_uid: str) -> dict:
+        if player_id != self.current_player_id or self.phase != GamePhase.ACTION:
+            return {"error": "Not your turn / wrong phase"}
+
+        ps = self.players[player_id]
+        opp = self.players[self.opponent_player_id]
+
+        attacker = ps.field.find_card(attacker_uid)
+        if not attacker:
+            return {"error": "Attacker not found"}
+        if attacker.placed_this_turn:
+            return {"error": "Placed this turn"}
+
+        target = opp.field.find_card(target_uid)
+        if not target:
+            return {"error": "Target not found"}
+
+        # 공격 가능 검증
+        valid = opp.field.get_all_targetable(attacker)
+        if target_uid not in {c.uid for c in valid}:
+            return {"error": "Target not in range"}
+
+        # on_before_targeted 체크
+        for s in target.statuses:
+            res = s.on_before_targeted(target, attacker)
+            if res.get("untargetable"):
+                return {"error": "Target is untargetable"}
+
+        result = target.take_damage(attacker.attack)
+
+        # 반사 처리
+        if result.get("reflected"):
+            attacker.take_raw_damage(result["reflected"])
+
+        opp.field.remove_dead()
+
+        log = {"success": True, "type": "basic_attack",
+               "attacker": attacker_uid, "damage_log": result}
+        self._log("attack", player_id, log)
+        self._check_game_over()
+        return log
+
+    # ── 턴 종료 ───────────────────────────────
+
+    def end_turn(self, player_id: int) -> dict:
+        if player_id != self.current_player_id:
+            return {"error": "Not your turn"}
+        if self.phase not in (GamePhase.PLACEMENT, GamePhase.ACTION):
+            return {"error": "Cannot end turn now"}
+
+        ps = self.players[player_id]
+        opp = self.players[self.opponent_player_id]
+
+        # 턴 종료 처리 (화상 데미지 등)
+        turn_end_logs = ps.field.process_all_turn_end()
+        ps.placement_cost_used = 0
+
+        # 양쪽 사망 카드 → 각자 트래시로 (전체 카드 데이터 저장)
+        self._collect_dead_to_trash(ps)
+        self._collect_dead_to_trash(opp)
+
+        # 턴 교대
+        self.current_turn_index = 1 - self.current_turn_index
+        new_ps = self.players[self.current_player_id]
+        new_ps.field.mark_all_available()
+        new_ps.placement_cost_used = 0
+
+        # 새 턴 시작 처리 (점착폭탄 터짐 등)
+        turn_start_logs = new_ps.field.process_all_turn_start()
+        # 시작 처리에서 죽은 카드도 트래시로
+        self._collect_dead_to_trash(new_ps)
+        self._collect_dead_to_trash(
+            self.players[[pid for pid in self.players if pid != self.current_player_id][0]]
+        )
+
+        if self.current_turn_index == 0:
+            self.turn_number += 1
+            if self.turn_number % 2 == 1:
+                self.round_number += 1
+
+        self.phase = GamePhase.PLACEMENT
+
+        self._check_game_over()
+        return {
+            "phase": self.phase.value,
+            "current_player": self.current_player_id,
+            "turn": self.turn_number,
+            "round": self.round_number,
+            "turn_end_logs": turn_end_logs,
+            "turn_start_logs": turn_start_logs,
+        }
+
+    def _collect_dead_to_trash(self, ps: PlayerState):
+        """사망 카드를 필드에서 제거하고 트래시에 전체 데이터로 저장."""
+        dead = ps.field.remove_dead()
+        for d in dead:
+            # 원본 덱 데이터를 찾아서 트래시에 저장 (구원의 손길로 복구 가능)
+            original = None
+            for card_data in ps.deck:
+                if card_data.get("id") == d.template_id:
+                    original = dict(card_data)  # 복사본
+                    break
+            if original:
+                ps.trash.append(original)
+            else:
+                # 원본을 못 찾으면 기본 정보라도 저장
+                ps.trash.append({
+                    "id": d.template_id,
+                    "hero_key": d.name.lower(),
+                    "name": d.name,
+                    "role": d.role.value,
+                    "hp": d.max_hp,
+                })
+
+    # ── 지휘관 스킬 ──────────────────────────
+
+    def get_commander_skill_limit(self) -> int:
+        """현재 라운드에서 지휘관 스킬 사용 가능 횟수.
+        1라운드=0, 2라운드=1, 3라운드=2..."""
+        return max(0, self.round_number - 1)
+
+    # ── 유틸 ──────────────────────────────────
+
+    def _check_game_over(self):
+        for pid, ps in self.players.items():
+            opp_id = [p for p in self.players if p != pid][0]
+            opp = self.players[opp_id]
+            if opp.field.is_empty() and len(opp.hand) == 0:
+                self.winner = pid
+                self.phase = GamePhase.GAME_OVER
+
+    def _log(self, action_type: str, player_id: int, data: dict):
+        self.action_log.append({
+            "turn": self.turn_number,
+            "player_id": player_id,
+            "action": action_type,
+            "data": data,
+        })
+
+    def get_state(self, for_player_id: int) -> dict:
+        ps = self.players.get(for_player_id)
+        opp_ids = [pid for pid in self.players if pid != for_player_id]
+        opp = self.players[opp_ids[0]] if opp_ids else None
+        return {
+            "game_id": self.game_id,
+            "phase": self.phase.value,
+            "turn": self.turn_number,
+            "round": self.round_number,
+            "current_player": self.current_player_id if self.player_order else None,
+            "is_my_turn": for_player_id == self.current_player_id if self.player_order else False,
+            "my_state": ps.to_dict(reveal_hand=True) if ps else None,
+            "opponent_state": opp.to_dict(reveal_hand=False) if opp else None,
+            "winner": self.winner,
+            "commander_skill_limit": self.get_commander_skill_limit(),
+        }
+
+    def get_spectator_state(self) -> dict:
+        return {
+            "game_id": self.game_id,
+            "phase": self.phase.value,
+            "turn": self.turn_number,
+            "round": self.round_number,
+            "current_player": self.current_player_id if self.player_order else None,
+            "players": {pid: ps.to_dict(reveal_hand=False) for pid, ps in self.players.items()},
+            "winner": self.winner,
+            "action_log": self.action_log[-20:],
+        }

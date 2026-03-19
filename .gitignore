@@ -1,0 +1,21 @@
+# Python
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+backend/card_battle.db
+backend/.pytest_cache/
+backend/.mypy_cache/
+
+# Node / React
+frontend/node_modules/
+frontend/build/
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
