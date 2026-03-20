@@ -343,7 +343,7 @@ const GamePage: React.FC = () => {
         </div>
 
         {/* 멀리건 바 */}
-        {phase === 'mulligan' && is_my_turn && (
+        {phase === 'mulligan' && !my.mulligan_done && (
             <div style={{ display: 'flex', gap: 8, padding: '6px 12px', background: '#0d1225', borderTop: '1px solid #2a3560', alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: '#ff9b30', fontWeight: 700 }}>
             멀리건 선택: {selectedMulligan.length}/2
