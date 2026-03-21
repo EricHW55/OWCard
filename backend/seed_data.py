@@ -80,10 +80,7 @@ SEED_CARDS = [
      "base_attack":0,"base_defense":0,"base_attack_range":1,
      "description":"상승기류로 에어본 상태 돌입. 에어본 동안 한칸 무시 공격 가능, 대신 피격 사거리 -1. 정조준은 에어본 상태에서만 사용 가능하며 8딜 후 착지.",
      "skill_damages":{"skill_1":0,"skill_2":8},
-     "skill_meta":{
-        "skill_1":{"name":"상승기류","cooldown":0},
-        "skill_2":{"name":"정조준","cooldown":0}
-    }},
+     "skill_meta":{"skill_1":{"name":"상승기류","cooldown":0}, "skill_2":{"name":"정조준","cooldown":0}}},
 
     {"hero_key":"tracer","name":"트레이서","role":"dealer","hp":6,"cost":1,"base_attack":0,"base_defense":0,"base_attack_range":1,
      "description":"점멸 패시브로 사거리+1. 역행으로 체력 복구.",

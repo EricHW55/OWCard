@@ -28,43 +28,47 @@ def bastion_recon(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     return {"success": True, "skill": "설정: 수색", "damage_log": result}
 
 # ── 프레야 ────────────────────────────────
-@register_skill("pharah", "skill_1")
-def pharah_skill(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("freja", "skill_1")
+def freja_updraft(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """
-    상승기류:
-      - 에어본 3턴 부여 (내 턴 -> 상대 턴 -> 다음 내 턴까지 유지)
-      - 에어본 동안 한 칸 무시 공격 가능
-      - 에어본 동안 피격 사거리 -1 효과는 Airborne 상태에서 처리
-
-    정조준:
-      - 에어본 상태일 때만 사용 가능
-      - 8 데미지
-      - 사용 후 에어본 해제
+    상승기류
+    - 대상 필요 없음
+    - 에어본 3턴 부여 (내턴-상대턴-다음 내턴)
+    - 이미 에어본이어도 다시 사용 가능 = 지속시간 갱신
     """
-    if caster.has_status("airborne"):
-        # 정조준: 에어본 상태에서만 가능
-        if not target:
-            return {"success": False, "message": "대상 필요"}
-
-        dmg = game.get_skill_damage(caster, "skill_1")  # 8 가정
-        result = target.take_damage(dmg)
-        caster.remove_status("airborne")
-
-        return {
-            "success": True,
-            "skill": "정조준",
-            "damage_log": result,
-            "message": "정조준 사용 후 착지",
-        }
-
-    # 상승기류: 연속 사용 제한 없이 다시 에어본 진입 가능
-    caster.remove_status("airborne")  # 혹시 남아있는 중복 방지
+    caster.remove_status("airborne")  # 이미 떠 있으면 갱신
     caster.add_status(Airborne(duration=3, source_uid=caster.uid))
 
     return {
         "success": True,
         "skill": "상승기류",
         "message": "에어본 상태 돌입 (내턴-니턴-내턴 유지)",
+    }
+
+
+@register_skill("freja", "skill_2")
+def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """
+    정조준
+    - 에어본 상태일 때만 사용 가능
+    - 8 데미지
+    - 사용 후 에어본 해제
+    """
+    if not caster.has_status("airborne"):
+        return {"success": False, "message": "에어본 상태에서만 사용 가능"}
+
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    dmg = game.get_skill_damage(caster, "skill_2")
+    result = target.take_damage(dmg)
+    caster.remove_status("airborne")
+
+    return {
+        "success": True,
+        "skill": "정조준",
+        "damage_log": result,
+        "message": "정조준 사용 후 착지",
     }
 
 # ── 트레이서 ──────────────────────────────
