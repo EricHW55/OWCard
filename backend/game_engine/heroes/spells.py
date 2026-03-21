@@ -420,3 +420,22 @@ def spell_caduceus_staff(caster: FieldCard, target: FieldCard, game: GameState) 
         tags=["buff", "install"],
     ))
     return {"success": True, "skill": "카두세우스 지팡이", "target": target.uid, "attack_bonus": 3}
+
+
+@register_skill("spell_maximilian", "skill_1")
+def spell_maximilian(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """막시밀리앙: 덱에서 원하는 카드 1장을 패로 가져옴.
+    (베타: 덱 맨 위 카드를 가져옴 — 나중에 선택 UI 추가)"""
+    my_player = game.get_my_player(caster)
+    if not my_player:
+        return {"success": False, "message": "플레이어 찾기 실패"}
+    if not my_player.draw_pile:
+        return {"success": False, "message": "덱이 비어있습니다"}
+
+    drawn = my_player.draw_pile.pop(0)
+    my_player.hand.append(drawn)
+    return {
+        "success": True,
+        "skill": "막시밀리앙",
+        "drawn_card": drawn.get("name", "unknown"),
+    }
