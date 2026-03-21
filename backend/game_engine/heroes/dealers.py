@@ -364,3 +364,160 @@ def soldier76_pulse_rifle(caster: FieldCard, target: FieldCard, game: GameState)
     damage = game.get_skill_damage(caster, "skill_2")
     result = target.take_damage(damage)
     return {"success": True, "skill": "펄스 소총", "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  트레이서
+# ═══════════════════════════════════════════════════════
+
+@register_passive("tracer")
+def tracer_passive(card: FieldCard, game: GameState) -> dict:
+    """점멸: 한 단계 무시 공격 (사거리+1 효과)."""
+    card.base_attack_range += 1
+    card.extra["last_hp"] = card.current_hp
+    return {"passive": "점멸"}
+
+
+@register_skill("tracer", "skill_1")
+def tracer_pulse(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """펄스 쌍권총: 5딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    caster.extra["last_hp"] = caster.current_hp  # 역행용 저장
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "펄스 쌍권총", "damage_log": result}
+
+
+@register_skill("tracer", "skill_2")
+def tracer_recall(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """역행: 이전 턴 체력으로 복구."""
+    last_hp = caster.extra.get("last_hp", caster.current_hp)
+    healed = max(0, last_hp - caster.current_hp)
+    caster.current_hp = min(caster.max_hp, last_hp)
+    return {"success": True, "skill": "역행", "restored_hp": healed}
+
+
+# ═══════════════════════════════════════════════════════
+#  한조
+# ═══════════════════════════════════════════════════════
+
+@register_passive("hanzo")
+def hanzo_passive(card: FieldCard, game: GameState) -> dict:
+    """명사수: 거리 무시."""
+    card.base_attack_range = 99
+    return {"passive": "명사수"}
+
+
+@register_skill("hanzo", "skill_1")
+def hanzo_storm_bow(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """폭풍활: 25% 헤드샷 2배. 기본 5딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    import random
+    base = game.get_skill_damage(caster, "skill_1")
+    headshot = random.random() < 0.25
+    damage = base * 2 if headshot else base
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "폭풍활", "headshot": headshot, "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  솜브라
+# ═══════════════════════════════════════════════════════
+
+@register_passive("sombra")
+def sombra_passive(card: FieldCard, game: GameState) -> dict:
+    """기회주의자: 배치 시 상대 설치 스킬 유무 확인."""
+    return {"passive": "기회주의자"}
+
+
+@register_skill("sombra", "skill_1")
+def sombra_smg(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """기관단총: 5딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "기관단총", "damage_log": result}
+
+
+@register_skill("sombra", "skill_2")
+def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """은신: 타겟 제외 + 3힐. 연속 사용 불가."""
+    if caster.extra.get("used_stealth_last"):
+        return {"success": False, "message": "연속 사용 불가"}
+    caster.add_status(Stealth(heal_amount=3, duration=1, source_uid=caster.uid))
+    healed = caster.heal(3)
+    caster.extra["used_stealth_last"] = True
+    return {"success": True, "skill": "은신", "healed": healed}
+
+
+# ═══════════════════════════════════════════════════════
+#  리퍼
+# ═══════════════════════════════════════════════════════
+
+@register_skill("reaper", "skill_1")
+def reaper_hellfire(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """헬파이어 샷건: 거리별 데미지 [8,4,1]."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage_table = game.get_skill_damage(caster, "skill_1")
+    distance = game.get_distance_between(caster, target)
+    idx = min(distance - 1, len(damage_table) - 1)
+    damage = damage_table[idx]
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "헬파이어 샷건", "distance": distance, "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  토르비욘
+# ═══════════════════════════════════════════════════════
+
+@register_skill("torbjorn", "skill_1")
+def torbjorn_rivet(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """대못 발사기: 4딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "대못 발사기", "damage_log": result}
+
+
+@register_skill("torbjorn", "skill_2")
+def torbjorn_hammer(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """대장간 망치: 포탑 3hp 수리 (미구현 시 자힐)."""
+    healed = caster.heal(3)
+    return {"success": True, "skill": "대장간 망치", "healed": healed}
+
+
+# ═══════════════════════════════════════════════════════
+#  소전
+# ═══════════════════════════════════════════════════════
+
+@register_skill("sojourn", "skill_1")
+def sojourn_railgun(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """레일건: 2딜 + 차징 1단계 충전."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    charge = caster.extra.get("charge_level", 0)
+    caster.extra["charge_level"] = min(charge + 1, 3)
+    return {"success": True, "skill": "레일건", "damage_log": result, "charge": caster.extra["charge_level"]}
+
+
+@register_skill("sojourn", "skill_2")
+def sojourn_charged_shot(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """차징샷: 차징 단계별 데미지 [2,5,8]."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    charge = caster.extra.get("charge_level", 0)
+    if charge <= 0:
+        return {"success": False, "message": "충전이 필요합니다"}
+    damage_table = game.get_skill_damage(caster, "skill_2")
+    idx = min(charge - 1, len(damage_table) - 1)
+    damage = damage_table[idx]
+    result = target.take_damage(damage)
+    caster.extra["charge_level"] = 0
+    return {"success": True, "skill": "차징샷", "charge_used": charge, "damage_log": result}

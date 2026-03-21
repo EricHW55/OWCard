@@ -277,3 +277,129 @@ def mizuki_healing_kasa(caster: FieldCard, target: FieldCard, game: GameState) -
             logs.append({"target": ally.uid, "healed": healed})
 
     return {"success": True, "skill": "치유의 삿갓", "healed": logs}
+
+
+# ═══════════════════════════════════════════════════════
+#  바티스트
+# ═══════════════════════════════════════════════════════
+
+@register_skill("baptiste", "skill_1")
+def baptiste_biotic_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """생체탄 발사기: 가로줄 광역 힐 3."""
+    my_field = game.get_my_field(caster)
+    allies = my_field.get_row(caster.zone)
+    heal_amount = game.get_skill_damage(caster, "skill_1")
+    logs = []
+    for ally in allies:
+        healed = ally.heal(heal_amount)
+        logs.append({"target": ally.uid, "healed": healed})
+    return {"success": True, "skill": "생체탄 발사기", "healed": logs}
+
+
+@register_skill("baptiste", "skill_2")
+def baptiste_attack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """공격: 3딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_2")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "공격", "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  메르시
+# ═══════════════════════════════════════════════════════
+
+@register_passive("mercy")
+def mercy_passive(card: FieldCard, game: GameState) -> dict:
+    """부활: 트래시에서 카드 1장 소생 (엔진에서 처리)."""
+    card.extra["resurrect_used"] = False
+    return {"passive": "부활"}
+
+
+@register_skill("mercy", "skill_1")
+def mercy_caduceus(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """카두세우스 지팡이: 단일 힐 3."""
+    if not target:
+        return {"success": False, "message": "힐 대상을 선택하세요"}
+    heal_amount = game.get_skill_damage(caster, "skill_1")
+    healed = target.heal(heal_amount)
+    return {"success": True, "skill": "카두세우스 지팡이", "healed": healed}
+
+
+# ═══════════════════════════════════════════════════════
+#  브리기테
+# ═══════════════════════════════════════════════════════
+
+@register_passive("brigitte")
+def brigitte_passive(card: FieldCard, game: GameState) -> dict:
+    """격려: 주위 아군에게 1 힐."""
+    my_field = game.get_my_field(card)
+    for ally in my_field.all_cards():
+        if ally.uid != card.uid:
+            ally.heal(1)
+    return {"passive": "격려"}
+
+
+@register_skill("brigitte", "skill_1")
+def brigitte_repair_pack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """수리팩: 거리 무관 단일 힐 3."""
+    if not target:
+        return {"success": False, "message": "힐 대상을 선택하세요"}
+    heal_amount = game.get_skill_damage(caster, "skill_1")
+    healed = target.heal(heal_amount)
+    return {"success": True, "skill": "수리팩", "healed": healed}
+
+
+# ═══════════════════════════════════════════════════════
+#  일리아리 (힐러)
+# ═══════════════════════════════════════════════════════
+
+@register_skill("illari", "skill_1")
+def illari_solar_rifle(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """태양 소총: 5딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "태양 소총", "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  주노
+# ═══════════════════════════════════════════════════════
+
+@register_passive("juno")
+def juno_passive(card: FieldCard, game: GameState) -> dict:
+    """하이퍼링: 배치 시 아군 사거리+1."""
+    my_field = game.get_my_field(card)
+    for ally in my_field.all_cards():
+        ally.add_status(RangeModifier(value=1, duration=1, source_uid=card.uid))
+    return {"passive": "하이퍼링"}
+
+
+@register_skill("juno", "skill_1")
+def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """펄사어뢰: 같은 열 모두에게 3힐."""
+    my_field = game.get_my_field(caster)
+    column = my_field.get_column(caster)
+    heal_amount = game.get_skill_damage(caster, "skill_1")
+    logs = []
+    for ally in column:
+        healed = ally.heal(heal_amount)
+        logs.append({"target": ally.uid, "healed": healed})
+    return {"success": True, "skill": "펄사어뢰", "healed": logs}
+
+
+# ═══════════════════════════════════════════════════════
+#  제트팩 캣
+# ═══════════════════════════════════════════════════════
+
+@register_skill("jetpack_cat", "skill_1")
+def jetpack_cat_nyanbullet(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """생체 냥냥탄: 단일 힐 3."""
+    if not target:
+        return {"success": False, "message": "힐 대상을 선택하세요"}
+    heal_amount = game.get_skill_damage(caster, "skill_1")
+    healed = target.heal(heal_amount)
+    return {"success": True, "skill": "생체 냥냥탄", "healed": healed}

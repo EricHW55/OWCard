@@ -190,3 +190,149 @@ def junkerqueen_commanding_shout(caster: FieldCard, target: FieldCard, game: Gam
         "skill": "지휘의 외침",
         "affected": logs,
     }
+
+
+# ═══════════════════════════════════════════════════════
+#  윈스턴
+# ═══════════════════════════════════════════════════════
+
+@register_skill("winston", "skill_1")
+def winston_tesla(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """테슬라 캐논: 단일 4딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "테슬라 캐논", "damage_log": result}
+
+
+@register_skill("winston", "skill_2")
+def winston_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """방벽 생성기: 아군에게 영구 방벽 5 부여."""
+    actual = target or caster
+    actual.add_status(Barrier(barrier_hp=5, duration=-1, source_uid=caster.uid))
+    return {"success": True, "skill": "방벽 생성기", "target": actual.uid}
+
+
+# ═══════════════════════════════════════════════════════
+#  레킹볼
+# ═══════════════════════════════════════════════════════
+
+@register_passive("wrecking_ball")
+def wrecking_ball_passive(card: FieldCard, game: GameState) -> dict:
+    """갈고리: 스킬 전 본대/사이드 이동 가능."""
+    return {"passive": "갈고리"}
+
+
+@register_skill("wrecking_ball", "skill_1")
+def wrecking_ball_piledriver(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """파일드라이버: 6딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    return {"success": True, "skill": "파일드라이버", "damage_log": result}
+
+
+# ═══════════════════════════════════════════════════════
+#  둠피스트
+# ═══════════════════════════════════════════════════════
+
+@register_skill("doomfist", "skill_1")
+def doomfist_rocket_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """로켓 펀치: 대상 5딜 + 뒤 카드 3딜."""
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    damages = game.get_skill_damage(caster, "skill_1")  # [5, 3]
+    main_dmg = damages[0] if isinstance(damages, list) else damages
+    behind_dmg = damages[1] if isinstance(damages, list) and len(damages) > 1 else 0
+
+    result = target.take_damage(main_dmg)
+    logs = [{"target": target.uid, "damage_log": result}]
+
+    # 뒤 카드에도 데미지
+    if behind_dmg > 0:
+        enemy_field = game.get_enemy_field(caster)
+        layers = enemy_field._main_layers()
+        target_dist = enemy_field.get_distance(target)
+        for layer in layers:
+            for c in layer:
+                if enemy_field.get_distance(c) == target_dist + 1:
+                    behind_result = c.take_damage(behind_dmg)
+                    logs.append({"target": c.uid, "behind_damage": behind_result})
+
+    return {"success": True, "skill": "로켓 펀치", "damage_logs": logs}
+
+
+@register_skill("doomfist", "skill_2")
+def doomfist_power_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """파워블락: 피해 감소 + 강화 펀치 활성화."""
+    from game_engine.status_effects import DamageReduction
+    caster.add_status(DamageReduction(percent=50, duration=1, source_uid=caster.uid))
+    caster.extra["empowered_punch"] = True
+    return {"success": True, "skill": "파워블락"}
+
+
+# ═══════════════════════════════════════════════════════
+#  시그마
+# ═══════════════════════════════════════════════════════
+
+@register_skill("sigma", "skill_1")
+def sigma_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """실험용 방벽: 도발 + 내구도 10 방벽."""
+    from game_engine.status_effects import Taunt
+    caster.add_status(Barrier(barrier_hp=10, duration=-1, source_uid=caster.uid))
+    caster.add_status(Taunt(duration=-1, source_uid=caster.uid))
+    return {"success": True, "skill": "실험용 방벽"}
+
+
+@register_skill("sigma", "skill_2")
+def sigma_accretion(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """초재생: 방벽 내구도 5 회복."""
+    barrier = caster.get_status("barrier")
+    if barrier:
+        barrier.barrier_hp = min(barrier.barrier_hp + 5, 10)
+    return {"success": True, "skill": "초재생", "barrier_hp": barrier.barrier_hp if barrier else 0}
+
+
+# ═══════════════════════════════════════════════════════
+#  라마트라
+# ═══════════════════════════════════════════════════════
+
+@register_skill("ramattra", "skill_1")
+def ramattra_vortex(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """탐식의 소용돌이: 한 역할군에게 사거리-1 + 2딜 (일반 폼)."""
+    if caster.extra.get("form") == "nemesis":
+        return {"success": False, "message": "일반 폼에서만 사용 가능"}
+    if not target:
+        return {"success": False, "message": "대상이 필요합니다"}
+    from game_engine.status_effects import Knockback
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    target.add_status(Knockback(value=1, duration=1, source_uid=caster.uid))
+    return {"success": True, "skill": "탐식의 소용돌이", "damage_log": result}
+
+
+@register_skill("ramattra", "skill_2")
+def ramattra_form_change(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """폼 체인지: 일반↔네메시스 전환."""
+    if caster.extra.get("form") == "nemesis":
+        caster.extra["form"] = "normal"
+        caster.max_hp -= 10
+        caster.current_hp = min(caster.current_hp, caster.max_hp)
+        return {"success": True, "skill": "폼 체인지", "form": "normal"}
+    else:
+        caster.extra["form"] = "nemesis"
+        caster.max_hp += 10
+        caster.current_hp += 10
+        return {"success": True, "skill": "폼 체인지", "form": "nemesis"}
+
+
+@register_skill("ramattra", "skill_3")
+def ramattra_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """막기: 50% 피해감소 (네메시스 폼)."""
+    if caster.extra.get("form") != "nemesis":
+        return {"success": False, "message": "네메시스 폼에서만 사용 가능"}
+    from game_engine.status_effects import DamageReduction
+    caster.add_status(DamageReduction(percent=50, duration=1, source_uid=caster.uid))
+    return {"success": True, "skill": "막기"}

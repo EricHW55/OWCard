@@ -385,8 +385,23 @@ class GameEngine:
 
         # 대상 찾기 (아군 또는 적군)
         target = None
+        is_enemy_target = False
         if target_uid:
-            target = ps.field.find_card(target_uid) or opp.field.find_card(target_uid)
+            # 아군인지 적군인지 판단
+            ally = ps.field.find_card(target_uid)
+            enemy = opp.field.find_card(target_uid)
+            if ally:
+                target = ally
+                is_enemy_target = False
+            elif enemy:
+                target = enemy
+                is_enemy_target = True
+
+        # 적군 대상이면 사거리 검증
+        if target and is_enemy_target:
+            valid_targets = opp.field.get_all_targetable(caster)
+            if target.uid not in {c.uid for c in valid_targets}:
+                return {"error": f"사거리 밖의 대상입니다 (사거리: {caster.attack_range})"}
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)
