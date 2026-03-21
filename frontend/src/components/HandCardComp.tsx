@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 import { getHeroImageSrc } from '../utils/heroImage';
@@ -12,7 +12,10 @@ interface Props {
 const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
     const [imgError, setImgError] = useState(false);
-    const imgSrc = getHeroImageSrc(card as any);
+
+    useEffect(() => {
+        setImgError(false);
+    }, [card.id, card.hero_key, card.name, card.is_spell]);
 
     return (
         <div
@@ -69,10 +72,14 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
                     <span style={{ fontSize: 16 }}>✦</span>
                 ) : !imgError ? (
                     <img
-                        src={imgSrc}
+                        src={getHeroImageSrc(card as any)}
                         alt={card.name}
                         onError={() => setImgError(true)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                        }}
                     />
                 ) : (
                     <span style={{ fontSize: 18 }}>{ROLE_ICON[card.role]}</span>
