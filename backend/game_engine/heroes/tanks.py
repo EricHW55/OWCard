@@ -179,8 +179,8 @@ def ramattra_block(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     return {"success": True, "skill": "막기"}
 
 # ── 도미나 (신규) ─────────────────────────
-@register_skill("mauga", "skill_1")
-def mauga_crystal(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("domina", "skill_1")
+def domina_crystal(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """수정 발사: 탱커 무시, 딜러진만 광역 3딜. 딜러 없으면 0."""
     from game_engine.field import Role
     enemy = game.get_enemy_field(caster)
@@ -192,8 +192,8 @@ def mauga_crystal(caster: FieldCard, target: FieldCard, game: GameState) -> dict
         logs.append({"target": c.uid, "damage_log": r})
     return {"success": True, "skill": "수정 발사", "affected": logs}
 
-@register_skill("mauga", "skill_2")
-def mauga_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("domina", "skill_2")
+def domina_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """방벽 배열: 자신에게 내구도4 방벽 + 도발."""
     caster.add_status(Barrier(barrier_hp=4, duration=-1, source_uid=caster.uid))
     caster.add_status(Taunt(duration=-1, source_uid=caster.uid))

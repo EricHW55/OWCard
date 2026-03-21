@@ -56,7 +56,7 @@ SEED_CARDS = [
      "skill_meta":{"skill_1":{"name":"탐식의 소용돌이","cooldown":0},"skill_2":{"name":"폼 체인지","cooldown":0},"skill_3":{"name":"막기","cooldown":0}},
      "extra":{"nemesis_bonus_hp":10,"block_reduction":50}},
 
-    {"hero_key":"mauga","name":"도미나","role":"tank","hp":22,"cost":2,"base_attack":0,"base_defense":0,"base_attack_range":1,
+    {"hero_key":"domina","name":"도미나","role":"tank","hp":22,"cost":2,"base_attack":0,"base_defense":0,"base_attack_range":1,
      "description":"수정 발사로 딜러진 관통 광역. 방벽 배열로 도발.",
      "skill_damages":{"skill_1":3},
      "skill_meta":{"skill_1":{"name":"수정 발사","cooldown":0},"skill_2":{"name":"방벽 배열","cooldown":0}},
