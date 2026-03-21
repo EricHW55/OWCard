@@ -334,7 +334,7 @@ class Field:
     # ── 배치 ──────────────────────────────────
 
     def _count_role(self, cards: list[FieldCard], role: Role) -> int:
-        return sum(1 for c in cards if c.role == role and c.alive)
+        return sum(1 for c in cards if c.role == role and c.alive and not c.extra.get("is_token"))
 
     def can_place_main(self, role: Role) -> bool:
         main_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
@@ -344,7 +344,7 @@ class Field:
         return main_count < main_limits[role] and total_count < total_limits[role]
 
     def can_place_side(self, role: Role) -> bool:
-        alive = self._alive(self.side_cards)
+        alive = [c for c in self._alive(self.side_cards) if not c.extra.get("is_token")]
         # 사이드 기본 규칙: 탱커 1명 단독 or 딜러+힐러 각 1명
         if role == Role.TANK:
             if len(alive) > 0:

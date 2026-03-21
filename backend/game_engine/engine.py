@@ -139,6 +139,21 @@ class GameState:
         ps.hand.extend(drawn)
         return drawn
 
+    def get_actual_slot_index(self, target: FieldCard, damage_table) -> int:
+        """압축 거리 대신 실제 위치 기준 인덱스.
+        MAIN: 탱커=0, 딜러=1, 힐러=2 / SIDE: 마지막 인덱스.
+        """
+        if not isinstance(damage_table, (list, tuple)) or not damage_table:
+            return 0
+        if target.zone == Zone.SIDE:
+            return len(damage_table) - 1
+        role_index = {
+            Role.TANK: 0,
+            Role.DEALER: 1,
+            Role.HEALER: 2,
+        }
+        return min(role_index.get(target.role, len(damage_table) - 1), len(damage_table) - 1)
+
 
 # ═══════════════════════════════════════════════════════
 #  GameEngine — 게임 인스턴스
@@ -508,6 +523,14 @@ class GameEngine:
         self._check_game_over()
         return result
 
+    def _get_skill_range_override(self, caster: FieldCard, skill_key: str) -> int | None:
+        hero_key = str(caster.extra.get("_hero_key", "")).lower()
+        if hero_key == "dva" and skill_key == "skill_1":
+            return 2
+        if hero_key == "junkerqueen" and skill_key == "skill_1":
+            return 3
+        return None
+
     # ── 액션: 스킬 사용 ──────────────────────
 
     def use_skill(self, player_id: int, caster_uid: str,
@@ -545,9 +568,11 @@ class GameEngine:
 
         # 적군 대상이면 사거리 검증
         if target and is_enemy_target:
-            valid_targets = opp.field.get_all_targetable(caster)
+            range_override = self._get_skill_range_override(caster, skill_key)
+            valid_targets = opp.field.get_all_targetable(caster, override_range=range_override)
+            shown_range = range_override if range_override is not None else caster.attack_range
             if target.uid not in {c.uid for c in valid_targets}:
-                return {"error": f"사거리 밖의 대상입니다 (사거리: {caster.attack_range})"}
+                return {"error": f"사거리 밖의 대상입니다 (사거리: {shown_range})"}
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)

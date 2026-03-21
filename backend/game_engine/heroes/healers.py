@@ -231,6 +231,27 @@ def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     return {"success": True, "skill": "펄사어뢰", "healed": logs}
 
 # ── 제트팩 캣 ─────────────────────────────
+@register_passive("jetpack_cat")
+def jetpack_cat_passive(card: FieldCard, game: GameState) -> dict:
+    ps = game.get_my_player(card)
+    options = []
+    if ps:
+        options = [
+            {"index": i, "name": c.get("name", "?"), "role": c.get("role", "?")}
+            for i, c in enumerate(ps.hand)
+            if not c.get("is_spell", False)
+        ]
+    if not options:
+        return {"passive": "생명줄", "message": "추가 배치할 영웅 카드 없음"}
+    return {
+        "passive": "생명줄",
+        "needs_choice": {
+            "type": "jetpack_cat_extra_place",
+            "source_uid": card.uid,
+            "options": options,
+        },
+    }
+
 @register_skill("jetpack_cat", "skill_1")
 def jetpack_cat_nyan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
