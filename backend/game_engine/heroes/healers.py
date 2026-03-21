@@ -183,8 +183,9 @@ def juno_passive(card: FieldCard, game: GameState) -> dict:
 def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     my = game.get_my_field(caster)
     heal = game.get_skill_damage(caster, "skill_1")
-    col = my.get_column(caster)
-    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in col]
+    targets = my.all_cards()
+
+    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in targets]
     return {"success": True, "skill": "펄사어뢰", "healed": logs}
 
 # ── 제트팩 캣 ─────────────────────────────

@@ -167,10 +167,13 @@ def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 # ── 에코 ──────────────────────────────────
 @register_skill("echo", "skill_1")
 def echo_bombs(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
     dmgs = game.get_skill_damage(caster, "skill_1")
     result = target.take_damage(dmgs[0])
-    target.add_status(StickyBomb(duration=1, explode_damage=dmgs[1], source_uid=caster.uid))
+    target.add_status(StickyBomb(duration=2, explode_damage=dmgs[1], source_uid=caster.uid))
+
     return {"success": True, "skill": "점착폭탄", "damage_log": result, "bomb": dmgs[1]}
 
 @register_skill("echo", "skill_2")
@@ -184,12 +187,20 @@ def echo_beam(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 캐서디 ────────────────────────────────
 @register_skill("cassidy", "skill_1")
 def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
     tbl = game.get_skill_damage(caster, "skill_1")
-    dist = game.get_distance_between(caster, target)
-    dmg = tbl[min(dist - 1, len(tbl) - 1)]
+    idx = game.get_actual_slot_index(target, tbl)
+    dmg = tbl[idx]
     result = target.take_damage(dmg)
-    return {"success": True, "skill": "난사", "distance": dist, "damage_log": result}
+
+    return {
+        "success": True,
+        "skill": "난사",
+        "slot_index": idx,
+        "damage_log": result,
+    }
 
 # ── 리퍼 ──────────────────────────────────
 @register_skill("reaper", "skill_1")

@@ -46,21 +46,40 @@ def dva_passive(card: FieldCard, game: GameState) -> dict:
 
 @register_skill("dva", "skill_1")
 def dva_booster(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.extra.get("form") != "mech": return {"success": False, "message": "메카만 가능"}
-    if not target: return {"success": False, "message": "대상 필요"}
+    if caster.extra.get("form") != "mech":
+        return {"success": False, "message": "메카만 가능"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
-    caster.add_status(Exposed(duration=1, source_uid=caster.uid))
-    return {"success": True, "skill": "부스터", "damage_log": result}
+    caster.remove_status("exposed")
+    caster.add_status(Exposed(duration=2, source_uid=caster.uid))
+
+    return {
+        "success": True,
+        "skill": "부스터",
+        "damage_log": result,
+        "message": "다음 상대 턴까지 패싱당함",
+    }
 
 @register_skill("dva", "skill_2")
 def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.extra.get("form") != "mech": return {"success": False, "message": "메카만 가능"}
-    if not target: return {"success": False, "message": "대상 필요"}
+    if caster.extra.get("form") != "mech":
+        return {"success": False, "message": "메카만 가능"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
     dmg_table = game.get_skill_damage(caster, "skill_2")
-    dist = game.get_distance_between(caster, target)
-    idx = min(dist - 1, len(dmg_table) - 1)
-    result = target.take_damage(dmg_table[idx])
-    return {"success": True, "skill": "마이크로 미사일", "distance": dist, "damage_log": result}
+    idx = game.get_actual_slot_index(target, dmg_table)
+    dmg = dmg_table[idx]
+    result = target.take_damage(dmg)
+
+    return {
+        "success": True,
+        "skill": "마이크로 미사일",
+        "slot_index": idx,
+        "damage_log": result,
+    }
 
 # ── 자리야 ────────────────────────────────
 @register_skill("zarya", "skill_1")
@@ -91,9 +110,12 @@ def wrecking_ball_piledriver(caster: FieldCard, target: FieldCard, game: GameSta
 # ── 정커퀸 ────────────────────────────────
 @register_skill("junkerqueen", "skill_1")
 def junkerqueen_jagged(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     target.add_status(Knockback(value=-1, duration=1, source_uid=caster.uid))
+
     return {"success": True, "skill": "톱니칼", "damage_log": result, "pulled": True}
 
 @register_skill("junkerqueen", "skill_2")

@@ -203,12 +203,17 @@ class Burrowed(StatusEffect):
     def on_before_attack(self, card, target):
         return {"bypass_distance": 1}
 
+
 @dataclass
 class Exposed(StatusEffect):
-    """노출 (디바 부스터 후): 다음 턴 패싱 당함."""
+    """노출 (디바 부스터 후): 다음 상대 턴 동안 이 카드는 앞라인을 막지 못함."""
     name: str = "exposed"
-    duration: int = 1
+    duration: int = 2
     tags: list[str] = field(default_factory=lambda: ["debuff"])
+
+    def on_before_targeted(self, card, attacker):
+        # 자신도 조금 더 쉽게 맞고, 뒤 라인도 패싱 가능하게 만듦
+        return {"distance_modifier": -1, "ignore_as_blocker": True}
 
 
 @dataclass
@@ -298,15 +303,17 @@ class Burn(StatusEffect):
 
 @dataclass
 class StickyBomb(StatusEffect):
-    """점착폭탄 (에코): 다음 턴에 추가 데미지."""
+    """점착폭탄 (에코): 상대 턴 종료 시 폭발."""
     name: str = "sticky_bomb"
-    duration: int = 1
+    duration: int = 2
     explode_damage: int = 4
     tags: list[str] = field(default_factory=lambda: ["debuff"])
 
-    def on_turn_start(self, card):
+    def on_turn_end(self, card):
+        # 상대 턴 종료 시점에 2턴 뒤 폭발 느낌
         if self.duration <= 1:
             card.take_raw_damage(self.explode_damage)
+            self.duration = 0
             return {"exploded": True, "damage": self.explode_damage}
         return {}
 
@@ -348,13 +355,15 @@ class Immortality(StatusEffect):
 
 @dataclass
 class Reflect(StatusEffect):
-    """튕겨내기: 치명타 반사."""
+    """튕겨내기: 치명타 반사. 1회성."""
     name: str = "reflect"
     visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_take_damage(self, card, damage, **kwargs):
         if card.current_hp - damage <= 0:
+            # 발동 즉시 소모
+            card.remove_status(self.name)
             return {"damage": 0, "reflect": damage}
         return {"damage": damage}
 
@@ -383,7 +392,6 @@ class ExtraHP(StatusEffect):
 
 @dataclass
 class MechDestruction(StatusEffect):
-    """디바 메카 파괴 → 송하나 변환. 패시브로 영구 보유."""
     name: str = "mech_destruction"
     duration: int = -1
     hana_hp: int = 5
@@ -396,13 +404,14 @@ class MechDestruction(StatusEffect):
             self.used = True
             card.extra["form"] = "hana"
             card.extra["hana_survive_turns"] = 0
+            card.name = "송하나"
             return {
                 "prevent_death": True,
                 "set_hp": self.hana_hp,
                 "transform": "hana_song",
             }
         return {}
-
+    
 
 @dataclass
 class Charging(StatusEffect):

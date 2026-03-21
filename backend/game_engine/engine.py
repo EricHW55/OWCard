@@ -124,6 +124,24 @@ class GameState:
         """두 카드 사이 거리 (같은 필드면 레이어 차이, 다른 필드면 레이어 합)."""
         enemy_field = self.get_enemy_field(a)
         return enemy_field.get_distance(b)
+    
+    def get_actual_slot_index(self, target: FieldCard, damage_table) -> int:
+        """압축 거리 말고 실제 슬롯 기준 인덱스.
+        MAIN: 탱커=0, 딜러=1, 힐러=2
+        SIDE: 마지막 인덱스
+        """
+        if not isinstance(damage_table, (list, tuple)) or not damage_table:
+            return 0
+
+        if target.zone == Zone.SIDE:
+            return len(damage_table) - 1
+
+        role_index = {
+            Role.TANK: 0,
+            Role.DEALER: 1,
+            Role.HEALER: 2,
+        }
+        return min(role_index.get(target.role, len(damage_table) - 1), len(damage_table) - 1)
 
     def draw_cards(self, card: FieldCard, count: int) -> list[dict]:
         """카드 드로우."""
@@ -278,7 +296,7 @@ class GameEngine:
             skills=get_hero_skills(hero_name),
             skill_damages=card_data.get("skill_damages", {}),
             skill_meta=card_data.get("skill_meta", {}),
-            extra=card_data.get("extra", {}),
+            extra={**card_data.get("extra", {}), "_hero_key": hero_name},
         )
 
         if not ps.field.place_card(fc, target_zone):
@@ -366,6 +384,19 @@ class GameEngine:
         return result
 
     # ── 액션: 스킬 사용 ──────────────────────
+    
+    def _get_skill_range_override(self, caster: FieldCard, skill_key: str) -> int | None:
+        hero_key = caster.extra.get("_hero_key", "").lower()
+
+        # 디바 부스터: 탱커 패싱해서 딜러까지 닿게
+        if hero_key == "dva" and skill_key == "skill_1":
+            return 2
+
+        # 정커퀸 톱니칼: 힐러까지 가능
+        if hero_key == "junkerqueen" and skill_key == "skill_1":
+            return 3
+
+        return None
 
     def use_skill(self, player_id: int, caster_uid: str,
                   skill_key: str, target_uid: str | None = None) -> dict:
@@ -400,9 +431,12 @@ class GameEngine:
 
         # 적군 대상이면 사거리 검증
         if target and is_enemy_target:
-            valid_targets = opp.field.get_all_targetable(caster)
+            range_override = self._get_skill_range_override(caster, skill_key)
+            valid_targets = opp.field.get_all_targetable(caster, override_range=range_override)
+            shown_range = range_override if range_override is not None else caster.attack_range
+
             if target.uid not in {c.uid for c in valid_targets}:
-                return {"error": f"사거리 밖의 대상입니다 (사거리: {caster.attack_range})"}
+                return {"error": f"사거리 밖의 대상입니다 (사거리: {shown_range})"}
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)
