@@ -273,6 +273,7 @@ class GameEngine:
             base_attack=card_data.get("attack", 0),
             base_defense=card_data.get("defense", 0),
             base_attack_range=card_data.get("attack_range", 1),
+            description=card_data.get("description", ""),
             zone=target_zone,
             skills=get_hero_skills(hero_name),
             skill_damages=card_data.get("skill_damages", {}),

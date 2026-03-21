@@ -40,7 +40,9 @@ def winston_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> di
 def dva_passive(card: FieldCard, game: GameState) -> dict:
     card.extra["form"] = "mech"
     card.extra["hana_survive_turns"] = 0
-    return {}
+    from game_engine.status_effects import MechDestruction
+    card.add_status(MechDestruction(hana_hp=card.extra.get("hana_hp", 5), source_uid=card.uid))
+    return {"mech_form": True}
 
 @register_skill("dva", "skill_1")
 def dva_booster(caster: FieldCard, target: FieldCard, game: GameState) -> dict:

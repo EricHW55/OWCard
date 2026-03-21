@@ -9,6 +9,7 @@ export interface FieldCard {
   template_id: number;
   name: string;
   role: Role;
+  description: string;
   max_hp: number;
   current_hp: number;
   attack: number;
@@ -30,6 +31,10 @@ export interface StatusEffect {
   source: string;
   visible: boolean;
   tags: string[];
+  barrier_hp?: number;
+  barrier_max_hp?: number;
+  extra_hp?: number;
+  value?: number;
 }
 
 export interface HandCard {

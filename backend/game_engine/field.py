@@ -53,6 +53,7 @@ class FieldCard:
     base_attack: int               # DB에서 읽은 기본 공격력
     base_defense: int
     base_attack_range: int
+    description: str = ""          # 카드 설명 (프론트 표시용)
     zone: Zone = Zone.MAIN
 
     # ── 인게임 상태 ───────────────────────────
@@ -286,6 +287,7 @@ class FieldCard:
             "template_id": self.template_id,
             "name": self.name,
             "role": self.role.value,
+            "description": self.description,
             "max_hp": self.max_hp,
             "current_hp": self.current_hp,
             "attack": self.attack,

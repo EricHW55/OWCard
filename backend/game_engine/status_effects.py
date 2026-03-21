@@ -121,15 +121,18 @@ class Barrier(StatusEffect):
     def on_take_damage(self, card, damage, **kwargs):
         if self.barrier_hp <= 0:
             return {"damage": damage}
-        # 방벽이 먼저 맞음
         ignore_barrier = kwargs.get("ignore_barrier", False)
         if ignore_barrier:
-            return {"damage": damage}  # 화염강타 같은 방벽 무시 스킬
+            return {"damage": damage}
+        # 방벽이 HP가 남아있으면 모든 데미지를 흡수 (넘치는 데미지도 흡수)
+        self.barrier_hp = max(0, self.barrier_hp - damage)
+        return {"damage": 0, "barrier_absorbed": damage, "barrier_hp": self.barrier_hp}
 
-        absorbed = min(damage, self.barrier_hp)
-        self.barrier_hp -= absorbed
-        remaining = damage - absorbed
-        return {"damage": remaining, "barrier_absorbed": absorbed, "barrier_hp": self.barrier_hp}
+    def to_dict(self):
+        d = super().to_dict()
+        d["barrier_hp"] = self.barrier_hp
+        d["barrier_max_hp"] = self.barrier_max_hp
+        return d
 
 
 @dataclass
@@ -158,13 +161,13 @@ class ParticleBarrier(StatusEffect):
 
 @dataclass
 class Airborne(StatusEffect):
-    """공중 상태 (프레야): 한 칸 무시 공격 가능 + 피격 사거리 -1."""
+    """공중 상태 (프레야): 한 칸 무시 공격 가능 + 피격 쉬움."""
     name: str = "airborne"
-    duration: int = 1
+    duration: int = 2  # 이번 턴 + 상대 턴 → 다음 내 턴 시작에 사용 가능
     tags: list[str] = field(default_factory=lambda: ["movement"])
 
     def on_before_attack(self, card, target):
-        return {"bypass_distance": 1}  # 한 칸 무시
+        return {"bypass_distance": 1}
 
     def on_before_targeted(self, card, attacker):
         return {"distance_modifier": -1}  # 피격 사거리 줄어듦 (더 쉽게 맞음)
@@ -191,7 +194,7 @@ class Stealth(StatusEffect):
 class Burrowed(StatusEffect):
     """잠복 (벤처): 타겟팅 제외 + 다음 턴 한 칸 무시 공격."""
     name: str = "burrowed"
-    duration: int = 1
+    duration: int = 2  # 이번 턴 + 상대 턴 → 다음 내 턴에 공격
     tags: list[str] = field(default_factory=lambda: ["movement"])
 
     def on_before_targeted(self, card, attacker):
@@ -364,12 +367,39 @@ class ExtraHP(StatusEffect):
     def on_take_damage(self, card, damage, **kwargs):
         if self.value <= 0:
             return {"damage": damage}
-        absorbed = min(damage, self.value)
-        self.value -= absorbed
-        remaining = damage - absorbed
+        # 추가체력도 방벽처럼 모든 데미지 흡수
+        self.value = max(0, self.value - damage)
         if self.value <= 0:
-            self.duration = 0  # 추가 체력 소진 → 효과 제거
-        return {"damage": remaining, "extra_hp_absorbed": absorbed}
+            self.duration = 0
+        return {"damage": 0, "extra_hp_absorbed": damage}
+
+    def to_dict(self):
+        d = super().to_dict()
+        d["extra_hp"] = self.value
+        return d
+
+
+@dataclass
+class MechDestruction(StatusEffect):
+    """디바 메카 파괴 → 송하나 변환. 패시브로 영구 보유."""
+    name: str = "mech_destruction"
+    duration: int = -1
+    hana_hp: int = 5
+    used: bool = False
+    visible_to_opponent: bool = False
+    tags: list[str] = field(default_factory=lambda: ["passive"])
+
+    def on_death(self, card):
+        if not self.used and card.extra.get("form") == "mech":
+            self.used = True
+            card.extra["form"] = "hana"
+            card.extra["hana_survive_turns"] = 0
+            return {
+                "prevent_death": True,
+                "set_hp": self.hana_hp,
+                "transform": "hana_song",
+            }
+        return {}
 
 
 @dataclass

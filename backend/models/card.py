@@ -71,6 +71,7 @@ class CardTemplate(Base):
             "hero_key": self.hero_key,
             "name": self.name,
             "role": self.role,
+            "description": self.description or "",
             "hp": self.hp,
             "cost": self.cost,
             "attack": self.base_attack,
