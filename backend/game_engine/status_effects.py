@@ -200,6 +200,8 @@ class Burrowed(StatusEffect):
     def on_before_targeted(self, card, attacker):
         return {"untargetable": True}
 
+    def on_before_attack(self, card, target):
+        return {"bypass_distance": 1}
 
 @dataclass
 class Exposed(StatusEffect):

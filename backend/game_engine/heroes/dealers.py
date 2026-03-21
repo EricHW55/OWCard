@@ -102,7 +102,7 @@ def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dic
         caster.remove_status("burrowed")
         caster.extra["used_burrow_last"] = True
         return {"success": True, "skill": "잠복 공격", "damage_log": result}
-    caster.add_status(Burrowed(duration=1, source_uid=caster.uid))
+    caster.add_status(Burrowed(duration=2, source_uid=caster.uid))
     return {"success": True, "skill": "잠복"}
 
 @register_skill("venture", "skill_2")
