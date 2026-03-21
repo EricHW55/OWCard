@@ -68,6 +68,15 @@ const GamePage: React.FC = () => {
           setActionMode('spell');
           addLog('스킬 카드 대상 선택');
         }
+        if (msg.result?.passive_triggered?.summoned) {
+          addLog(`설치물 소환: ${msg.result.passive_triggered.summoned.name}`);
+        }
+        if (msg.result?.passive_triggered?.needs_choice || msg.result?.needs_choice) {
+          addLog('패시브 추가 선택 필요');
+        }
+        if (msg.action === 'resolve_passive_choice' && msg.result?.card?.name) {
+          addLog(`패시브 처리: ${msg.result.card.name}`);
+        }
       }),
       ws.on('opponent_action', (msg: any) => addLog(`상대: ${msg.action}`)),
       ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
@@ -90,6 +99,7 @@ const GamePage: React.FC = () => {
   const { phase, turn, round, is_my_turn } = gs;
   const my = gs.my_state;
   const opp = gs.opponent_state;
+  const pendingPassive = my.pending_passive || null;
 
   const selectedHandCard = selectedHandIdx !== null ? my.hand[selectedHandIdx] : null;
   const allMyField = [...my.field.main, ...my.field.side];
@@ -106,6 +116,20 @@ const GamePage: React.FC = () => {
       setSelectedMulligan(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index].slice(0, 2));
       return;
     }
+
+    if (pendingPassive?.type === 'jetpack_cat_extra_place') {
+      if (card.is_spell) {
+        addLog('스킬 카드는 추가 배치할 수 없음');
+        return;
+      }
+      if (selectedHandIdx === index) { setSelectedHandIdx(null); return; }
+      setSelectedHandIdx(index);
+      setSelectedFieldUid(null);
+      setActionMode(null);
+      setPendingSpell(null);
+      return;
+    }
+
     if (selectedHandIdx === index) { setDetailCard(card); setSelectedHandIdx(null); setActionMode(null); return; }
     setSelectedHandIdx(index);
     setSelectedFieldUid(null);
@@ -147,6 +171,14 @@ const GamePage: React.FC = () => {
   const handlePlace = (zone: 'main' | 'side') => {
     if (selectedHandIdx === null || !is_my_turn || phase !== 'placement') return;
     const card = my.hand[selectedHandIdx];
+
+    if (pendingPassive?.type === 'jetpack_cat_extra_place') {
+      send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
+      addLog(`${card.name} → ${zone === 'main' ? '본대' : '사이드'} 추가 배치`);
+      setSelectedHandIdx(null);
+      return;
+    }
+
     send({ action: 'place_card', hand_index: selectedHandIdx, zone });
     addLog(`${card.name} → ${zone === 'main' ? '본대' : '사이드'} ${card.is_spell ? '사용' : '배치'}`);
     setSelectedHandIdx(null);
@@ -256,6 +288,26 @@ const GamePage: React.FC = () => {
             </div>
         )}
 
+        {pendingPassive?.type === 'mercy_resurrect' && (
+            <div style={{ display: 'flex', gap: 6, padding: '5px 12px', background: '#0d1225', borderTop: '1px solid #2a3560', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, color: '#ffaa22', fontWeight: 700 }}>메르시 부활 대상 선택</span>
+              {(pendingPassive.options || []).map((opt) => (
+                  <button key={opt.index} onClick={() => send({ action: 'resolve_passive_choice', trash_index: opt.index })} style={btnS}>
+                    {opt.name}
+                  </button>
+              ))}
+              <button onClick={() => send({ action: 'resolve_passive_choice', skip: true })} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+            </div>
+        )}
+
+        {pendingPassive?.type === 'jetpack_cat_extra_place' && (
+            <div style={{ display: 'flex', gap: 6, padding: '5px 12px', background: '#0d1225', borderTop: '1px solid #2a3560', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: '#ffaa22', fontWeight: 700 }}>제트팩 캣 추가 배치</span>
+              <span style={{ fontSize: 10, color: '#ffaa22' }}>→ 손패 영웅 카드 선택 후 빈 자리를 클릭</span>
+              <button onClick={() => { setSelectedHandIdx(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+            </div>
+        )}
+
         {/* ══ 하단: 손패 + 컨트롤 ══════════ */}
         <div style={{ background: '#0d1225', borderTop: '1px solid #2a3560', flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: 5, padding: '6px 12px', overflowX: 'auto', justifyContent: my.hand.length <= 6 ? 'center' : 'flex-start' }}>
@@ -268,10 +320,10 @@ const GamePage: React.FC = () => {
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {phase === 'placement' && <span style={{ fontSize: 10, color: '#ffaa22' }}>배치 {my.placement_cost_used}/2</span>}
               {phase !== 'mulligan' && (
-                  <button disabled={!is_my_turn} onClick={() => {
+                  <button disabled={!is_my_turn || !!pendingPassive} onClick={() => {
                     if (phase === 'placement') { send({ action: 'end_placement' }); addLog('배치 완료'); }
                     else if (phase === 'action') { send({ action: 'end_turn' }); addLog('턴 종료'); }
-                  }} style={{ padding: '7px 18px', borderRadius: 6, fontWeight: 900, fontSize: 13, background: '#ff9b30', border: 'none', color: '#0a0e1a', cursor: 'pointer', boxShadow: '0 0 14px rgba(255,155,48,0.3)', opacity: is_my_turn ? 1 : 0.5 }}>
+                  }} style={{ padding: '7px 18px', borderRadius: 6, fontWeight: 900, fontSize: 13, background: '#ff9b30', border: 'none', color: '#0a0e1a', cursor: 'pointer', boxShadow: '0 0 14px rgba(255,155,48,0.3)', opacity: (is_my_turn && !pendingPassive) ? 1 : 0.5 }}>
                     {phase === 'placement' ? '배치 완료' : phase === 'action' ? '턴 종료' : '대기'}
                   </button>
               )}

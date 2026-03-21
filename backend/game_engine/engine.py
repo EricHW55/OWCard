@@ -48,6 +48,7 @@ class PlayerState:
     placement_cost_used: int = 0
     connected: bool = False
     commander_skill_uses: int = 0  # 이번 라운드 지휘관 스킬 사용 횟수
+    pending_passive: Optional[dict] = None
 
     def to_dict(self, reveal_hand: bool = True) -> dict:
         return {
@@ -61,6 +62,7 @@ class PlayerState:
             "field": self.field.to_dict(for_opponent=not reveal_hand),
             "mulligan_done": self.mulligan_done,
             "placement_cost_used": self.placement_cost_used,
+            "pending_passive": self.pending_passive if reveal_hand else None,
         }
 
 
@@ -124,24 +126,6 @@ class GameState:
         """두 카드 사이 거리 (같은 필드면 레이어 차이, 다른 필드면 레이어 합)."""
         enemy_field = self.get_enemy_field(a)
         return enemy_field.get_distance(b)
-    
-    def get_actual_slot_index(self, target: FieldCard, damage_table) -> int:
-        """압축 거리 말고 실제 슬롯 기준 인덱스.
-        MAIN: 탱커=0, 딜러=1, 힐러=2
-        SIDE: 마지막 인덱스
-        """
-        if not isinstance(damage_table, (list, tuple)) or not damage_table:
-            return 0
-
-        if target.zone == Zone.SIDE:
-            return len(damage_table) - 1
-
-        role_index = {
-            Role.TANK: 0,
-            Role.DEALER: 1,
-            Role.HEALER: 2,
-        }
-        return min(role_index.get(target.role, len(damage_table) - 1), len(damage_table) - 1)
 
     def draw_cards(self, card: FieldCard, count: int) -> list[dict]:
         """카드 드로우."""
@@ -249,6 +233,165 @@ class GameEngine:
             "turn": self.turn_number,
         }
 
+    def _build_field_card(self, card_data: dict, zone: Zone, *, placed_this_turn: bool = True) -> FieldCard:
+        hero_name = card_data.get("hero_key", card_data.get("name", "").lower())
+        return FieldCard(
+            uid=uuid.uuid4().hex[:8],
+            template_id=card_data.get("id", 0),
+            name=card_data["name"],
+            role=Role(card_data["role"]),
+            max_hp=card_data.get("hp", card_data.get("max_hp", 1)),
+            base_attack=card_data.get("attack", card_data.get("base_attack", 0)),
+            base_defense=card_data.get("defense", card_data.get("base_defense", 0)),
+            base_attack_range=card_data.get("attack_range", card_data.get("base_attack_range", 1)),
+            description=card_data.get("description", ""),
+            zone=zone,
+            placed_this_turn=placed_this_turn,
+            skills=get_hero_skills(hero_name),
+            skill_damages=card_data.get("skill_damages", {}),
+            skill_meta=card_data.get("skill_meta", {}),
+            extra={**card_data.get("extra", {}), "_hero_key": hero_name},
+        )
+
+    def _summon_token(self, ps: PlayerState, token_data: dict, zone: str | Zone) -> Optional[FieldCard]:
+        token_zone = zone if isinstance(zone, Zone) else Zone(zone)
+        fc = self._build_field_card(token_data, token_zone, placed_this_turn=True)
+        fc.extra["is_token"] = True
+        if not ps.field.place_card(fc, token_zone):
+            return None
+        return fc
+
+    def _apply_place_passive(self, ps: PlayerState, fc: FieldCard, hero_name: str) -> dict:
+        passive_result = {}
+        passive_fn = get_passive(hero_name)
+        if passive_fn:
+            passive_result = passive_fn(fc, self.state) or {}
+            if "summon_token" in passive_result:
+                spec = passive_result["summon_token"]
+                token = self._summon_token(ps, spec, spec.get("zone", fc.zone.value))
+                if token:
+                    passive_result["summoned"] = token.to_dict()
+                else:
+                    passive_result["summon_failed"] = True
+            if "needs_choice" in passive_result:
+                ps.pending_passive = passive_result["needs_choice"]
+        return passive_result
+
+    def _place_from_hand_free(self, ps: PlayerState, hand_index: int, zone: str, *, trigger_passive: bool = True) -> dict:
+        if hand_index < 0 or hand_index >= len(ps.hand):
+            return {"error": "Invalid hand index"}
+        card_data = ps.hand[hand_index]
+        if card_data.get("is_spell", False):
+            return {"error": "스킬 카드는 추가 배치할 수 없음"}
+        target_zone = Zone(zone)
+        hero_name = card_data.get("hero_key", card_data["name"].lower())
+        fc = self._build_field_card(card_data, target_zone, placed_this_turn=True)
+        if not ps.field.place_card(fc, target_zone):
+            return {"error": f"Cannot place {card_data['role']} in {zone}"}
+        ps.hand.pop(hand_index)
+        result = {
+            "success": True,
+            "type": "card_placed",
+            "card_uid": fc.uid,
+            "card": fc.to_dict(),
+            "zone": zone,
+            "placement_cost_used": ps.placement_cost_used,
+            "free_place": True,
+        }
+        if trigger_passive:
+            passive_result = self._apply_place_passive(ps, fc, hero_name)
+            if passive_result:
+                result["passive_triggered"] = passive_result
+        self._check_game_over()
+        return result
+
+    def _find_place_zone_for_role(self, ps: PlayerState, role: str, preferred: Optional[Zone] = None) -> Optional[Zone]:
+        role_enum = Role(role)
+        checks: list[Zone] = []
+        if preferred:
+            checks.append(preferred)
+        for z in (Zone.MAIN, Zone.SIDE):
+            if z not in checks:
+                checks.append(z)
+        for z in checks:
+            if z == Zone.MAIN and ps.field.can_place_main(role_enum):
+                return z
+            if z == Zone.SIDE and ps.field.can_place_side(role_enum):
+                return z
+        return None
+
+    def _process_auto_structures(self, ps: PlayerState) -> list[dict]:
+        logs: list[dict] = []
+        opp = self.players[self.opponent_player_id] if self.current_player_id in self.players else None
+        if not opp:
+            return logs
+        for card in list(ps.field.all_cards()):
+            kind = card.extra.get("token_kind")
+            if kind == "torbjorn_turret":
+                targets = opp.field.get_all_targetable(card)
+                if targets:
+                    target = targets[0]
+                    dmg = card.extra.get("damage", card.skill_damages.get("auto", 2))
+                    result = target.take_damage(dmg)
+                    logs.append({"type": "auto_turret", "source_uid": card.uid, "source_name": card.name, "target_uid": target.uid, "damage_log": result})
+            elif kind == "illari_pylon":
+                allies = [a for a in ps.field.all_cards() if a.current_hp < a.max_hp]
+                if allies:
+                    target = max(allies, key=lambda c: (c.max_hp - c.current_hp, c.max_hp))
+                    heal = card.extra.get("heal", card.skill_damages.get("auto", 3))
+                    healed = target.heal(heal)
+                    logs.append({"type": "auto_heal", "source_uid": card.uid, "source_name": card.name, "target_uid": target.uid, "healed": healed})
+        opp.field.remove_dead()
+        ps.field.remove_dead()
+        return logs
+
+    def resolve_passive_choice(self, player_id: int, *, trash_index: Optional[int] = None,
+                               hand_index: Optional[int] = None, zone: Optional[str] = None,
+                               skip: bool = False) -> dict:
+        ps = self.players.get(player_id)
+        if not ps:
+            return {"error": "Player not found"}
+        pending = ps.pending_passive
+        if not pending:
+            return {"error": "진행 중인 패시브 선택 없음"}
+
+        if skip:
+            skipped = pending.get("type")
+            ps.pending_passive = None
+            return {"success": True, "type": "passive_skipped", "passive": skipped}
+
+        passive_type = pending.get("type")
+        if passive_type == "mercy_resurrect":
+            if trash_index is None or trash_index < 0 or trash_index >= len(ps.trash):
+                return {"error": "잘못된 트래시 선택"}
+            source = ps.field.find_card(pending.get("source_uid", ""))
+            preferred = source.zone if source else Zone.MAIN
+            card_data = dict(ps.trash[trash_index])
+            place_zone = self._find_place_zone_for_role(ps, card_data.get("role", "dealer"), preferred)
+            if not place_zone:
+                return {"error": "부활시킬 자리가 없음"}
+            revived = self._build_field_card(card_data, place_zone, placed_this_turn=True)
+            if not ps.field.place_card(revived, place_zone):
+                return {"error": "부활 배치 실패"}
+            ps.trash.pop(trash_index)
+            ps.pending_passive = None
+            self._log("passive", player_id, {"type": passive_type, "card_uid": revived.uid})
+            self._check_game_over()
+            return {"success": True, "type": "passive_resolved", "passive": passive_type, "card": revived.to_dict(), "zone": place_zone.value}
+
+        if passive_type == "jetpack_cat_extra_place":
+            if hand_index is None or zone not in ("main", "side"):
+                return {"error": "추가 배치할 카드와 위치를 선택하세요"}
+            ps.pending_passive = None
+            result = self._place_from_hand_free(ps, hand_index, zone, trigger_passive=True)
+            if "error" in result:
+                ps.pending_passive = pending
+                return result
+            self._log("passive", player_id, {"type": passive_type, **result})
+            return {"success": True, "type": "passive_resolved", "passive": passive_type, **result}
+
+        return {"error": f"지원하지 않는 패시브 선택: {passive_type}"}
+
     # ── 배치 ──────────────────────────────────
 
     def place_card(self, player_id: int, hand_index: int, zone: str) -> dict:
@@ -256,6 +399,8 @@ class GameEngine:
             return {"error": "Not your turn / wrong phase"}
 
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         if hand_index < 0 or hand_index >= len(ps.hand):
             return {"error": "Invalid hand index"}
 
@@ -268,7 +413,6 @@ class GameEngine:
         if card_data.get("is_spell", False):
             ps.hand.pop(hand_index)
             ps.placement_cost_used += cost
-            # 스킬 카드를 TRASH로 보냄
             ps.trash.append(card_data)
             return {
                 "success": True, "type": "spell_played",
@@ -277,40 +421,16 @@ class GameEngine:
                 "placement_cost_used": ps.placement_cost_used,
             }
 
-        # 영웅 카드 → 필드에 배치
         target_zone = Zone(zone)
-        role = Role(card_data["role"])
         hero_name = card_data.get("hero_key", card_data["name"].lower())
-
-        fc = FieldCard(
-            uid=uuid.uuid4().hex[:8],
-            template_id=card_data["id"],
-            name=card_data["name"],
-            role=role,
-            max_hp=card_data["hp"],
-            base_attack=card_data.get("attack", 0),
-            base_defense=card_data.get("defense", 0),
-            base_attack_range=card_data.get("attack_range", 1),
-            description=card_data.get("description", ""),
-            zone=target_zone,
-            skills=get_hero_skills(hero_name),
-            skill_damages=card_data.get("skill_damages", {}),
-            skill_meta=card_data.get("skill_meta", {}),
-            extra={**card_data.get("extra", {}), "_hero_key": hero_name},
-        )
-
+        fc = self._build_field_card(card_data, target_zone, placed_this_turn=True)
         if not ps.field.place_card(fc, target_zone):
-            return {"error": f"Cannot place {role.value} in {zone}"}
+            return {"error": f"Cannot place {card_data['role']} in {zone}"}
 
         ps.hand.pop(hand_index)
         ps.placement_cost_used += cost
 
-        # 패시브 발동
-        passive_result = {}
-        passive_fn = get_passive(hero_name)
-        if passive_fn:
-            passive_result = passive_fn(fc, self.state)
-
+        passive_result = self._apply_place_passive(ps, fc, hero_name)
         result = {
             "success": True, "type": "card_placed",
             "card_uid": fc.uid, "card": fc.to_dict(),
@@ -320,12 +440,15 @@ class GameEngine:
             result["passive_triggered"] = passive_result
 
         self._log("place", player_id, result)
+        self._check_game_over()
         return result
 
     def end_placement(self, player_id: int) -> dict:
         if player_id != self.current_player_id or self.phase != GamePhase.PLACEMENT:
             return {"error": "Not your turn / wrong phase"}
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         if ps.field.is_empty() and len(ps.hand) > 0:
             return {"error": "Must place at least 1 card when field is empty"}
         self.phase = GamePhase.ACTION
@@ -344,6 +467,8 @@ class GameEngine:
             return {"error": "Not your turn"}
 
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         # 스킬 함수 찾기
@@ -384,19 +509,6 @@ class GameEngine:
         return result
 
     # ── 액션: 스킬 사용 ──────────────────────
-    
-    def _get_skill_range_override(self, caster: FieldCard, skill_key: str) -> int | None:
-        hero_key = caster.extra.get("_hero_key", "").lower()
-
-        # 디바 부스터: 탱커 패싱해서 딜러까지 닿게
-        if hero_key == "dva" and skill_key == "skill_1":
-            return 2
-
-        # 정커퀸 톱니칼: 힐러까지 가능
-        if hero_key == "junkerqueen" and skill_key == "skill_1":
-            return 3
-
-        return None
 
     def use_skill(self, player_id: int, caster_uid: str,
                   skill_key: str, target_uid: str | None = None) -> dict:
@@ -405,6 +517,8 @@ class GameEngine:
             return {"error": "Not your turn / wrong phase"}
 
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         caster = ps.field.find_card(caster_uid)
@@ -431,12 +545,9 @@ class GameEngine:
 
         # 적군 대상이면 사거리 검증
         if target and is_enemy_target:
-            range_override = self._get_skill_range_override(caster, skill_key)
-            valid_targets = opp.field.get_all_targetable(caster, override_range=range_override)
-            shown_range = range_override if range_override is not None else caster.attack_range
-
+            valid_targets = opp.field.get_all_targetable(caster)
             if target.uid not in {c.uid for c in valid_targets}:
-                return {"error": f"사거리 밖의 대상입니다 (사거리: {shown_range})"}
+                return {"error": f"사거리 밖의 대상입니다 (사거리: {caster.attack_range})"}
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)
@@ -479,6 +590,8 @@ class GameEngine:
             return {"error": "Not your turn / wrong phase"}
 
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         attacker = ps.field.find_card(attacker_uid)
@@ -525,6 +638,8 @@ class GameEngine:
             return {"error": "Cannot end turn now"}
 
         ps = self.players[player_id]
+        if ps.pending_passive:
+            return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         # 턴 종료 처리 (화상 데미지 등)
@@ -543,6 +658,7 @@ class GameEngine:
 
         # 새 턴 시작 처리 (점착폭탄 터짐 등)
         turn_start_logs = new_ps.field.process_all_turn_start()
+        turn_start_logs.extend(self._process_auto_structures(new_ps))
         # 시작 처리에서 죽은 카드도 트래시로
         self._collect_dead_to_trash(new_ps)
         self._collect_dead_to_trash(
@@ -570,6 +686,8 @@ class GameEngine:
         """사망 카드를 필드에서 제거하고 트래시에 전체 데이터로 저장."""
         dead = ps.field.remove_dead()
         for d in dead:
+            if d.extra.get("is_token"):
+                continue
             # 원본 덱 데이터를 찾아서 트래시에 저장 (구원의 손길로 복구 가능)
             original = None
             for card_data in ps.deck:

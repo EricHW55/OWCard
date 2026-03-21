@@ -28,48 +28,19 @@ def bastion_recon(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     return {"success": True, "skill": "설정: 수색", "damage_log": result}
 
 # ── 프레야 ────────────────────────────────
-@register_skill("freja", "skill_1")
-def freja_updraft(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """
-    상승기류
-    - 대상 필요 없음
-    - 에어본 3턴 부여 (내턴-상대턴-다음 내턴)
-    - 이미 에어본이어도 다시 사용 가능 = 지속시간 갱신
-    """
-    caster.remove_status("airborne")  # 이미 떠 있으면 갱신
-    caster.add_status(Airborne(duration=2, source_uid=caster.uid))
-
-    return {
-        "success": True,
-        "skill": "상승기류",
-        "message": "에어본 상태 돌입 (내턴-니턴-내턴 유지)",
-    }
-
-
-@register_skill("freja", "skill_2")
-def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """
-    정조준
-    - 에어본 상태일 때만 사용 가능
-    - 8 데미지
-    - 사용 후 에어본 해제
-    """
-    if not caster.has_status("airborne"):
-        return {"success": False, "message": "에어본 상태에서만 사용 가능"}
-
-    if not target:
-        return {"success": False, "message": "대상 필요"}
-
-    dmg = game.get_skill_damage(caster, "skill_2")
-    result = target.take_damage(dmg)
-    caster.remove_status("airborne")
-
-    return {
-        "success": True,
-        "skill": "정조준",
-        "damage_log": result,
-        "message": "정조준 사용 후 착지",
-    }
+@register_skill("pharah", "skill_1")
+def pharah_skill(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """상승기류+정조준: 공중이면 한칸 무시 8딜. 아니면 공중 전환."""
+    if caster.has_status("airborne"):
+        # 공중 상태 → 한칸 무시하고 공격
+        if not target: return {"success": False, "message": "대상 필요"}
+        dmg = game.get_skill_damage(caster, "skill_1")
+        result = target.take_damage(dmg)
+        caster.remove_status("airborne")
+        return {"success": True, "skill": "정조준", "damage_log": result}
+    else:
+        caster.add_status(Airborne(duration=1, source_uid=caster.uid))
+        return {"success": True, "skill": "상승기류", "message": "다음 턴 한칸 무시 공격 가능"}
 
 # ── 트레이서 ──────────────────────────────
 @register_passive("tracer")
@@ -131,7 +102,7 @@ def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dic
         caster.remove_status("burrowed")
         caster.extra["used_burrow_last"] = True
         return {"success": True, "skill": "잠복 공격", "damage_log": result}
-    caster.add_status(Burrowed(duration=2, source_uid=caster.uid))
+    caster.add_status(Burrowed(duration=1, source_uid=caster.uid))
     return {"success": True, "skill": "잠복"}
 
 @register_skill("venture", "skill_2")
@@ -167,13 +138,10 @@ def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 # ── 에코 ──────────────────────────────────
 @register_skill("echo", "skill_1")
 def echo_bombs(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target:
-        return {"success": False, "message": "대상 필요"}
-
+    if not target: return {"success": False, "message": "대상 필요"}
     dmgs = game.get_skill_damage(caster, "skill_1")
     result = target.take_damage(dmgs[0])
     target.add_status(StickyBomb(duration=1, explode_damage=dmgs[1], source_uid=caster.uid))
-
     return {"success": True, "skill": "점착폭탄", "damage_log": result, "bomb": dmgs[1]}
 
 @register_skill("echo", "skill_2")
@@ -187,20 +155,12 @@ def echo_beam(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 캐서디 ────────────────────────────────
 @register_skill("cassidy", "skill_1")
 def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target:
-        return {"success": False, "message": "대상 필요"}
-
+    if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
-    idx = game.get_actual_slot_index(target, tbl)
-    dmg = tbl[idx]
+    dist = game.get_distance_between(caster, target)
+    dmg = tbl[min(dist - 1, len(tbl) - 1)]
     result = target.take_damage(dmg)
-
-    return {
-        "success": True,
-        "skill": "난사",
-        "slot_index": idx,
-        "damage_log": result,
-    }
+    return {"success": True, "skill": "난사", "distance": dist, "damage_log": result}
 
 # ── 리퍼 ──────────────────────────────────
 @register_skill("reaper", "skill_1")
@@ -282,6 +242,34 @@ def symmetra_photon(caster: FieldCard, target: FieldCard, game: GameState) -> di
     return {"success": True, "skill": "광자 발사기", "charge": ch, "damage_log": result}
 
 # ── 토르비욘 ──────────────────────────────
+@register_passive("torbjorn")
+def torbjorn_passive(card: FieldCard, game: GameState) -> dict:
+    from game_engine.field import Zone
+    if card.zone != Zone.MAIN:
+        return {"passive": "포탑 설치", "message": "본대에서만 설치 가능"}
+    return {
+        "passive": "포탑 설치",
+        "summon_token": {
+            "hero_key": "torbjorn_turret",
+            "name": "토르비욘 포탑",
+            "role": "dealer",
+            "hp": card.extra.get("turret_hp", 5),
+            "attack": 0,
+            "defense": 0,
+            "attack_range": 1,
+            "description": "내 턴 시작 시 가까운 적 1명에게 자동 공격.",
+            "skill_damages": {"auto": card.extra.get("turret_damage", 2)},
+            "skill_meta": {},
+            "extra": {
+                "is_token": True,
+                "token_kind": "torbjorn_turret",
+                "damage": card.extra.get("turret_damage", 2),
+                "parent_uid": card.uid,
+            },
+            "zone": card.zone.value,
+        },
+    }
+
 @register_skill("torbjorn", "skill_1")
 def torbjorn_rivet(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}

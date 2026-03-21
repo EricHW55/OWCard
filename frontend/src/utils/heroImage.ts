@@ -14,6 +14,8 @@ const ID_ALIAS: Record<string, string> = {
     wrecking_ball: 'wrecking_ball',
     jetpackcat: 'jetpack_cat',
     jetpack_cat: 'jetpack_cat',
+    torbjorn_turret: 'torbjorn',
+    illari_pylon: 'illari',
 
     reinhardt: 'reinhardt',
     winston: 'winston',
@@ -83,6 +85,8 @@ const NAME_ALIAS: Record<string, string> = {
     한조: 'hanzo',
     해저드: 'hazard',
     일리아리: 'illari',
+    힐포탑: 'illari',
+    토르비욘포탑: 'torbjorn',
     제트팩캣: 'jetpack_cat',
     정커퀸: 'junker_queen',
     정크랫: 'junkrat',

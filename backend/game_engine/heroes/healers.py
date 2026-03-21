@@ -142,8 +142,23 @@ def baptiste_attack(caster: FieldCard, target: FieldCard, game: GameState) -> di
 # ── 메르시 ────────────────────────────────
 @register_passive("mercy")
 def mercy_passive(card: FieldCard, game: GameState) -> dict:
-    card.extra["resurrect_used"] = False
-    return {"passive": "부활"}
+    ps = game.get_my_player(card)
+    options = []
+    if ps:
+        options = [
+            {"index": i, "name": c.get("name", "?"), "role": c.get("role", "?")}
+            for i, c in enumerate(ps.trash)
+        ]
+    if not options:
+        return {"passive": "부활", "message": "트래시 없음"}
+    return {
+        "passive": "부활",
+        "needs_choice": {
+            "type": "mercy_resurrect",
+            "source_uid": card.uid,
+            "options": options,
+        },
+    }
 
 @register_skill("mercy", "skill_1")
 def mercy_staff(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
@@ -166,6 +181,34 @@ def brigitte_repair(caster: FieldCard, target: FieldCard, game: GameState) -> di
     return {"success": True, "skill": "수리팩", "healed": target.heal(game.get_skill_damage(caster, "skill_1"))}
 
 # ── 일리아리 ──────────────────────────────
+@register_passive("illari")
+def illari_passive(card: FieldCard, game: GameState) -> dict:
+    from game_engine.field import Zone
+    if card.zone != Zone.MAIN:
+        return {"passive": "힐포탑 설치", "message": "본대에서만 설치 가능"}
+    return {
+        "passive": "힐포탑 설치",
+        "summon_token": {
+            "hero_key": "illari_pylon",
+            "name": "힐 포탑",
+            "role": "healer",
+            "hp": card.extra.get("turret_hp", 3),
+            "attack": 0,
+            "defense": 0,
+            "attack_range": 1,
+            "description": "내 턴 시작 시 가장 체력이 낮은 아군 1명 치유.",
+            "skill_damages": {"auto": card.extra.get("turret_heal", 3)},
+            "skill_meta": {},
+            "extra": {
+                "is_token": True,
+                "token_kind": "illari_pylon",
+                "heal": card.extra.get("turret_heal", 3),
+                "parent_uid": card.uid,
+            },
+            "zone": card.zone.value,
+        },
+    }
+
 @register_skill("illari", "skill_1")
 def illari_solar(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
@@ -183,9 +226,8 @@ def juno_passive(card: FieldCard, game: GameState) -> dict:
 def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     my = game.get_my_field(caster)
     heal = game.get_skill_damage(caster, "skill_1")
-    targets = my.all_cards()
-
-    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in targets]
+    col = my.get_column(caster)
+    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in col]
     return {"success": True, "skill": "펄사어뢰", "healed": logs}
 
 # ── 제트팩 캣 ─────────────────────────────

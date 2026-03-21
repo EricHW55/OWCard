@@ -284,6 +284,7 @@ class FieldCard:
             statuses.append(s.to_dict())
         return {
             "uid": self.uid,
+            "hero_key": self.extra.get("_hero_key", ""),
             "template_id": self.template_id,
             "name": self.name,
             "role": self.role.value,
@@ -409,35 +410,12 @@ class Field:
         return 99
 
     # ── 공격 대상 계산 ────────────────────────
-    
-    def _target_distance_modifier(self, attacker: FieldCard, target: FieldCard) -> int:
-        mod = 0
-        for s in target.statuses:
-            res = s.on_before_targeted(target, attacker)
-            mod += res.get("distance_modifier", 0)
-        return mod
 
+    def get_targetable_from_main(self, attacker: FieldCard) -> list[FieldCard]:
+        """본대에서 공격 시: 사거리 내 + 도발 체크 + 타겟 가능 체크."""
+        atk_range = attacker.attack_range
 
-    def _layer_ignored_as_blocker(self, attacker: FieldCard, layer: list[FieldCard]) -> bool:
-        alive_targetables = [c for c in layer if c.is_targetable]
-        if not alive_targetables:
-            return False
-
-        for card in alive_targetables:
-            ignore = False
-            for s in card.statuses:
-                res = s.on_before_targeted(card, attacker)
-                if res.get("ignore_as_blocker"):
-                    ignore = True
-                    break
-            if not ignore:
-                return False
-        return True
-
-
-    def get_targetable_from_main(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
-        atk_range = override_range if override_range is not None else attacker.attack_range
-
+        # bypass_distance 체크 (프레야, 벤처 등)
         bypass = 0
         for s in attacker.statuses:
             result = s.on_before_attack(attacker, None)
@@ -446,6 +424,7 @@ class Field:
 
         layers = self._main_layers()
 
+        # 도발 체크
         taunt_cards = [
             c for layer in layers for c in layer
             if c.has_status("taunt") and c.is_targetable
@@ -454,61 +433,12 @@ class Field:
             return taunt_cards
 
         result = []
-        skipped_layers = 0
-
         for i, layer in enumerate(layers):
-            layer_distance = (i + 1) - skipped_layers
-
-            for c in layer:
-                if not c.is_targetable:
-                    continue
-                target_distance = max(1, layer_distance + self._target_distance_modifier(attacker, c))
-                if target_distance <= effective_range:
-                    result.append(c)
-
-            if self._layer_ignored_as_blocker(attacker, layer):
-                skipped_layers += 1
-
+            if (i + 1) <= effective_range:
+                result.extend(c for c in layer if c.is_targetable)
+            else:
+                break
         return result
-
-
-    def get_all_targetable(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
-        if attacker.zone == Zone.MAIN:
-            targets = self.get_targetable_from_main(attacker, override_range=override_range)
-        else:
-            targets = self.get_targetable_from_side(attacker)
-        targets += self.get_side_targets()
-        seen = set()
-        return [t for t in targets if not (t.uid in seen or seen.add(t.uid))]
-
-    # def get_targetable_from_main(self, attacker: FieldCard) -> list[FieldCard]:
-    #     """본대에서 공격 시: 사거리 내 + 도발 체크 + 타겟 가능 체크."""
-    #     atk_range = attacker.attack_range
-
-    #     # bypass_distance 체크 (프레야, 벤처 등)
-    #     bypass = 0
-    #     for s in attacker.statuses:
-    #         result = s.on_before_attack(attacker, None)
-    #         bypass += result.get("bypass_distance", 0)
-    #     effective_range = atk_range + bypass
-
-    #     layers = self._main_layers()
-
-    #     # 도발 체크
-    #     taunt_cards = [
-    #         c for layer in layers for c in layer
-    #         if c.has_status("taunt") and c.is_targetable
-    #     ]
-    #     if taunt_cards:
-    #         return taunt_cards
-
-    #     result = []
-    #     for i, layer in enumerate(layers):
-    #         if (i + 1) <= effective_range:
-    #             result.extend(c for c in layer if c.is_targetable)
-    #         else:
-    #             break
-    #     return result
 
     def get_targetable_from_side(self, attacker: FieldCard) -> list[FieldCard]:
         """사이드에서 본대 공격 시: 한 단계 무시."""
@@ -532,15 +462,15 @@ class Field:
     def get_side_targets(self) -> list[FieldCard]:
         return [c for c in self._alive(self.side_cards) if c.is_targetable]
 
-    # def get_all_targetable(self, attacker: FieldCard) -> list[FieldCard]:
-    #     """공격자 위치에 따른 모든 가능 대상."""
-    #     if attacker.zone == Zone.MAIN:
-    #         targets = self.get_targetable_from_main(attacker)
-    #     else:
-    #         targets = self.get_targetable_from_side(attacker)
-    #     targets += self.get_side_targets()
-    #     seen = set()
-    #     return [t for t in targets if not (t.uid in seen or seen.add(t.uid))]
+    def get_all_targetable(self, attacker: FieldCard) -> list[FieldCard]:
+        """공격자 위치에 따른 모든 가능 대상."""
+        if attacker.zone == Zone.MAIN:
+            targets = self.get_targetable_from_main(attacker)
+        else:
+            targets = self.get_targetable_from_side(attacker)
+        targets += self.get_side_targets()
+        seen = set()
+        return [t for t in targets if not (t.uid in seen or seen.add(t.uid))]
 
     # ── 특수 타겟팅 (스킬용) ──────────────────
 

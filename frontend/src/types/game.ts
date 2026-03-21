@@ -5,6 +5,7 @@ export type Zone = 'main' | 'side';
 export type Phase = 'waiting' | 'mulligan' | 'placement' | 'action' | 'game_over';
 
 export interface FieldCard {
+  hero_key?: string;
   uid: string;
   template_id: number;
   name: string;
@@ -59,6 +60,18 @@ export interface FieldState {
   side: FieldCard[];
 }
 
+export interface PendingPassiveOption {
+  index: number;
+  name: string;
+  role: string;
+}
+
+export interface PendingPassive {
+  type: 'mercy_resurrect' | 'jetpack_cat_extra_place';
+  source_uid: string;
+  options?: PendingPassiveOption[];
+}
+
 export interface PlayerState {
   player_id: number;
   username: string;
@@ -70,6 +83,7 @@ export interface PlayerState {
   field: FieldState;
   mulligan_done: boolean;
   placement_cost_used: number;
+  pending_passive?: PendingPassive | null;
 }
 
 export interface GameState {

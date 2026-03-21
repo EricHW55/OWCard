@@ -9,6 +9,7 @@
   {"action":"basic_attack","attacker_uid":"abc","target_uid":"def"}
   {"action":"use_skill","caster_uid":"abc","skill_key":"skill_1","target_uid":"def"}
   {"action":"execute_spell","hero_key":"spell_riptire","target_uid":"def"}
+  {"action":"resolve_passive_choice","trash_index":0}
   {"action":"end_turn"}
   {"action":"get_state"}
   {"action":"surrender"}
@@ -131,6 +132,12 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     action = data.get("action", "")
     result: dict = {}
 
+    pending = getattr(engine.players.get(player_id), "pending_passive", None)
+    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game"}
+    if pending and action not in allowed_when_pending:
+        await manager.send_game(game_id, player_id, {"event": "error", "message": "패시브 선택을 먼저 완료하세요"})
+        return
+
     if action == "mulligan":
         result = engine.mulligan(player_id, data.get("card_indices", []))
     elif action == "skip_mulligan":
@@ -153,6 +160,14 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         )
     elif action == "end_turn":
         result = engine.end_turn(player_id)
+    elif action == "resolve_passive_choice":
+        result = engine.resolve_passive_choice(
+            player_id,
+            trash_index=data.get("trash_index"),
+            hand_index=data.get("hand_index"),
+            zone=data.get("zone"),
+            skip=bool(data.get("skip", False)),
+        )
     elif action == "get_state":
         await _send_state(game_id, player_id, engine)
         return
@@ -193,7 +208,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
 
     # 페이즈 변경 시 양쪽 상태 갱신
     if action in ("mulligan", "skip_mulligan", "end_placement", "end_turn",
-                   "surrender", "place_card", "use_skill", "basic_attack", "execute_spell"):
+                   "surrender", "place_card", "use_skill", "basic_attack", "execute_spell", "resolve_passive_choice"):
         for pid in engine.players:
             await _send_state(game_id, pid, engine)
 
