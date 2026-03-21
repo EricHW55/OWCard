@@ -21,6 +21,13 @@ interface SessionInfo {
     nickname: string;
 }
 
+interface DeckInfo {
+    id: number;
+    player_id: number;
+    name: string;
+    cards: Array<{ card_template_id: number; quantity: number }>;
+}
+
 function getSession(): SessionInfo | null {
     const token = sessionStorage.getItem('access_token');
     const playerIdRaw = sessionStorage.getItem('player_id');
@@ -85,6 +92,7 @@ const LobbyPage: React.FC = () => {
     const [rooms, setRooms] = useState<RoomInfo[]>([]);
     const [roomCode, setRoomCode] = useState('');
     const [deckId, setDeckId] = useState<number>(1);
+    const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queueing, setQueueing] = useState(false);
 
@@ -102,11 +110,41 @@ const LobbyPage: React.FC = () => {
         }
     }, [addLog]);
 
+    const refreshDecks = useCallback(async (playerId: number, preferredDeckId?: number | null) => {
+        try {
+            const res = await fetch(`${getApiBase()}/decks/player/${playerId}`);
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : [];
+            setDecks(list);
+
+            if (list.length === 0) {
+                setDeckId(1);
+                return;
+            }
+
+            if (preferredDeckId && list.some((d: DeckInfo) => d.id === preferredDeckId)) {
+                setDeckId(preferredDeckId);
+                return;
+            }
+
+            if (!list.some((d: DeckInfo) => d.id === deckId)) {
+                setDeckId(list[0].id);
+            }
+        } catch {
+            addLog('덱 목록을 불러오지 못했습니다.');
+        }
+    }, [addLog, deckId]);
+
     useEffect(() => {
         refreshRooms();
         const id = window.setInterval(refreshRooms, 3000);
         return () => window.clearInterval(id);
     }, [refreshRooms]);
+
+    useEffect(() => {
+        if (!session) return;
+        refreshDecks(session.player_id);
+    }, [session, refreshDecks]);
 
     useEffect(() => {
         if (!session) return;
@@ -237,6 +275,8 @@ const LobbyPage: React.FC = () => {
 
             setSession(nextSession);
             setDeckId(data.default_deck_id ?? 1);
+            await refreshDecks(nextSession.player_id, data.default_deck_id ?? null);
+
             addLog(`게스트 입장 완료: ${nextSession.nickname} / 기본 덱 ${data.default_deck_id ?? 1}`);
         } catch (e: any) {
             addLog(`게스트 입장 실패: ${e.message}`);
@@ -342,24 +382,36 @@ const LobbyPage: React.FC = () => {
                         <h3 style={{ marginTop: 0 }}>내 방 / 매칭</h3>
 
                         <div style={{ marginBottom: 14 }}>
-                            <label style={{ display: 'block', fontSize: 13, color: '#8a94b8', marginBottom: 6 }}>사용할 덱 ID</label>
-                            <input
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: 6,
+                                    gap: 8,
+                                }}
+                            >
+                                <label style={{ display: 'block', fontSize: 13, color: '#8a94b8' }}>사용할 덱</label>
+                                <button style={buttonStyle} onClick={() => navigate('/deck-builder')}>
+                                    덱 구성
+                                </button>
+                            </div>
+
+                            <select
                                 style={inputStyle}
-                                type="number"
                                 value={deckId}
                                 onChange={(e) => setDeckId(Number(e.target.value))}
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-                            <button style={primaryButton} onClick={handleCreateRoom}>방 만들기</button>
-                            <button style={buttonStyle} onClick={() => navigate('/deck-builder')}>덱 구성</button>
-
-                            {!queueing ? (
-                                <button style={buttonStyle} onClick={handleJoinQueue}>퀵매칭</button>
-                            ) : (
-                                <button style={buttonStyle} onClick={handleLeaveQueue}>매칭 취소</button>
-                            )}
+                            >
+                                {decks.length === 0 ? (
+                                    <option value={deckId}>덱 없음</option>
+                                ) : (
+                                    decks.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name} (ID: {d.id})
+                                        </option>
+                                    ))
+                                )}
+                            </select>
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>

@@ -2,10 +2,30 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from config import (
+    DECK_SIZE,
+    HAND_SIZE,
+    MAX_MULLIGAN,
+    CARDS_PER_TURN,
+    TANK_COST,
+    TRASH_WIN_COUNT,
+)
 from services.matchmaking import matchmaking
 from services.room_manager import room_manager
 
 router = APIRouter(tags=["lobby"])
+
+
+@router.get("/public/game-config")
+async def get_game_config():
+    return {
+        "deck_size": DECK_SIZE,
+        "hand_size": HAND_SIZE,
+        "max_mulligan": MAX_MULLIGAN,
+        "cards_per_turn": CARDS_PER_TURN,
+        "tank_cost": TANK_COST,
+        "trash_win_count": TRASH_WIN_COUNT,
+    }
 
 
 # ── 퀵매칭 ────────────────────────────────────

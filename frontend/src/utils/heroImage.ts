@@ -1,7 +1,7 @@
 type HeroLike = {
-    id?: string;
-    hero_key?: string;
-    name?: string;
+    id?: string | number | null;
+    hero_key?: string | number | null;
+    name?: string | number | null;
     is_spell?: boolean;
 };
 
@@ -14,6 +14,7 @@ const ID_ALIAS: Record<string, string> = {
     wrecking_ball: 'wrecking_ball',
     jetpackcat: 'jetpack_cat',
     jetpack_cat: 'jetpack_cat',
+
     reinhardt: 'reinhardt',
     winston: 'winston',
     zarya: 'zarya',
@@ -22,6 +23,11 @@ const ID_ALIAS: Record<string, string> = {
     sigma: 'sigma',
     roadhog: 'roadhog',
     ramattra: 'ramattra',
+    orisa: 'orisa',
+    mauga: 'mauga',
+    domina: 'domina',
+    hazard: 'hazard',
+
     bastion: 'bastion',
     tracer: 'tracer',
     venture: 'venture',
@@ -36,6 +42,10 @@ const ID_ALIAS: Record<string, string> = {
     mei: 'mei',
     torbjorn: 'torbjorn',
     sojourn: 'sojourn',
+    junkrat: 'junkrat',
+    genji: 'genji',
+    vendetta: 'vendetta',
+
     ana: 'ana',
     baptiste: 'baptiste',
     lucio: 'lucio',
@@ -49,18 +59,11 @@ const ID_ALIAS: Record<string, string> = {
     illari: 'illari',
     kiriko: 'kiriko',
     lifeweaver: 'lifeweaver',
+
     freya: 'freja',
     freja: 'freja',
     pharah: 'pharah',
     emre: 'emre',
-    domina: 'domina',
-    mauga: 'mauga',
-    hazard: 'hazard',
-    orisa: 'orisa',
-    junkrat: 'junkrat',
-    genji: 'genji',
-    venta: 'vendetta',
-    vendetta: 'vendetta',
 };
 
 const NAME_ALIAS: Record<string, string> = {
@@ -118,18 +121,30 @@ const NAME_ALIAS: Record<string, string> = {
     젠야타: 'zenyatta',
 };
 
-function normalize(value: string) {
+function normalize(value: unknown): string {
+    if (typeof value !== 'string') return '';
     return value.toLowerCase().trim().replace(/\s+/g, '').replace(/-/g, '_');
 }
 
+function pickString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value : null;
+}
+
 export function getHeroImageSrc(card: HeroLike): string {
-    if (card.is_spell) return '/heroes/_unknown.png';
+    if (!card || card.is_spell) return '/heroes/_unknown.png';
 
-    const rawCandidates = [card.id, card.hero_key, card.name].filter(Boolean) as string[];
+    // 숫자 DB id보다 hero_key / name을 우선 사용
+    const candidates = [
+        pickString(card.hero_key),
+        pickString(card.name),
+        pickString(card.id),
+    ].filter(Boolean) as string[];
 
-    for (const raw of rawCandidates) {
-        const byName = NAME_ALIAS[raw];
-        const normalized = normalize(byName ?? raw);
+    for (const raw of candidates) {
+        const named = NAME_ALIAS[raw] ?? raw;
+        const normalized = normalize(named);
+        if (!normalized) continue;
+
         const aliased = ID_ALIAS[normalized] ?? normalized;
         return `/heroes/${aliased}.png`;
     }
