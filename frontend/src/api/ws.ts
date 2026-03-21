@@ -71,82 +71,44 @@ class SocketClient {
 export class GameSocket extends SocketClient {}
 export class LobbySocket extends SocketClient {}
 
-function readEnv(name: string): string {
-  try {
-    // Vite
-    const viteEnv =
-        typeof import.meta !== 'undefined' &&
-        (import.meta as any).env &&
-        (import.meta as any).env[name];
+const REACT_APP_API_BASE =
+    (process.env.REACT_APP_API_BASE || '').trim().replace(/\/+$/, '');
 
-    if (typeof viteEnv === 'string' && viteEnv.trim()) {
-      return viteEnv.trim();
-    }
-  } catch {}
-
-  try {
-    // CRA / webpack
-    const processEnv =
-        typeof process !== 'undefined' &&
-        process.env &&
-        process.env[name];
-
-    if (typeof processEnv === 'string' && processEnv.trim()) {
-      return processEnv.trim();
-    }
-  } catch {}
-
-  return '';
-}
+const REACT_APP_WS_BASE =
+    (process.env.REACT_APP_WS_BASE || '').trim().replace(/\/+$/, '');
 
 export function getApiBase(): string {
-  const explicitBase =
-      readEnv('VITE_API_BASE_URL') ||
-      readEnv('REACT_APP_API_BASE');
+  console.log('[DEBUG] REACT_APP_API_BASE =', REACT_APP_API_BASE);
 
-  console.log('[DEBUG] REACT_APP_API_BASE =', readEnv('REACT_APP_API_BASE'));  console.log('[DEBUG] explicitBase =', explicitBase);
-
-
-  if (explicitBase) {
-    return explicitBase.replace(/\/+$/, '');
+  if (REACT_APP_API_BASE) {
+    return REACT_APP_API_BASE;
   }
 
   if (typeof window !== 'undefined') {
-    const { protocol, hostname, origin } = window.location;
+    const { hostname, origin } = window.location;
 
-    // 로컬 개발 환경
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:8000';
     }
 
-    // 배포 환경: 프론트와 같은 origin 사용
-    // HTTPS 페이지면 자동으로 HTTPS API를 바라보게 됨
-    if (protocol === 'https:' || protocol === 'http:') {
-      return origin.replace(/\/+$/, '');
-    }
+    // env 없을 때만 같은 origin fallback
+    return origin.replace(/\/+$/, '');
   }
 
   return 'http://localhost:8000';
 }
 
 export function getWsBase(): string {
-  const explicitWsBase =
-      readEnv('VITE_WS_BASE_URL') ||
-      readEnv('REACT_APP_WS_BASE');
+  console.log('[DEBUG] REACT_APP_WS_BASE =', REACT_APP_WS_BASE);
 
-  if (explicitWsBase) {
-    return explicitWsBase.replace(/\/+$/, '');
+  if (REACT_APP_WS_BASE) {
+    return REACT_APP_WS_BASE;
   }
 
   const apiBase = getApiBase();
 
   if (apiBase.startsWith('https://')) return apiBase.replace('https://', 'wss://');
   if (apiBase.startsWith('http://')) return apiBase.replace('http://', 'ws://');
-
-  if (typeof window !== 'undefined') {
-    const isHttps = window.location.protocol === 'https:';
-    return `${isHttps ? 'wss' : 'ws'}://${window.location.host}`;
-  }
 
   return 'ws://localhost:8000';
 }
