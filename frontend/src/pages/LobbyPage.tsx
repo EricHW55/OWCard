@@ -353,6 +353,17 @@ const LobbyPage: React.FC = () => {
 
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
                             <button style={primaryButton} onClick={handleCreateRoom}>방 만들기</button>
+                            <button style={buttonStyle} onClick={() => navigate('/deck-builder')}>덱 구성</button>
+
+                            {!queueing ? (
+                                <button style={buttonStyle} onClick={handleJoinQueue}>퀵매칭</button>
+                            ) : (
+                                <button style={buttonStyle} onClick={handleLeaveQueue}>매칭 취소</button>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+                            <button style={primaryButton} onClick={handleCreateRoom}>방 만들기</button>
                             {!queueing ? (
                                 <button style={buttonStyle} onClick={handleJoinQueue}>퀵매칭</button>
                             ) : (

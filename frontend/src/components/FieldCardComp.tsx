@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
+import { getHeroImageSrc } from '../utils/heroImage';
 
 interface Props {
     card: FieldCard;
@@ -17,18 +18,19 @@ function getMainDamage(card: FieldCard): string {
     const v = d[keys[0]];
     if (typeof v === 'number') return String(v);
     if (Array.isArray(v)) return String(v[0] ?? 0);
-    if (typeof v === 'object' && v !== null) return String(v.damage ?? v.heal ?? 0);
+    if (typeof v === 'object' && v !== null) return String((v as any).damage ?? (v as any).heal ?? 0);
     return '0';
 }
 
 function getBarrierHp(card: FieldCard): number {
     const barrier = card.statuses?.find(s => s.name === 'barrier');
     if (!barrier) return 0;
-    // barrier_hp는 extra에 저장될 수 있음 — 또는 status의 extra
     return (barrier as any).barrier_hp ?? card.extra?.barrier_hp ?? 0;
 }
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) => {
+    const [imgError, setImgError] = useState(false);
+
     const color = ROLE_COLOR[card.role] || '#888';
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
     const hpColor = hpPct > 60 ? '#22dd77' : hpPct > 30 ? '#ffaa22' : '#ff3355';
@@ -37,7 +39,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const hasBarrier = barrierHp > 0 || card.statuses?.some(s => s.name === 'barrier');
     const isHidden = card.statuses?.some(s => ['stealth', 'burrowed', 'frozen_state'].includes(s.name));
 
-    // 버프/디버프 카운트
     const buffs = card.statuses?.filter(s => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter(s => s.tags?.includes('debuff')) || [];
     const hasBurn = card.statuses?.some(s => s.name === 'burn');
@@ -47,46 +48,118 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
 
     let borderColor = color;
     let shadow = 'none';
-    if (selected) { borderColor = '#ff9b30'; shadow = '0 0 12px rgba(255,155,48,0.6)'; }
-    else if (glowing) { borderColor = '#66ddff'; shadow = '0 0 10px #66ddff88, 0 0 20px #66ddff44'; }
-    else if (hasBarrier) { shadow = `0 0 8px #22cc8866`; }
+    if (selected) {
+        borderColor = '#ff9b30';
+        shadow = '0 0 12px rgba(255,155,48,0.6)';
+    } else if (glowing) {
+        borderColor = '#66ddff';
+        shadow = '0 0 10px #66ddff88, 0 0 20px #66ddff44';
+    } else if (hasBarrier) {
+        shadow = '0 0 8px #22cc8866';
+    }
 
     return (
-        <div onClick={onClick} style={{
-            width: 62, height: 90, borderRadius: 6, position: 'relative',
-            border: `2px solid ${borderColor}`,
-            background: selected ? 'rgba(255,155,48,0.15)' : glowing ? 'rgba(102,221,255,0.08)' : `${color}12`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'space-between', padding: '3px 2px',
-            cursor: 'pointer', flexShrink: 0,
-            opacity: isHidden ? 0.45 : 1,
-            boxShadow: shadow, transition: 'all 0.25s',
-        }}>
-            {/* 배리어 테두리 */}
-            {hasBarrier && <div style={{ position: 'absolute', inset: -3, border: '2px solid #22cc8888', borderRadius: 8, pointerEvents: 'none' }} />}
+        <div
+            onClick={onClick}
+            style={{
+                width: 62,
+                height: 90,
+                borderRadius: 6,
+                position: 'relative',
+                border: `2px solid ${borderColor}`,
+                background: selected ? 'rgba(255,155,48,0.15)' : glowing ? 'rgba(102,221,255,0.08)' : `${color}12`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '3px 2px',
+                cursor: 'pointer',
+                flexShrink: 0,
+                opacity: isHidden ? 0.45 : 1,
+                boxShadow: shadow,
+                transition: 'all 0.25s',
+            }}
+        >
+            {hasBarrier && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: -3,
+                        border: '2px solid #22cc8888',
+                        borderRadius: 8,
+                        pointerEvents: 'none',
+                    }}
+                />
+            )}
 
-            {/* 글로우 펄스 */}
-            {glowing && !selected && <div style={{ position: 'absolute', inset: -2, borderRadius: 8, pointerEvents: 'none', border: '1px solid #66ddff66', animation: 'pulse 1.5s ease-in-out infinite' }} />}
+            {glowing && !selected && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        inset: -2,
+                        borderRadius: 8,
+                        pointerEvents: 'none',
+                        border: '1px solid #66ddff66',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                    }}
+                />
+            )}
 
-            {/* 이름 */}
-            <div style={{ fontSize: 8, fontWeight: 700, color, textAlign: 'center', lineHeight: 1.1 }}>{card.name}</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color, textAlign: 'center', lineHeight: 1.1 }}>
+                {card.name}
+            </div>
 
-            {/* 아이콘 */}
-            <div style={{ fontSize: 16 }}>{ROLE_ICON[card.role]}</div>
+            <div
+                style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    display: 'grid',
+                    placeItems: 'center',
+                    background: '#0d1225',
+                    border: '1px solid #2a3560',
+                }}
+            >
+                {!imgError ? (
+                    <img
+                        src={getHeroImageSrc(card as any)}
+                        alt={card.name}
+                        onError={() => setImgError(true)}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                ) : (
+                    <span style={{ fontSize: 16 }}>{ROLE_ICON[card.role]}</span>
+                )}
+            </div>
 
-            {/* 스탯 */}
-            <div style={{ display: 'flex', gap: 3, fontSize: 8, fontWeight: 700, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    gap: 3,
+                    fontSize: 8,
+                    fontWeight: 700,
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                }}
+            >
                 <span style={{ color: '#ff9b30' }}>✦{mainDmg}</span>
                 <span style={{ color: '#22dd77' }}>♥{card.current_hp}</span>
                 {hasBarrier && <span style={{ color: '#22cc88' }}>🛡{barrierHp > 0 ? barrierHp : '?'}</span>}
             </div>
 
-            {/* HP 바 */}
             <div style={{ width: '90%', height: 3, background: '#0a0e1a', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${hpPct}%`, background: hpColor, borderRadius: 2, transition: 'width 0.3s' }} />
+                <div
+                    style={{
+                        height: '100%',
+                        width: `${hpPct}%`,
+                        background: hpColor,
+                        borderRadius: 2,
+                        transition: 'width 0.3s',
+                    }}
+                />
             </div>
 
-            {/* 상태 아이콘 (우측 상단) */}
             <div style={{ position: 'absolute', top: 1, right: 1, display: 'flex', gap: 1, flexWrap: 'wrap', maxWidth: 20 }}>
                 {hasBurn && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff6622' }} title="화상" />}
                 {hasSilence && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff3355' }} title="봉쇄" />}
@@ -94,13 +167,11 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 {hasAtkBuff && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ffaa22' }} title="공격↑" />}
             </div>
 
-            {/* 버프/디버프 카운트 (좌측 상단) */}
             <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', gap: 1 }}>
                 {buffs.length > 0 && <span style={{ fontSize: 7, color: '#22dd77', fontWeight: 900 }}>+{buffs.length}</span>}
                 {debuffs.length > 0 && <span style={{ fontSize: 7, color: '#ff3355', fontWeight: 900 }}>-{debuffs.length}</span>}
             </div>
 
-            {/* 이번 턴 배치 */}
             {card.placed_this_turn && <div style={{ position: 'absolute', bottom: 1, right: 2, fontSize: 7, color: '#ffaa22' }}>NEW</div>}
             {card.acted_this_turn && <div style={{ position: 'absolute', bottom: 1, left: 2, fontSize: 7, color: '#5a6488' }}>✓</div>}
 
