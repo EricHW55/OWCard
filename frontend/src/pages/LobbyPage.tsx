@@ -242,7 +242,7 @@ const LobbyPage: React.FC = () => {
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();
         if (nickname.length < 2) {
-            addLog('닉네임은 2글자 이상으로 해줘.');
+            addLog('닉네임은 2글자 이상으로 해야합니다.');
             return;
         }
 
@@ -301,7 +301,7 @@ const LobbyPage: React.FC = () => {
 
     const handleSetDeck = () => {
         if (!room) {
-            addLog('먼저 방에 들어가야 해.');
+            addLog('먼저 방에 들어가야 합니다.');
             return;
         }
         send({ action: 'set_deck', room_id: room.room_id, deck_id: deckId });
@@ -326,9 +326,9 @@ const LobbyPage: React.FC = () => {
         return (
             <div style={{ minHeight: '100vh', background: '#0a0e1a', color: '#e8ecf8', display: 'grid', placeItems: 'center' }}>
                 <div style={{ ...cardStyle, width: 420, textAlign: 'center' }}>
-                    <h2 style={{ marginTop: 0 }}>닉네임 입력</h2>
+                    <h2 style={{ marginTop: 0 }}>배틀태그 입력</h2>
                     <p style={{ color: '#8a94b8', marginBottom: 16 }}>
-                        처음 접속할 때 닉네임만 입력하고 바로 로비에 들어갑니다.
+                        배틀태그 입력시 바로 로비에 들어갑니다.
                     </p>
 
                     <input
@@ -471,7 +471,7 @@ const LobbyPage: React.FC = () => {
 
                         <div style={{ display: 'grid', gap: 8 }}>
                             {rooms.length === 0 && (
-                                <div style={{ color: '#8a94b8' }}>현재 열린 방이 없어.</div>
+                                <div style={{ color: '#8a94b8' }}>현재 열린 방이 없음.</div>
                             )}
 
                             {rooms.map((r) => (
