@@ -17,6 +17,8 @@ export interface FieldCard {
   zone: Zone;
   statuses: StatusEffect[];
   skill_cooldowns: Record<string, number>;
+  skill_damages: Record<string, any>;
+  skill_meta: Record<string, { name: string; cooldown?: number }>;
   placed_this_turn: boolean;
   extra: Record<string, any>;
 }

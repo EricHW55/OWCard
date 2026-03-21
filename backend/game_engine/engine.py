@@ -276,6 +276,7 @@ class GameEngine:
             zone=target_zone,
             skills=get_hero_skills(hero_name),
             skill_damages=card_data.get("skill_damages", {}),
+            skill_meta=card_data.get("skill_meta", {}),
             extra=card_data.get("extra", {}),
         )
 

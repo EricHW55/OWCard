@@ -70,6 +70,10 @@ class FieldCard:
     skill_damages: dict[str, any] = dc_field(default_factory=dict)
     # 예: {"skill_1": 6, "skill_2": [8, 5, 3, 1]}
 
+    # ── 스킬 메타 (이름, 쿨다운 등 — 프론트에 전달) ──
+    skill_meta: dict[str, dict] = dc_field(default_factory=dict)
+    # 예: {"skill_1": {"name": "화염강타", "cooldown": 0}}
+
     # ── 추가 데이터 (폼 체인지, 포탑 등) ──────
     extra: dict = dc_field(default_factory=dict)
     # 예: {"form": "normal", "turret_uid": "xxx", "charge_level": 0}
@@ -287,6 +291,8 @@ class FieldCard:
             "zone": self.zone.value,
             "statuses": statuses,
             "skill_cooldowns": dict(self.skill_cooldowns),
+            "skill_damages": self.skill_damages,
+            "skill_meta": self.skill_meta,
             "placed_this_turn": self.placed_this_turn,
             "extra": self.extra,
         }
@@ -324,19 +330,28 @@ class Field:
         return sum(1 for c in cards if c.role == role and c.alive)
 
     def can_place_main(self, role: Role) -> bool:
-        limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
-        return self._count_role(self.main_cards, role) < limits[role]
+        main_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
+        total_limits = {Role.TANK: 2, Role.DEALER: 2, Role.HEALER: 2}  # 본대+사이드 합산
+        main_count = self._count_role(self.main_cards, role)
+        total_count = main_count + self._count_role(self.side_cards, role)
+        return main_count < main_limits[role] and total_count < total_limits[role]
 
     def can_place_side(self, role: Role) -> bool:
         alive = self._alive(self.side_cards)
-        if not alive:
-            return True
+        # 사이드 기본 규칙: 탱커 1명 단독 or 딜러+힐러 각 1명
         if role == Role.TANK:
-            return len(alive) == 0
-        has_tank = any(c.role == Role.TANK for c in alive)
-        if has_tank:
-            return False
-        return self._count_role(self.side_cards, role) == 0
+            if len(alive) > 0:
+                return False
+        else:
+            has_tank = any(c.role == Role.TANK for c in alive)
+            if has_tank:
+                return False
+            if self._count_role(self.side_cards, role) > 0:
+                return False
+        # 총량 제한: 딜러/힐러는 본대+사이드 합쳐서 2장까지
+        total_limits = {Role.TANK: 2, Role.DEALER: 2, Role.HEALER: 2}
+        total_count = self._count_role(self.main_cards, role) + self._count_role(self.side_cards, role)
+        return total_count < total_limits[role]
 
     def place_card(self, card: FieldCard, zone: Zone) -> bool:
         if zone == Zone.MAIN:
