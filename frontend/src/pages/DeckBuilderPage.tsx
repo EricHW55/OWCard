@@ -358,47 +358,49 @@ const DeckBuilderPage: React.FC = () => {
                     <section className="deck-panel">
                         <div className="panel-title">카드 목록</div>
 
-                        <div className="hero-grid">
-                            {filteredCards.map((card) => {
-                                const qty = entries[card.id] ?? 0;
-                                const imgName = getImageName(card);
+                        <div className="scroll-area card-list-scroll">
+                            <div className="hero-grid">
+                                {filteredCards.map((card) => {
+                                    const qty = entries[card.id] ?? 0;
+                                    const imgName = getImageName(card);
 
-                                return (
-                                    <div key={card.id} className="hero-tile">
-                                        <button
-                                            className="hero-tile-image"
-                                            onClick={() => addCard(card.id)}
-                                            disabled={totalCount >= deckSize}
-                                            style={{ width: '100%', border: 'none', padding: 0, cursor: 'pointer' }}
-                                        >
-                                            <img
-                                                src={`/heroes/${imgName}.png`}
-                                                alt={card.name}
-                                                onError={(e) => {
-                                                    (e.currentTarget as HTMLImageElement).src = '/heroes/_unknown.png';
-                                                }}
-                                            />
-                                        </button>
-
-                                        <div className="hero-tile-name">{card.name}</div>
-                                        <div style={{ fontSize: 11, color: '#8a94b8', marginTop: 4 }}>
-                                            {card.is_spell ? '스펠' : card.role}
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                                            <button className="ghost-btn" onClick={() => removeCard(card.id)} disabled={qty === 0}>
-                                                -
+                                    return (
+                                        <div key={card.id} className="hero-tile">
+                                            <button
+                                                className="hero-tile-image"
+                                                onClick={() => addCard(card.id)}
+                                                disabled={totalCount >= deckSize}
+                                                style={{ width: '100%', border: 'none', padding: 0, cursor: 'pointer' }}
+                                            >
+                                                <img
+                                                    src={`/heroes/${imgName}.png`}
+                                                    alt={card.name}
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLImageElement).src = '/heroes/_unknown.png';
+                                                    }}
+                                                />
                                             </button>
-                                            <div style={{ minWidth: 28, textAlign: 'center', alignSelf: 'center', fontWeight: 800 }}>
-                                                {qty}
+
+                                            <div className="hero-tile-name">{card.name}</div>
+                                            <div style={{ fontSize: 11, color: '#8a94b8', marginTop: 4 }}>
+                                                {card.is_spell ? '스펠' : card.role}
                                             </div>
-                                            <button className="ghost-btn" onClick={() => addCard(card.id)} disabled={totalCount >= deckSize}>
-                                                +
-                                            </button>
+
+                                            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                                <button className="ghost-btn" onClick={() => removeCard(card.id)} disabled={qty === 0}>
+                                                    -
+                                                </button>
+                                                <div style={{ minWidth: 28, textAlign: 'center', alignSelf: 'center', fontWeight: 800 }}>
+                                                    {qty}
+                                                </div>
+                                                <button className="ghost-btn" onClick={() => addCard(card.id)} disabled={totalCount >= deckSize}>
+                                                    +
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </section>
 
@@ -407,36 +409,38 @@ const DeckBuilderPage: React.FC = () => {
                             내 덱 <span>{totalCount}/{deckSize}</span>
                         </div>
 
-                        <div className="deck-slots">
-                            {selectedCards.length === 0 && (
-                                <div className="deck-slot empty">아직 카드가 없어</div>
-                            )}
+                        <div className="scroll-area deck-list-scroll">
+                            <div className="deck-slots">
+                                {selectedCards.length === 0 && (
+                                    <div className="deck-slot empty">아직 카드가 없어</div>
+                                )}
 
-                            {selectedCards.map((card) => (
-                                <div key={card.id} className="deck-slot">
-                                    <div className="deck-slot-image">
-                                        <img
-                                            src={`/heroes/${getImageName(card)}.png`}
-                                            alt={card.name}
-                                            onError={(e) => {
-                                                (e.currentTarget as HTMLImageElement).src = '/heroes/_unknown.png';
-                                            }}
-                                        />
-                                    </div>
+                                {selectedCards.map((card) => (
+                                    <div key={card.id} className="deck-slot">
+                                        <div className="deck-slot-image">
+                                            <img
+                                                src={`/heroes/${getImageName(card)}.png`}
+                                                alt={card.name}
+                                                onError={(e) => {
+                                                    (e.currentTarget as HTMLImageElement).src = '/heroes/_unknown.png';
+                                                }}
+                                            />
+                                        </div>
 
-                                    <div className="deck-slot-name">
-                                        {card.name}
-                                        <div style={{ fontSize: 12, color: '#8a94b8', marginTop: 4 }}>
-                                            수량 {card.quantity}
+                                        <div className="deck-slot-name">
+                                            {card.name}
+                                            <div style={{ fontSize: 12, color: '#8a94b8', marginTop: 4 }}>
+                                                수량 {card.quantity}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <button className="ghost-btn" onClick={() => removeCard(card.id)}>-</button>
+                                            <button className="ghost-btn" onClick={() => addCard(card.id)} disabled={totalCount >= deckSize}>+</button>
                                         </div>
                                     </div>
-
-                                    <div style={{ display: 'flex', gap: 6 }}>
-                                        <button className="ghost-btn" onClick={() => removeCard(card.id)}>-</button>
-                                        <button className="ghost-btn" onClick={() => addCard(card.id)} disabled={totalCount >= deckSize}>+</button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </section>
                 </div>

@@ -203,3 +203,36 @@
         gap: 12px;
     }
 }
+
+.scroll-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+}
+
+.card-list-scroll {
+    max-height: 68vh;
+}
+
+.deck-list-scroll {
+    max-height: 68vh;
+}
+
+.scroll-area::-webkit-scrollbar {
+    width: 10px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+    background: #0d1225;
+    border-radius: 999px;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+    background: #2f4170;
+    border-radius: 999px;
+    border: 2px solid #0d1225;
+}
+
+.scroll-area::-webkit-scrollbar-thumb:hover {
+    background: #49639f;
+}
