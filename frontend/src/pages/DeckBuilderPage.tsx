@@ -41,6 +41,43 @@ function getImageName(card: CardTemplate): string {
         도미나: 'domina',
         엠레: 'emre',
         우양: 'wuyang',
+        아나: 'ana',
+        애쉬: 'ashe',
+        바티스트: 'baptiste',
+        바스티온: 'bastion',
+        브리기테: 'brigitte',
+        캐서디: 'cassidy',
+        둠피스트: 'doomfist',
+        디바: 'dva',
+        에코: 'echo',
+        겐지: 'genji',
+        한조: 'hanzo',
+        해저드: 'hazard',
+        일리아리: 'illari',
+        정크랫: 'junkrat',
+        주노: 'juno',
+        키리코: 'kiriko',
+        루시우: 'lucio',
+        마우가: 'mauga',
+        메이: 'mei',
+        메르시: 'mercy',
+        미즈키: 'mizuki',
+        모이라: 'moira',
+        오리사: 'orisa',
+        파라: 'pharah',
+        라마트라: 'ramattra',
+        리퍼: 'reaper',
+        로드호그: 'roadhog',
+        시그마: 'sigma',
+        소전: 'sojourn',
+        솜브라: 'sombra',
+        시메트라: 'symmetra',
+        토르비욘: 'torbjorn',
+        트레이서: 'tracer',
+        위도우: 'widowmaker',
+        윈스턴: 'winston',
+        자리야: 'zarya',
+        젠야타: 'zenyatta',
     };
 
     return map[card.name] || '_unknown';
@@ -48,6 +85,7 @@ function getImageName(card: CardTemplate): string {
 
 const DeckBuilderPage: React.FC = () => {
     const navigate = useNavigate();
+    const apiBase = getApiBase();
 
     const [playerId, setPlayerId] = useState<number>(0);
     const [deckSize, setDeckSize] = useState<number>(20);
@@ -83,11 +121,21 @@ const DeckBuilderPage: React.FC = () => {
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [cards, entries]);
 
+    const selectDeck = (deck: DeckInfo) => {
+        setSelectedDeckId(deck.id);
+        setDeckName(deck.name);
+        const next: Record<number, number> = {};
+        for (const c of deck.cards) {
+            next[c.card_template_id] = c.quantity;
+        }
+        setEntries(next);
+    };
+
     const loadAll = async (pid: number) => {
         const [cfgRes, cardsRes, decksRes] = await Promise.all([
-            fetch(`${getApiBase()}/public/game-config`),
-            fetch(`${getApiBase()}/cards`),
-            fetch(`${getApiBase()}/decks/player/${pid}`),
+            fetch(`${apiBase}/public/game-config`),
+            fetch(`${apiBase}/cards/`),
+            fetch(`${apiBase}/decks/player/${pid}`),
         ]);
 
         if (!cfgRes.ok) throw new Error('게임 설정을 불러오지 못했습니다.');
@@ -128,16 +176,6 @@ const DeckBuilderPage: React.FC = () => {
             .catch((e) => alert(e.message))
             .finally(() => setLoading(false));
     }, [navigate]);
-
-    const selectDeck = (deck: DeckInfo) => {
-        setSelectedDeckId(deck.id);
-        setDeckName(deck.name);
-        const next: Record<number, number> = {};
-        for (const c of deck.cards) {
-            next[c.card_template_id] = c.quantity;
-        }
-        setEntries(next);
-    };
 
     const addCard = (cardId: number) => {
         if (totalCount >= deckSize) return;
@@ -183,7 +221,7 @@ const DeckBuilderPage: React.FC = () => {
             let deckId = selectedDeckId;
 
             if (deckId) {
-                const res = await fetch(`${getApiBase()}/decks/${deckId}`, {
+                const res = await fetch(`${apiBase}/decks/${deckId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -196,7 +234,7 @@ const DeckBuilderPage: React.FC = () => {
                     throw new Error(err.detail || '덱 수정 실패');
                 }
             } else {
-                const res = await fetch(`${getApiBase()}/decks`, {
+                const res = await fetch(`${apiBase}/decks/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -214,7 +252,7 @@ const DeckBuilderPage: React.FC = () => {
                 setSelectedDeckId(deckId);
             }
 
-            const selectRes = await fetch(`${getApiBase()}/decks/${deckId}/select`, {
+            const selectRes = await fetch(`${apiBase}/decks/${deckId}/select`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ player_id: playerId }),

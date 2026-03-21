@@ -1,14 +1,5 @@
 """
 로비 WebSocket — 퀵매칭 알림, 방 이벤트 실시간 전달.
-
-클라이언트 → 서버:
-  {"action":"join_queue","deck_id":1}
-  {"action":"leave_queue"}
-  {"action":"create_room"}
-  {"action":"join_room","room_code":"ABC123"}
-  {"action":"set_deck","room_id":"...","deck_id":1}
-  {"action":"start_game","room_id":"..."}
-  {"action":"spectate","room_code":"ABC123"}
 """
 from __future__ import annotations
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
@@ -50,6 +41,7 @@ async def lobby_ws(
                 if not deck_id:
                     await ws.send_json({"event": "error", "message": "deck_id required"})
                     continue
+
                 result = await matchmaking.join_queue(player_id, username, deck_id)
                 if result:
                     game_id = await create_game_from_match(result)
@@ -91,7 +83,12 @@ async def lobby_ws(
                     game_id = await create_game_from_match(result)
                     room = room_manager.get_room(data.get("room_id", ""))
                     for pid in (room.host_id, room.guest_id):
-                        await manager.send_lobby(pid, {"event": "game_starting", "game_id": game_id, "room": room.to_dict()})
+                        if pid is not None:
+                            await manager.send_lobby(pid, {
+                                "event": "game_starting",
+                                "game_id": game_id,
+                                "room": room.to_dict()
+                            })
                     for sid in room.spectator_ids:
                         await manager.send_lobby(sid, {"event": "game_starting_spectate", "game_id": game_id})
                 else:
@@ -108,3 +105,26 @@ async def lobby_ws(
     except WebSocketDisconnect:
         manager.disconnect_lobby(player_id)
         await matchmaking.leave_queue(player_id)
+
+        result = await room_manager.remove_player(player_id)
+        if not result:
+            return
+
+        room = result["room"]
+        event_type = result["type"]
+
+        if event_type == "room_closed":
+            if room.guest_id:
+                await manager.send_lobby(room.guest_id, {"event": "room_closed", "room_code": room.room_code})
+            for sid in room.spectator_ids:
+                await manager.send_lobby(sid, {"event": "room_closed", "room_code": room.room_code})
+
+        elif event_type == "guest_left":
+            await manager.send_lobby(room.host_id, {"event": "room_updated", "room": room.to_dict()})
+            for sid in room.spectator_ids:
+                await manager.send_lobby(sid, {"event": "room_updated", "room": room.to_dict()})
+
+        elif event_type == "spectator_left":
+            await manager.send_lobby(room.host_id, {"event": "room_updated", "room": room.to_dict()})
+            if room.guest_id:
+                await manager.send_lobby(room.guest_id, {"event": "room_updated", "room": room.to_dict()})

@@ -115,6 +115,39 @@ class RoomManager:
         if room:
             self.code_map.pop(room.room_code, None)
 
+    async def remove_player(self, player_id: int) -> Optional[dict]:
+        async with self._lock:
+            target_room: Optional[Room] = None
+            for room in self.rooms.values():
+                if room.host_id == player_id or room.guest_id == player_id or player_id in room.spectator_ids:
+                    target_room = room
+                    break
+
+            if not target_room:
+                return None
+
+            # 방장 나감 -> 방 삭제
+            if target_room.host_id == player_id:
+                self.rooms.pop(target_room.room_id, None)
+                self.code_map.pop(target_room.room_code, None)
+                return {"type": "room_closed", "room": target_room}
+
+            # 게스트 나감 -> 다시 waiting
+            if target_room.guest_id == player_id:
+                target_room.guest_id = None
+                target_room.guest_username = None
+                target_room.guest_deck_id = None
+                if target_room.status != RoomStatus.FINISHED:
+                    target_room.status = RoomStatus.WAITING
+                return {"type": "guest_left", "room": target_room}
+
+            # 관전자 나감
+            if player_id in target_room.spectator_ids:
+                target_room.spectator_ids.remove(player_id)
+                return {"type": "spectator_left", "room": target_room}
+
+            return None
+
     def get_room(self, room_id: str) -> Optional[Room]:
         return self.rooms.get(room_id)
 
@@ -126,14 +159,12 @@ class RoomManager:
         return [r.to_dict() for r in self.rooms.values() if r.status != RoomStatus.FINISHED]
 
     def find_room_by_game_id(self, game_id: str) -> Optional[Room]:
-        """game_id로 방 찾기."""
         for room in self.rooms.values():
             if room.game_id == game_id:
                 return room
         return None
 
     async def close_room_by_game_id(self, game_id: str):
-        """게임 종료 시 해당 방 정리."""
         room = self.find_room_by_game_id(game_id)
         if room:
             room.status = RoomStatus.FINISHED

@@ -104,8 +104,7 @@ export function getApiBase(): string {
       readEnv('VITE_API_BASE_URL') ||
       readEnv('REACT_APP_API_BASE');
 
-  console.log('[DEBUG] REACT_APP_API_BASE =', readEnv('REACT_APP_API_BASE'));
-  console.log('[DEBUG] explicitBase =', explicitBase);
+  console.log('[DEBUG] REACT_APP_API_BASE =', readEnv('REACT_APP_API_BASE'));  console.log('[DEBUG] explicitBase =', explicitBase);
 
 
   if (explicitBase) {
