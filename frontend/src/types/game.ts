@@ -20,6 +20,7 @@ export interface FieldCard {
   skill_damages: Record<string, any>;
   skill_meta: Record<string, { name: string; cooldown?: number }>;
   placed_this_turn: boolean;
+  acted_this_turn: boolean;
   extra: Record<string, any>;
 }
 

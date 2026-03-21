@@ -59,6 +59,7 @@ class FieldCard:
     current_hp: int = 0
     statuses: list[StatusEffect] = dc_field(default_factory=list)
     placed_this_turn: bool = True  # 이번 턴에 놓였으면 스킬 못 씀
+    acted_this_turn: bool = False  # 이번 턴에 스킬을 이미 썼으면 True
 
     # ── 스킬 함수 연결 ────────────────────────
     # {"skill_1": callable, "skill_2": callable, "passive": callable}
@@ -259,6 +260,8 @@ class FieldCard:
     def can_use_skill(self, skill_key: str) -> tuple[bool, str]:
         if self.placed_this_turn:
             return False, "이번 턴에 배치한 카드"
+        if self.acted_this_turn:
+            return False, "이번 턴에 이미 행동함"
         if self.is_silenced:
             return False, "스킬 봉쇄 상태"
         if skill_key not in self.skills:
@@ -294,6 +297,7 @@ class FieldCard:
             "skill_damages": self.skill_damages,
             "skill_meta": self.skill_meta,
             "placed_this_turn": self.placed_this_turn,
+            "acted_this_turn": self.acted_this_turn,
             "extra": self.extra,
         }
 
@@ -503,6 +507,7 @@ class Field:
     def mark_all_available(self):
         for card in self.all_cards():
             card.placed_this_turn = False
+            card.acted_this_turn = False
 
     def remove_dead(self) -> list[FieldCard]:
         dead = [c for c in self.main_cards + self.side_cards

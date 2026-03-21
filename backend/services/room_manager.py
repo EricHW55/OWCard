@@ -125,5 +125,19 @@ class RoomManager:
     def list_rooms(self) -> list[dict]:
         return [r.to_dict() for r in self.rooms.values() if r.status != RoomStatus.FINISHED]
 
+    def find_room_by_game_id(self, game_id: str) -> Optional[Room]:
+        """game_id로 방 찾기."""
+        for room in self.rooms.values():
+            if room.game_id == game_id:
+                return room
+        return None
+
+    async def close_room_by_game_id(self, game_id: str):
+        """게임 종료 시 해당 방 정리."""
+        room = self.find_room_by_game_id(game_id)
+        if room:
+            room.status = RoomStatus.FINISHED
+            await self.close_room(room.room_id)
+
 
 room_manager = RoomManager()

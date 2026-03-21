@@ -24,6 +24,7 @@ from models.card import CardTemplate
 from models.deck import Deck
 from game_engine.engine import GameEngine, GamePhase
 from services.ws_manager import manager
+from services.room_manager import room_manager
 from routers.auth import verify_token
 
 router = APIRouter()
@@ -110,11 +111,17 @@ async def game_ws(
     except WebSocketDisconnect:
         engine.players[player_id].connected = False
         manager.disconnect_game(game_id, player_id)
-        opp = [pid for pid in engine.players if pid != player_id]
-        if opp:
-            await manager.send_game(game_id, opp[0], {
-                "event": "opponent_disconnected",
-            })
+
+        # 게임이 아직 진행 중이면 → 상대 승리 + 방 정리
+        if engine.phase != GamePhase.GAME_OVER:
+            opp = [pid for pid in engine.players if pid != player_id]
+            if opp:
+                engine.winner = opp[0]
+                engine.phase = GamePhase.GAME_OVER
+                await manager.send_game(game_id, opp[0], {
+                    "event": "opponent_disconnected",
+                })
+                await _handle_game_over(game_id, engine)
         await manager.broadcast_spectators(game_id, {
             "event": "player_disconnected", "player_id": player_id,
         })
@@ -154,6 +161,12 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
         result = {"event": "surrender", "winner": opp_id}
+    elif action == "leave_game":
+        # 나가기 = 항복과 동일
+        opp_id = [pid for pid in engine.players if pid != player_id][0]
+        engine.winner = opp_id
+        engine.phase = GamePhase.GAME_OVER
+        result = {"event": "surrender", "winner": opp_id, "reason": "leave"}
     else:
         await manager.send_game(game_id, player_id, {"event": "error", "message": f"Unknown: {action}"})
         return
@@ -212,7 +225,8 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
         "winner_name": engine.players[winner_id].username if winner_id else None,
     })
 
-    await asyncio.sleep(30)
+    # 방 정리 + 게임 삭제 (즉시)
+    await room_manager.close_room_by_game_id(game_id)
     active_games.pop(game_id, None)
     manager.cleanup_game(game_id)
 

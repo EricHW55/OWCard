@@ -396,7 +396,10 @@ class GameEngine:
         result = skill_fn(caster, target, self.state)
 
         if result.get("success"):
-            # 쿨다운 설정 (card_data에서 읽어야 하지만 일단 스킬 함수가 반환)
+            # 이번 턴 행동 완료 표시
+            caster.acted_this_turn = True
+
+            # 쿨다운 설정
             cd = result.get("cooldown", 0)
             if cd > 0:
                 caster.skill_cooldowns[skill_key] = cd

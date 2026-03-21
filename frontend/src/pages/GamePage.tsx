@@ -96,9 +96,9 @@ const GamePage: React.FC = () => {
   const allOppField = [...opp.field.main, ...opp.field.side];
   const selectedMyFieldCard = allMyField.find(c => c.uid === selectedFieldUid) || null;
 
-  // 행동 가능 카드 (액션 페이즈, 내 턴, 이번턴 배치가 아닌 카드)
+  // 행동 가능 카드 (액션 페이즈, 내 턴, 배치 아닌 + 아직 행동 안 한 카드)
   const canActUids = (phase === 'action' && is_my_turn)
-      ? allMyField.filter(c => !c.placed_this_turn).map(c => c.uid) : [];
+      ? allMyField.filter(c => !c.placed_this_turn && !c.acted_this_turn).map(c => c.uid) : [];
 
   // ── 손패 클릭 ─────────────────────────
   const handleHandClick = (card: HandCard, index: number) => {
@@ -154,7 +154,7 @@ const GamePage: React.FC = () => {
 
   // ── 선택된 필드 카드의 스킬 목록 ──────
   const fieldSkills: { key: string; name: string; onCooldown: boolean; cdLeft: number }[] = [];
-  if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && phase === 'action' && is_my_turn) {
+  if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && phase === 'action' && is_my_turn) {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
     for (const [key, m] of Object.entries(meta)) {
@@ -179,7 +179,12 @@ const GamePage: React.FC = () => {
           <div style={{ fontSize: 10, color: '#8a94b8' }}>상대 패:{opp.hand_count} · 덱:{opp.draw_pile_count}</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: is_my_turn ? '#22dd77' : '#ff3355' }}>{is_my_turn ? '● 내 턴' : '○ 상대 턴'}</div>
-            <button onClick={() => navigate('/')} style={{ ...btnS, background: '#1a2342' }}>로비로</button>
+            <button onClick={() => {
+              if (gs && gs.phase !== 'game_over') {
+                send({ action: 'leave_game' });
+              }
+              navigate('/');
+            }} style={{ ...btnS, background: '#1a2342' }}>나가기</button>
           </div>
         </div>
 
