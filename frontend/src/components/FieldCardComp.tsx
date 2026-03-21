@@ -27,28 +27,30 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
 
     useEffect(() => {
         setImgError(false);
-    }, [card.id, card.name]);
+    }, [card.uid, card.name]);
 
     const color = ROLE_COLOR[card.role] || '#888';
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
     const hpColor = hpPct > 60 ? '#22dd77' : hpPct > 30 ? '#ffaa22' : '#ff3355';
     const mainDmg = getMainDamage(card);
 
-    // 배리어 HP (status에서 직접 읽기)
-    const barrierStatus = card.statuses?.find(s => s.name === 'barrier');
+    const barrierStatus = card.statuses?.find((s) => s.name === 'barrier');
     const barrierHp = (barrierStatus as any)?.barrier_hp ?? 0;
     const hasBarrier = barrierHp > 0;
 
-    // 추가체력
-    const extraHpStatus = card.statuses?.find(s => s.name === 'extra_hp');
+    const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
 
-    const isHidden = card.statuses?.some(s => ['stealth', 'burrowed', 'frozen_state'].includes(s.name));
-    const hasBurn = card.statuses?.some(s => s.name === 'burn');
-    const hasSilence = card.statuses?.some(s => s.name === 'skill_silence' || s.name === 'sleep');
-    const hasShield = card.statuses?.some(s => s.name === 'damage_reduction');
-    const buffs = card.statuses?.filter(s => s.tags?.includes('buff')) || [];
-    const debuffs = card.statuses?.filter(s => s.tags?.includes('debuff')) || [];
+    const isHidden = card.statuses?.some((s) =>
+        ['stealth', 'burrowed', 'frozen_state'].includes(s.name)
+    );
+    const hasBurn = card.statuses?.some((s) => s.name === 'burn');
+    const hasSilence = card.statuses?.some(
+        (s) => s.name === 'skill_silence' || s.name === 'sleep'
+    );
+    const hasShield = card.statuses?.some((s) => s.name === 'damage_reduction');
+    const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
+    const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
 
     let borderColor = color;
     let shadow = 'none';
@@ -113,7 +115,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 />
             )}
 
-            {/* 이름 */}
             <div
                 style={{
                     fontSize: 8,
@@ -126,7 +127,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 {card.name}
             </div>
 
-            {/* 영웅 이미지 */}
             <div
                 style={{
                     width: 28,
@@ -155,7 +155,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 )}
             </div>
 
-            {/* 스탯 */}
             <div
                 style={{
                     display: 'flex',
@@ -172,7 +171,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 {extraHp > 0 && <span style={{ color: '#ffdd44' }}>+{extraHp}</span>}
             </div>
 
-            {/* HP 바 */}
             <div
                 style={{
                     width: '90%',
@@ -193,7 +191,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 />
             </div>
 
-            {/* 상태 아이콘 (우측 상단) */}
             <div
                 style={{
                     position: 'absolute',
@@ -205,15 +202,24 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                     maxWidth: 20,
                 }}
             >
-                {hasBurn && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff6622' }} />}
-                {hasSilence && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff3355' }} />}
-                {hasShield && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#44aaff' }} />}
+                {hasBurn && (
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff6622' }} />
+                )}
+                {hasSilence && (
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ff3355' }} />
+                )}
+                {hasShield && (
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#44aaff' }} />
+                )}
             </div>
 
-            {/* 버프/디버프 (좌측 상단) */}
             <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', gap: 1 }}>
-                {buffs.length > 0 && <span style={{ fontSize: 6, color: '#22dd77', fontWeight: 900 }}>+{buffs.length}</span>}
-                {debuffs.length > 0 && <span style={{ fontSize: 6, color: '#ff3355', fontWeight: 900 }}>-{debuffs.length}</span>}
+                {buffs.length > 0 && (
+                    <span style={{ fontSize: 6, color: '#22dd77', fontWeight: 900 }}>+{buffs.length}</span>
+                )}
+                {debuffs.length > 0 && (
+                    <span style={{ fontSize: 6, color: '#ff3355', fontWeight: 900 }}>-{debuffs.length}</span>
+                )}
             </div>
 
             {card.placed_this_turn && (
