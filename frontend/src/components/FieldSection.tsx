@@ -6,68 +6,146 @@ import FieldCardComp from './FieldCardComp';
 interface Props {
   field: FieldState;
   isOpponent: boolean;
+  isMyTurn: boolean;
+  phase: string;
   selectedUid: string | null;
+  canActUids: string[];
   onCardClick: (card: FieldCard) => void;
   placingCard: HandCardType | null;
   onPlaceClick: (zone: 'main' | 'side') => void;
 }
 
-const EmptySlot: React.FC<{ label: string; highlight?: boolean; onClick?: () => void }> = ({ label, highlight, onClick }) => (
-  <div onClick={onClick} style={{
-    width: 62, height: 86, borderRadius: 6,
-    border: `2px dashed ${highlight ? '#ff9b30' : '#2a3560'}`,
-    background: highlight ? 'rgba(255,155,48,0.08)' : 'transparent',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 9, color: '#5a6488', cursor: highlight ? 'pointer' : 'default', flexShrink: 0,
-  }}>{label}</div>
+const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ highlight, onClick }) => (
+    <div onClick={onClick} style={{
+      width: 62, height: 86, borderRadius: 6,
+      border: `2px dashed ${highlight ? '#ff9b30' : '#1a2340'}`,
+      background: highlight ? 'rgba(255,155,48,0.08)' : 'transparent',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 9, color: '#3a4a78',
+      cursor: highlight ? 'pointer' : 'default', flexShrink: 0,
+    }}>
+      {highlight ? '배치' : ''}
+    </div>
 );
 
-const FieldSection: React.FC<Props> = ({ field, isOpponent, selectedUid, onCardClick, placingCard, onPlaceClick }) => {
+const FieldSection: React.FC<Props> = ({
+                                         field, isOpponent, isMyTurn, phase,
+                                         selectedUid, canActUids, onCardClick,
+                                         placingCard, onPlaceClick,
+                                       }) => {
   const tanks = (field?.main || []).filter(c => c.role === 'tank');
   const dealers = (field?.main || []).filter(c => c.role === 'dealer');
   const healers = (field?.main || []).filter(c => c.role === 'healer');
   const sideCards = field?.side || [];
-  const canPlace = !!placingCard && !isOpponent;
+
+  // 배치 조건: 내 턴 + 배치 페이즈 + 내 필드 + 카드 선택됨
+  const canPlace = !!placingCard && !isOpponent && isMyTurn && phase === 'placement';
   const placingRole = placingCard?.role;
+
+  const renderCard = (card: FieldCard) => (
+      <FieldCardComp
+          key={card.uid} card={card}
+          selected={selectedUid === card.uid}
+          glowing={canActUids.includes(card.uid)}
+          onClick={() => onCardClick(card)}
+      />
+  );
 
   const renderRow = (cards: FieldCard[], role: string, max: number) => {
     const slots = [];
     for (let i = 0; i < max; i++) {
       if (i < cards.length) {
-        slots.push(<FieldCardComp key={cards[i].uid} card={cards[i]} selected={selectedUid === cards[i].uid} onClick={() => onCardClick(cards[i])} />);
+        slots.push(renderCard(cards[i]));
       } else if (canPlace && placingRole === role) {
-        slots.push(<EmptySlot key={`e-${role}-${i}`} label="배치" highlight onClick={() => onPlaceClick('main')} />);
+        slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main')} />);
       } else {
-        slots.push(<EmptySlot key={`e-${role}-${i}`} label="" />);
+        slots.push(<EmptySlot key={`e-${role}-${i}`} />);
       }
     }
     return slots;
   };
 
+  /*
+   * 상대: 힐러(먼) → 딜러 → 탱커(가까움=보드 중앙)
+   * 나:   탱커(가까움=보드 중앙) → 딜러 → 힐러(먼)
+   */
+  const mainRows = isOpponent
+      ? [
+        { role: 'healer', label: '힐러', cards: healers, max: 2 },
+        { role: 'dealer', label: '딜러', cards: dealers, max: 2 },
+        { role: 'tank',   label: '탱커', cards: tanks,   max: 1 },
+      ]
+      : [
+        { role: 'tank',   label: '탱커', cards: tanks,   max: 1 },
+        { role: 'dealer', label: '딜러', cards: dealers, max: 2 },
+        { role: 'healer', label: '힐러', cards: healers, max: 2 },
+      ];
+
+  // 사이드도 같은 순서
+  const sideTank = sideCards.find(c => c.role === 'tank');
+  const sideDealer = sideCards.find(c => c.role === 'dealer');
+  const sideHealer = sideCards.find(c => c.role === 'healer');
+
+  const sideRowDefs = isOpponent
+      ? [
+        { role: 'healer' as const, card: sideHealer },
+        { role: 'dealer' as const, card: sideDealer },
+        { role: 'tank'   as const, card: sideTank },
+      ]
+      : [
+        { role: 'tank'   as const, card: sideTank },
+        { role: 'dealer' as const, card: sideDealer },
+        { role: 'healer' as const, card: sideHealer },
+      ];
+
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      <div style={{ flex: 1, background: '#111832', borderRadius: 8, padding: '6px 8px', border: '1px solid #2a3560', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ fontSize: 9, color: '#5a6488', letterSpacing: 2, fontWeight: 700 }}>{isOpponent ? '상대 본대' : '나의 본대'}</div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 8, color: ROLE_COLOR.tank, width: 28, flexShrink: 0 }}>탱커</span>
-          {renderRow(tanks, 'tank', 1)}
+      <div style={{ display: 'flex', gap: 3 }}>
+        {/* ── 본대 ────────────────────────── */}
+        <div style={{
+          flex: 1, background: '#0f1628', borderRadius: 8, padding: '4px 8px',
+          border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2,
+        }}>
+          <div style={{ fontSize: 8, color: '#2a3a5a', letterSpacing: 2, fontWeight: 700 }}>
+            {isOpponent ? '상대 본대' : '나의 본대'}
+          </div>
+
+          {mainRows.map(({ role, label, cards, max }) => (
+              <div key={role} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 8, color: ROLE_COLOR[role], width: 24, flexShrink: 0, textAlign: 'right' }}>
+              {label}
+            </span>
+                {/* 탱커 1칸은 딜러/힐러 2칸 폭 안에서 가운데 정렬 */}
+                <div style={{
+                  display: 'flex', gap: 4,
+                  width: max === 1 ? 128 : 'auto',  /* 62*2 + 4gap = 128 */
+                  justifyContent: max === 1 ? 'center' : 'flex-start',
+                }}>
+                  {renderRow(cards, role, max)}
+                </div>
+              </div>
+          ))}
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 8, color: ROLE_COLOR.dealer, width: 28, flexShrink: 0 }}>딜러</span>
-          {renderRow(dealers, 'dealer', 2)}
-        </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 8, color: ROLE_COLOR.healer, width: 28, flexShrink: 0 }}>힐러</span>
-          {renderRow(healers, 'healer', 2)}
+
+        {/* ── 사이드 ───────────────────────── */}
+        <div style={{
+          width: 78, background: '#0f1628', borderRadius: 8, padding: '4px 4px',
+          border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
+        }}>
+          <div style={{ fontSize: 8, color: '#2a3a5a', letterSpacing: 1, fontWeight: 700 }}>사이드</div>
+
+          {sideRowDefs.map(({ role, card }) => {
+            if (card) return renderCard(card);
+            const canPlaceHere = canPlace && placingRole === role;
+            return (
+                <EmptySlot
+                    key={`side-${role}`}
+                    highlight={canPlaceHere}
+                    onClick={canPlaceHere ? () => onPlaceClick('side') : undefined}
+                />
+            );
+          })}
         </div>
       </div>
-      <div style={{ width: 84, background: '#111832', borderRadius: 8, padding: '6px 6px', border: '1px solid #2a3560', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-        <div style={{ fontSize: 9, color: '#5a6488', letterSpacing: 1, fontWeight: 700 }}>사이드</div>
-        {sideCards.map(c => <FieldCardComp key={c.uid} card={c} selected={selectedUid === c.uid} onClick={() => onCardClick(c)} />)}
-        {sideCards.length < 2 && canPlace && <EmptySlot label="배치" highlight onClick={() => onPlaceClick('side')} />}
-        {sideCards.length === 0 && !canPlace && <EmptySlot label="" />}
-      </div>
-    </div>
   );
 };
 
