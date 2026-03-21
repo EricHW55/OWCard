@@ -91,8 +91,8 @@ def zenyatta_harmony(caster: FieldCard, target: FieldCard, game: GameState) -> d
     return {"success": True, "skill": "조화", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
 
 # ── 우양 ──────────────────────────────────
-@register_skill("lifeweaver", "skill_1")
-def lifeweaver_wave(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("wuyang", "skill_1")
+def wuyang_wave(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     my = game.get_my_field(caster)
     if my.find_card(target.uid):
@@ -101,8 +101,8 @@ def lifeweaver_wave(caster: FieldCard, target: FieldCard, game: GameState) -> di
     target.add_status(Knockback(value=1, duration=1, source_uid=caster.uid))
     return {"success": True, "skill": "수호의 파도 (넉백)", "target": target.uid}
 
-@register_skill("lifeweaver", "skill_2")
-def lifeweaver_heal(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("wuyang", "skill_2")
+def wuyang_heal(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     return {"success": True, "skill": "회복의 물결", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
 

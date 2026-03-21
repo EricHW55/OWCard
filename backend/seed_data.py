@@ -190,7 +190,7 @@ SEED_CARDS = [
      "skill_meta":{"skill_1":{"name":"부조화","cooldown":0},"skill_2":{"name":"조화","cooldown":0}},
      "extra":{"discord_value":2}},
 
-    {"hero_key":"lifeweaver","name":"우양","role":"healer","hp":7,"cost":1,"base_attack":0,"base_defense":0,"base_attack_range":1,
+    {"hero_key":"wuyang","name":"우양","role":"healer","hp":7,"cost":1,"base_attack":0,"base_defense":0,"base_attack_range":1,
      "description":"수호의 파도(아군 힐증, 적 넉백). 회복의 물결 3힐.",
      "skill_damages":{"skill_2":3},
      "skill_meta":{"skill_1":{"name":"수호의 파도","cooldown":0},"skill_2":{"name":"회복의 물결","cooldown":0}},
