@@ -37,7 +37,7 @@ def freja_updraft(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     - 이미 에어본이어도 다시 사용 가능 = 지속시간 갱신
     """
     caster.remove_status("airborne")  # 이미 떠 있으면 갱신
-    caster.add_status(Airborne(duration=3, source_uid=caster.uid))
+    caster.add_status(Airborne(duration=2, source_uid=caster.uid))
 
     return {
         "success": True,
@@ -172,7 +172,7 @@ def echo_bombs(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     dmgs = game.get_skill_damage(caster, "skill_1")
     result = target.take_damage(dmgs[0])
-    target.add_status(StickyBomb(duration=2, explode_damage=dmgs[1], source_uid=caster.uid))
+    target.add_status(StickyBomb(duration=1, explode_damage=dmgs[1], source_uid=caster.uid))
 
     return {"success": True, "skill": "점착폭탄", "damage_log": result, "bomb": dmgs[1]}
 

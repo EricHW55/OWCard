@@ -305,7 +305,7 @@ class Burn(StatusEffect):
 class StickyBomb(StatusEffect):
     """점착폭탄 (에코): 상대 턴 종료 시 폭발."""
     name: str = "sticky_bomb"
-    duration: int = 2
+    duration: int = 1
     explode_damage: int = 4
     tags: list[str] = field(default_factory=lambda: ["debuff"])
 
