@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     Barrier, Exposed, ParticleBarrier, AttackBuff, ExtraHP,
-    DamageReduction, Knockback, Taunt,
+    DamageReduction, Knockback, Taunt, Pulled, Hooked,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -114,9 +114,14 @@ def junkerqueen_jagged(caster: FieldCard, target: FieldCard, game: GameState) ->
         return {"success": False, "message": "대상 필요"}
 
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
-    target.add_status(Knockback(value=-1, duration=1, source_uid=caster.uid))
+    target.add_status(Pulled(value=1, duration=1, source_uid=caster.uid))
 
-    return {"success": True, "skill": "톱니칼", "damage_log": result, "pulled": True}
+    return {
+        "success": True,
+        "skill": "톱니칼",
+        "damage_log": result,
+        "pulled": True,
+    }
 
 @register_skill("junkerqueen", "skill_2")
 def junkerqueen_shout(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
@@ -224,15 +229,16 @@ def domina_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 # ── 로드호그 (신규) ───────────────────────
 @register_skill("roadhog", "skill_1")
 def roadhog_hook(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """갈고리: 적 1명 지정. 이번 턴 아군 모두가 그 적을 거리 무시 공격 가능."""
-    if not target: return {"success": False, "message": "대상 필요"}
-    # hooked 상태를 부여하면 아군이 거리 무시로 때릴 수 있음
-    from game_engine.status_effects import StatusEffect
-    class Hooked(StatusEffect):
-        def __init__(self, **kw):
-            super().__init__(name="hooked", duration=1, visible_to_opponent=True, tags=["debuff", "cc"], **kw)
-    target.add_status(Hooked(source_uid=caster.uid))
-    return {"success": True, "skill": "갈고리", "hooked": target.uid}
+    """갈고리: 사거리 3, 적 1명 지정. 이번 턴 아군이 거의 거리 무시로 공격 가능."""
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    target.add_status(Hooked(duration=1, source_uid=caster.uid))
+    return {
+        "success": True,
+        "skill": "갈고리",
+        "hooked": target.uid,
+    }
 
 @register_skill("roadhog", "skill_2")
 def roadhog_breather(caster: FieldCard, target: FieldCard, game: GameState) -> dict:

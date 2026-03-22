@@ -223,6 +223,29 @@ class Knockback(StatusEffect):
     duration: int = 1
     value: int = 1
     tags: list[str] = field(default_factory=lambda: ["debuff", "cc"])
+    
+
+@dataclass
+class Pulled(StatusEffect):
+    """끌어당겨짐: 공격자 입장에서 이 카드까지의 거리 -value."""
+    name: str = "pulled"
+    duration: int = 1
+    value: int = 1
+    tags: list[str] = field(default_factory=lambda: ["debuff", "cc", "movement"])
+
+    def on_before_targeted(self, card, attacker):
+        return {"distance_modifier": -self.value}
+
+
+@dataclass
+class Hooked(StatusEffect):
+    """갈고리: 이번 턴 거의 모든 아군이 거리 무시 수준으로 노릴 수 있게 함."""
+    name: str = "hooked"
+    duration: int = 1
+    tags: list[str] = field(default_factory=lambda: ["debuff", "cc", "movement"])
+
+    def on_before_targeted(self, card, attacker):
+        return {"distance_modifier": -99}
 
 
 # ── 공격/방어 수정 ────────────────────────────────────
