@@ -280,3 +280,11 @@ async def spectate_ws(ws: WebSocket, game_id: str):
             await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect_spectator(game_id, ws)
+        
+        
+# ── 매칭/방에서 호출하는 헬퍼 ─────────────────
+
+async def create_game_from_match(match_data: dict) -> str:
+    game_id = match_data["game_id"]
+    await get_or_create_game(game_id, match_data["player1"], match_data["player2"])
+    return game_id
