@@ -39,6 +39,78 @@ function roleClass(role?: string) {
   }
 }
 
+type CenterCueKind = 'phase' | 'skill' | 'system';
+
+type CenterCue = {
+  id: number;
+  title: string;
+  subtitle?: string;
+  kind: CenterCueKind;
+};
+
+function phaseLabel(phase?: string) {
+  if (!phase) return '진행 중';
+  return (PHASE_LABEL as Record<string, string>)[phase] || phase;
+}
+
+function phaseSubtitle(phase?: string, isMyTurn?: boolean) {
+  switch (phase) {
+    case 'mulligan':
+      return '교체할 손패를 골라 주세요';
+    case 'placement':
+      return isMyTurn ? '카드를 필드에 배치할 차례' : '상대가 카드를 배치하는 중';
+    case 'action':
+      return isMyTurn ? '스킬을 선택해 전투를 이어가세요' : '상대 행동 진행 중';
+    case 'game_over':
+      return '전투 종료';
+    default:
+      return isMyTurn ? '내 차례' : '상대 차례';
+  }
+}
+
+function getSkillNameFromCard(card: any, skillKey?: string | null) {
+  const meta = card?.skill_meta || {};
+  if (skillKey && meta?.[skillKey]?.name) return meta[skillKey].name as string;
+  if (meta?.skill_1?.name) return meta.skill_1.name as string;
+  const first = Object.values(meta).find((item: any) => item?.name) as any;
+  return first?.name || card?.name || '스킬';
+}
+
+function buildOpponentSkillCue(msg: any) {
+  const result = msg?.result || {};
+  const action = msg?.action;
+  const hasSkillSignal =
+      action === 'use_skill'
+      || action === 'execute_spell'
+      || !!msg?.skill_name
+      || !!result?.skill_name
+      || result?.type === 'spell_played';
+
+  if (!hasSkillSignal) return null;
+
+  const actorName =
+      msg?.caster_name
+      || msg?.actor_name
+      || msg?.card_name
+      || result?.caster?.name
+      || result?.card?.name
+      || '상대';
+
+  const skillName =
+      msg?.skill_name
+      || result?.skill_name
+      || result?.display_name
+      || result?.card?.skill_name
+      || result?.card?.name;
+
+  if (!skillName) return null;
+
+  return {
+    title: skillName,
+    subtitle: `${actorName} 사용`,
+  };
+}
+
 const btnS: React.CSSProperties = {
   padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
   background: '#243055', border: '1px solid #3a4a78', color: '#e8ecf8', cursor: 'pointer',
@@ -58,7 +130,9 @@ const GamePage: React.FC = () => {
   const [logs, setLogs] = useState<string[]>(['게임 서버에 연결 중...']);
   const [connected, setConnected] = useState(false);
   const [pendingSpell, setPendingSpell] = useState<string | null>(null);
+  const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
+  const [centerCue, setCenterCue] = useState<CenterCue | null>(null);
 
   const wsRef = useRef<GameSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -66,12 +140,69 @@ const GamePage: React.FC = () => {
   const reconnectAttemptRef = useRef(0);
   const manualCloseRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const cueTimerRef = useRef<number | null>(null);
+  const phaseStampRef = useRef('');
+  const gsRef = useRef<GameState | null>(null);
+  const pendingSpellNameRef = useRef<string | null>(null);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
   }, []);
 
-  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
+  const showCenterCue = useCallback((title: string, subtitle = '', kind: CenterCueKind = 'system', duration = 1700) => {
+    if (!title) return;
+
+    if (cueTimerRef.current) {
+      window.clearTimeout(cueTimerRef.current);
+      cueTimerRef.current = null;
+    }
+
+    setCenterCue({
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      title,
+      subtitle,
+      kind,
+    });
+
+    cueTimerRef.current = window.setTimeout(() => {
+      setCenterCue(null);
+      cueTimerRef.current = null;
+    }, duration);
+  }, []);
+
+  useEffect(() => {
+    gsRef.current = gs;
+  }, [gs]);
+
+  useEffect(() => {
+    pendingSpellNameRef.current = pendingSpellName;
+  }, [pendingSpellName]);
+
+  useEffect(() => {
+    return () => {
+      if (cueTimerRef.current) {
+        window.clearTimeout(cueTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  useEffect(() => {
+    if (!gs) return;
+    const stamp = `${gs.round}-${gs.turn}-${gs.phase}-${gs.is_my_turn ? 'me' : 'opp'}`;
+    if (phaseStampRef.current === stamp) return;
+    phaseStampRef.current = stamp;
+
+    showCenterCue(
+        phaseLabel(gs.phase),
+        phaseSubtitle(gs.phase, gs.is_my_turn),
+        'phase',
+        1500,
+    );
+  }, [gs, showCenterCue]);
 
   useEffect(() => {
     if (!session || !gameId) return;
@@ -158,26 +289,54 @@ const GamePage: React.FC = () => {
         ws.on('game_state', (msg: any) => setGs(msg.state)),
         ws.on('action_result', (msg: any) => {
           addLog(`내 행동: ${msg.action}`);
+
+          const latestMyState = gsRef.current?.my_state as any;
+          const myHand = latestMyState?.hand || [];
+          const spellName =
+              msg?.result?.card?.name
+              || msg?.result?.skill_name
+              || myHand.find((c: any) => c.hero_key === msg?.result?.hero_key)?.name
+              || pendingSpellNameRef.current
+              || '스킬 카드';
+
           if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && msg.result?.needs_target) {
             setPendingSpell(msg.result.hero_key);
+            setPendingSpellName(spellName);
             setActionMode('spell');
             addLog('스킬 카드 대상 선택');
+            showCenterCue(spellName, '대상을 선택하세요', 'system', 1200);
           }
+
+          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && !msg.result?.needs_target) {
+            showCenterCue(spellName, '스킬 카드 발동', 'skill', 1500);
+          }
+
           if (msg.result?.passive_triggered?.summoned) {
             addLog(`설치물 소환: ${msg.result.passive_triggered.summoned.name}`);
+            showCenterCue(msg.result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300);
           }
+
           if (msg.result?.passive_triggered?.needs_choice || msg.result?.needs_choice) {
             addLog('패시브 추가 선택 필요');
           }
+
           if (msg.action === 'resolve_passive_choice' && msg.result?.card?.name) {
             addLog(`패시브 처리: ${msg.result.card.name}`);
+            showCenterCue(msg.result.card.name, '패시브 처리', 'system', 1300);
           }
         }),
-        ws.on('opponent_action', (msg: any) => addLog(`상대: ${msg.action}`)),
+        ws.on('opponent_action', (msg: any) => {
+          addLog(`상대: ${msg.action}`);
+          const cue = buildOpponentSkillCue(msg);
+          if (cue) {
+            showCenterCue(cue.title, cue.subtitle, 'skill', 1500);
+          }
+        }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
           addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
+          showCenterCue('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 'phase', 1800);
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
@@ -206,7 +365,7 @@ const GamePage: React.FC = () => {
       clearReconnectTimer();
       cleanupSocket();
     };
-  }, [session, gameId, addLog]);
+  }, [session, gameId, addLog, showCenterCue]);
 
   const send = (data: Record<string, unknown>) => {
     if (wsRef.current?.connected) {
@@ -241,10 +400,10 @@ const GamePage: React.FC = () => {
   const my = gs.my_state;
   const opp = gs.opponent_state;
   const pendingPassive = (
-      (my as any).pending_passive ??
-      (my as any).pendingPassive ??
-      (gs as any)?.my_state?.pending_passive ??
-      null
+      (my as any).pending_passive
+      ?? (my as any).pendingPassive
+      ?? (gs as any)?.my_state?.pending_passive
+      ?? null
   ) as any;
 
   const selectedHandCard = selectedHandIdx !== null ? my.hand[selectedHandIdx] : null;
@@ -274,6 +433,7 @@ const GamePage: React.FC = () => {
       setSelectedFieldUid(null);
       setActionMode(null);
       setPendingSpell(null);
+      setPendingSpellName(null);
       return;
     }
 
@@ -287,14 +447,17 @@ const GamePage: React.FC = () => {
     setSelectedFieldUid(null);
     setActionMode(null);
     setPendingSpell(null);
+    setPendingSpellName(null);
   };
 
   const handleFieldClick = (card: FieldCard, isOpp: boolean) => {
     if (actionMode === 'spell' && pendingSpell) {
       send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
       addLog(`스킬 카드 → ${card.name}`);
+      showCenterCue(pendingSpellName || '스킬 카드', `${card.name} 대상`, 'skill', 1500);
       setActionMode(null);
       setPendingSpell(null);
+      setPendingSpellName(null);
       setSelectedHandIdx(null);
       return;
     }
@@ -302,8 +465,10 @@ const GamePage: React.FC = () => {
     if (actionMode && actionMode !== 'spell' && selectedFieldUid) {
       const caster = allMyField.find(c => c.uid === selectedFieldUid);
       if (caster) {
+        const skillName = getSkillNameFromCard(caster, actionMode);
         send({ action: 'use_skill', caster_uid: caster.uid, skill_key: actionMode, target_uid: card.uid });
-        addLog(`${caster.name} → ${card.name} (${actionMode})`);
+        addLog(`${caster.name} → ${card.name} (${skillName})`);
+        showCenterCue(skillName, `${caster.name} 사용`, 'skill', 1500);
       }
       setSelectedFieldUid(null);
       setActionMode(null);
@@ -319,6 +484,7 @@ const GamePage: React.FC = () => {
         setSelectedHandIdx(null);
         setActionMode(null);
         setPendingSpell(null);
+        setPendingSpellName(null);
       }
     } else {
       setDetailCard(card);
@@ -328,16 +494,23 @@ const GamePage: React.FC = () => {
   const handlePlace = (zone: 'main' | 'side') => {
     if (selectedHandIdx === null || !is_my_turn || phase !== 'placement') return;
     const card = my.hand[selectedHandIdx];
+    const zoneLabel = zone === 'main' ? '본대' : '사이드';
 
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
-      addLog(`${card.name} → ${zone === 'main' ? '본대' : '사이드'} 추가 배치`);
+      addLog(`${card.name} → ${zoneLabel} 추가 배치`);
+      showCenterCue(card.name, `${zoneLabel} 추가 배치`, 'system', 1200);
       setSelectedHandIdx(null);
       return;
     }
 
     send({ action: 'place_card', hand_index: selectedHandIdx, zone });
-    addLog(`${card.name} → ${zone === 'main' ? '본대' : '사이드'} ${card.is_spell ? '사용' : '배치'}`);
+    addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
+
+    if (!card.is_spell) {
+      showCenterCue(card.name, `${zoneLabel} 배치`, 'system', 1100);
+    }
+
     setSelectedHandIdx(null);
   };
 
@@ -373,10 +546,20 @@ const GamePage: React.FC = () => {
 
   return (
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
+        {centerCue && (
+            <div className="game-announcer" key={centerCue.id}>
+              <div className={`game-announcer-card ${centerCue.kind}`}>
+                <div className="game-announcer-shine" />
+                <div className="game-announcer-title">{centerCue.title}</div>
+                {centerCue.subtitle && <div className="game-announcer-subtitle">{centerCue.subtitle}</div>}
+              </div>
+            </div>
+        )}
+
         <div className="game-topbar">
           <div className="game-topbar-left">
             <span className="game-round-pill">R{round} · T{turn}</span>
-            <span className="game-phase-pill">{PHASE_LABEL[phase]}</span>
+            <span className="game-phase-pill">{phaseLabel(phase)}</span>
           </div>
           <div className="game-topbar-center">상대 패:{opp.hand_count} · 덱:{opp.draw_pile_count}</div>
           <div className="game-topbar-right">
@@ -467,7 +650,10 @@ const GamePage: React.FC = () => {
                             <button
                                 key={sk.key}
                                 disabled={sk.onCooldown}
-                                onClick={() => { setActionMode(sk.key); addLog(`${selectedMyFieldCard!.name} — ${sk.name} 대상 선택...`); }}
+                                onClick={() => {
+                                  setActionMode(sk.key);
+                                  addLog(`${selectedMyFieldCard!.name} — ${sk.name} 대상 선택...`);
+                                }}
                                 style={{
                                   ...btnS,
                                   opacity: sk.onCooldown ? 0.4 : 1,
@@ -487,11 +673,11 @@ const GamePage: React.FC = () => {
                 {actionMode === 'spell' && pendingSpell && (
                     <div className="game-context-panel">
                       <div className="game-context-head">
-                        <span className="game-toolbar-title">스킬 카드 대상 선택</span>
+                        <span className="game-toolbar-title">{pendingSpellName || '스킬 카드'} 대상 선택</span>
                         <span className="game-context-subtext">→ 적용할 카드를 클릭</span>
                       </div>
                       <div className="game-context-actions">
-                        <button onClick={() => { setActionMode(null); setPendingSpell(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                        <button onClick={() => { setActionMode(null); setPendingSpell(null); setPendingSpellName(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
                       </div>
                     </div>
                 )}
