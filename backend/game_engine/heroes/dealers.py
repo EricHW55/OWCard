@@ -328,8 +328,8 @@ def sojourn_charged(caster: FieldCard, target: FieldCard, game: GameState) -> di
     return {"success": True, "skill": "차징샷", "charge_used": ch, "damage_log": result}
 
 # ── 엠레 (신규) ──────────────────────────
-@register_skill("illari_dealer", "skill_1")
-def illari_dealer_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+@register_skill("emre", "skill_1")
+def emre_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """사이버 파편 수류탄: 6딜 + 랜덤 바운스 3딜."""
     if not target: return {"success": False, "message": "대상 필요"}
     dmgs = game.get_skill_damage(caster, "skill_1")  # [6, 3]
