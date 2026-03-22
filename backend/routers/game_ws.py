@@ -12,6 +12,7 @@
   {"action":"resolve_passive_choice","trash_index":0}
   {"action":"end_turn"}
   {"action":"get_state"}
+  {"action":"ping"}
   {"action":"surrender"}
 """
 from __future__ import annotations
@@ -30,11 +31,10 @@ from routers.auth import verify_token
 
 router = APIRouter()
 
-# 활성 게임 (메모리 — 동접 20명 규모에 적합)
 active_games: dict[str, GameEngine] = {}
+RECONNECT_GRACE = 30
+_disconnect_tasks: dict[tuple[str, int], asyncio.Task] = {}
 
-
-# ── 덱 로드 ───────────────────────────────────
 
 async def load_deck_cards(deck_id: int) -> list[dict]:
     async with async_session() as db:
@@ -48,7 +48,7 @@ async def load_deck_cards(deck_id: int) -> list[dict]:
             t = tmpl.scalar_one_or_none()
             if t:
                 for _ in range(dc.quantity):
-                    cards.append(t.to_game_dict())  # 게임 엔진용 형태
+                    cards.append(t.to_game_dict())
         return cards
 
 
@@ -62,7 +62,35 @@ async def get_or_create_game(game_id: str, p1: dict, p2: dict) -> GameEngine:
     return engine
 
 
-# ── 게임 WS ───────────────────────────────────
+def _cancel_disconnect_task(game_id: str, player_id: int):
+    key = (game_id, player_id)
+    task = _disconnect_tasks.pop(key, None)
+    if task and not task.done():
+        task.cancel()
+
+
+async def _delayed_forfeit(game_id: str, player_id: int):
+    try:
+        await asyncio.sleep(RECONNECT_GRACE)
+        engine = active_games.get(game_id)
+        if not engine:
+            return
+
+        player = engine.players.get(player_id)
+        if not player or player.connected or engine.phase == GamePhase.GAME_OVER:
+            return
+
+        opp_ids = [pid for pid in engine.players if pid != player_id]
+        if not opp_ids:
+            return
+
+        engine.winner = opp_ids[0]
+        engine.phase = GamePhase.GAME_OVER
+        await manager.send_game(game_id, opp_ids[0], {"event": "opponent_disconnected"})
+        await _handle_game_over(game_id, engine)
+    except asyncio.CancelledError:
+        return
+
 
 @router.websocket("/ws/game/{game_id}")
 async def game_ws(
@@ -89,14 +117,20 @@ async def game_ws(
         return
 
     await manager.connect_game(game_id, player_id, ws)
+    was_disconnected = not engine.players[player_id].connected
     engine.players[player_id].connected = True
+    _cancel_disconnect_task(game_id, player_id)
 
     try:
         await _send_state(game_id, player_id, engine)
 
-        # 양쪽 접속 시 게임 시작
-        if (all(p.connected for p in engine.players.values())
-                and engine.phase == GamePhase.WAITING):
+        if was_disconnected:
+            opp_ids = [pid for pid in engine.players if pid != player_id]
+            if opp_ids:
+                await manager.send_game(game_id, opp_ids[0], {"event": "player_reconnected", "player_id": player_id})
+            await manager.broadcast_spectators(game_id, {"event": "player_reconnected", "player_id": player_id})
+
+        if all(p.connected for p in engine.players.values()) and engine.phase == GamePhase.WAITING:
             engine.start_game()
             for pid in engine.players:
                 await _send_state(game_id, pid, engine)
@@ -112,20 +146,16 @@ async def game_ws(
     except WebSocketDisconnect:
         engine.players[player_id].connected = False
         manager.disconnect_game(game_id, player_id)
-
-        # 게임이 아직 진행 중이면 → 상대 승리 + 방 정리
-        if engine.phase != GamePhase.GAME_OVER:
-            opp = [pid for pid in engine.players if pid != player_id]
-            if opp:
-                engine.winner = opp[0]
-                engine.phase = GamePhase.GAME_OVER
-                await manager.send_game(game_id, opp[0], {
-                    "event": "opponent_disconnected",
-                })
-                await _handle_game_over(game_id, engine)
-        await manager.broadcast_spectators(game_id, {
-            "event": "player_disconnected", "player_id": player_id,
-        })
+        _cancel_disconnect_task(game_id, player_id)
+        _disconnect_tasks[(game_id, player_id)] = asyncio.create_task(_delayed_forfeit(game_id, player_id))
+        await manager.broadcast_spectators(game_id, {"event": "player_disconnected", "player_id": player_id})
+    except Exception as e:
+        print(f"[GAME_WS] unexpected error game={game_id} player={player_id}: {e}")
+        engine.players[player_id].connected = False
+        manager.disconnect_game(game_id, player_id)
+        _cancel_disconnect_task(game_id, player_id)
+        _disconnect_tasks[(game_id, player_id)] = asyncio.create_task(_delayed_forfeit(game_id, player_id))
+        await manager.broadcast_spectators(game_id, {"event": "player_disconnected", "player_id": player_id})
 
 
 async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameEngine):
@@ -133,7 +163,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     result: dict = {}
 
     pending = getattr(engine.players.get(player_id), "pending_passive", None)
-    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game"}
+    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game", "ping"}
     if pending and action not in allowed_when_pending:
         await manager.send_game(game_id, player_id, {"event": "error", "message": "패시브 선택을 먼저 완료하세요"})
         return
@@ -149,15 +179,9 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     elif action == "basic_attack":
         result = engine.basic_attack(player_id, data.get("attacker_uid", ""), data.get("target_uid", ""))
     elif action == "use_skill":
-        result = engine.use_skill(
-            player_id, data.get("caster_uid", ""),
-            data.get("skill_key", ""), data.get("target_uid"),
-        )
+        result = engine.use_skill(player_id, data.get("caster_uid", ""), data.get("skill_key", ""), data.get("target_uid"))
     elif action == "execute_spell":
-        result = engine.execute_spell(
-            player_id, data.get("hero_key", ""),
-            data.get("target_uid"),
-        )
+        result = engine.execute_spell(player_id, data.get("hero_key", ""), data.get("target_uid"))
     elif action == "end_turn":
         result = engine.end_turn(player_id)
     elif action == "resolve_passive_choice":
@@ -171,13 +195,15 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     elif action == "get_state":
         await _send_state(game_id, player_id, engine)
         return
+    elif action == "ping":
+        await manager.send_game(game_id, player_id, {"event": "pong"})
+        return
     elif action == "surrender":
         opp_id = [pid for pid in engine.players if pid != player_id][0]
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
         result = {"event": "surrender", "winner": opp_id}
     elif action == "leave_game":
-        # 나가기 = 항복과 동일
         opp_id = [pid for pid in engine.players if pid != player_id][0]
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
@@ -186,33 +212,26 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         await manager.send_game(game_id, player_id, {"event": "error", "message": f"Unknown: {action}"})
         return
 
-    # 에러
     if "error" in result:
         await manager.send_game(game_id, player_id, {"event": "error", "message": result["error"]})
         return
 
-    # 결과 전송
     await manager.send_game(game_id, player_id, {"event": "action_result", "action": action, "result": result})
 
-    # 상대에게 알림
     opp_ids = [pid for pid in engine.players if pid != player_id]
     if opp_ids:
-        safe = {k: v for k, v in result.items() if k != "hand"}
-        await manager.send_game(game_id, opp_ids[0], {"event": "opponent_action", "action": action, "result": safe})
+      safe = {k: v for k, v in result.items() if k != "hand"}
+      await manager.send_game(game_id, opp_ids[0], {"event": "opponent_action", "action": action, "result": safe})
 
-    # 관전자
     await manager.broadcast_spectators(game_id, {
         "event": "game_action", "player_id": player_id,
         "action": action, "spectator_state": engine.get_spectator_state(),
     })
 
-    # 페이즈 변경 시 양쪽 상태 갱신
-    if action in ("mulligan", "skip_mulligan", "end_placement", "end_turn",
-                   "surrender", "place_card", "use_skill", "basic_attack", "execute_spell", "resolve_passive_choice"):
+    if action in ("mulligan", "skip_mulligan", "end_placement", "end_turn", "surrender", "place_card", "use_skill", "basic_attack", "execute_spell", "resolve_passive_choice"):
         for pid in engine.players:
             await _send_state(game_id, pid, engine)
 
-    # 게임 오버
     if engine.phase == GamePhase.GAME_OVER:
         await _handle_game_over(game_id, engine)
 
@@ -224,6 +243,9 @@ async def _send_state(game_id: str, player_id: int, engine: GameEngine):
 async def _handle_game_over(game_id: str, engine: GameEngine):
     winner_id = engine.winner
     loser_id = [pid for pid in engine.players if pid != winner_id][0] if winner_id else None
+
+    for pid in list(engine.players):
+        _cancel_disconnect_task(game_id, pid)
 
     if winner_id and loser_id:
         async with async_session() as db:
@@ -240,13 +262,10 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
         "winner_name": engine.players[winner_id].username if winner_id else None,
     })
 
-    # 방 정리 + 게임 삭제 (즉시)
     await room_manager.close_room_by_game_id(game_id)
     active_games.pop(game_id, None)
     manager.cleanup_game(game_id)
 
-
-# ── 관전 WS ───────────────────────────────────
 
 @router.websocket("/ws/spectate/{game_id}")
 async def spectate_ws(ws: WebSocket, game_id: str):
@@ -258,16 +277,6 @@ async def spectate_ws(ws: WebSocket, game_id: str):
     try:
         await ws.send_json({"event": "spectator_state", "state": engine.get_spectator_state()})
         while True:
-            data = await ws.receive_json()
-            if data.get("action") == "get_state":
-                await ws.send_json({"event": "spectator_state", "state": engine.get_spectator_state()})
+            await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect_spectator(game_id, ws)
-
-
-# ── 매칭/방에서 호출하는 헬퍼 ─────────────────
-
-async def create_game_from_match(match_data: dict) -> str:
-    game_id = match_data["game_id"]
-    await get_or_create_game(game_id, match_data["player1"], match_data["player2"])
-    return game_id

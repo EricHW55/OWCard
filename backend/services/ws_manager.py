@@ -11,8 +11,6 @@ class ConnectionManager:
         self.spectator_conns: dict[str, list[WebSocket]] = {}
         self.lobby_conns: dict[int, WebSocket] = {}
 
-    # ── Lobby ─────────────────────────────────
-
     async def connect_lobby(self, player_id: int, ws: WebSocket):
         await ws.accept()
         self.lobby_conns[player_id] = ws
@@ -25,10 +23,9 @@ class ConnectionManager:
         if ws:
             try:
                 await ws.send_json(data)
-            except Exception:
+            except Exception as e:
+                print(f"[WS] send_lobby failed player={player_id}: {e}")
                 self.disconnect_lobby(player_id)
-
-    # ── Game ──────────────────────────────────
 
     async def connect_game(self, game_id: str, player_id: int, ws: WebSocket):
         await ws.accept()
@@ -46,7 +43,8 @@ class ConnectionManager:
         if ws:
             try:
                 await ws.send_json(data)
-            except Exception:
+            except Exception as e:
+                print(f"[WS] send_game failed game={game_id} player={player_id}: {e}")
                 self.disconnect_game(game_id, player_id)
 
     async def broadcast_game(self, game_id: str, data: dict, exclude: Optional[int] = None):
@@ -55,10 +53,9 @@ class ConnectionManager:
                 continue
             try:
                 await ws.send_json(data)
-            except Exception:
+            except Exception as e:
+                print(f"[WS] broadcast_game failed game={game_id} player={pid}: {e}")
                 self.disconnect_game(game_id, pid)
-
-    # ── Spectator ─────────────────────────────
 
     async def connect_spectator(self, game_id: str, ws: WebSocket):
         await ws.accept()
@@ -73,7 +70,8 @@ class ConnectionManager:
         for ws in list(self.spectator_conns.get(game_id, [])):
             try:
                 await ws.send_json(data)
-            except Exception:
+            except Exception as e:
+                print(f"[WS] broadcast_spectators failed game={game_id}: {e}")
                 self.disconnect_spectator(game_id, ws)
 
     async def broadcast_all(self, game_id: str, data: dict):
