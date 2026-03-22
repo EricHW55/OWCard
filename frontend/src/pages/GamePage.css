@@ -511,3 +511,65 @@
         }
     }
 }
+
+.game-passive-banner {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    background: rgba(120, 207, 255, 0.12);
+    border-bottom: 1px solid rgba(120, 207, 255, 0.35);
+    color: #9fdfff;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.field-move-badge {
+    position: absolute;
+    top: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 5px;
+    border-radius: 999px;
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    border: 1px solid transparent;
+    z-index: 2;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.field-move-badge.airborne {
+    color: #9fe3ff;
+    background: rgba(68, 170, 255, 0.18);
+    border-color: rgba(68, 170, 255, 0.45);
+}
+
+.field-move-badge.burrowed {
+    color: #e6c79b;
+    background: rgba(120, 85, 40, 0.22);
+    border-color: rgba(180, 130, 70, 0.4);
+}
+
+.field-move-badge.stealth {
+    color: #c6b8ff;
+    background: rgba(90, 70, 170, 0.22);
+    border-color: rgba(140, 110, 255, 0.38);
+}
+
+.field-move-badge.exposed {
+    color: #ff9baa;
+    background: rgba(160, 40, 60, 0.2);
+    border-color: rgba(255, 90, 120, 0.4);
+}
+
+.field-move-badge.pulled {
+    color: #f0b7ff;
+    background: rgba(125, 50, 150, 0.2);
+    border-color: rgba(210, 120, 255, 0.38);
+}
+
+.field-move-badge.hooked {
+    color: #ffb0b0;
+    background: rgba(140, 25, 25, 0.24);
+    border-color: rgba(255, 80, 80, 0.45);
+}

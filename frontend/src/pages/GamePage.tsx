@@ -240,7 +240,12 @@ const GamePage: React.FC = () => {
   const { phase, turn, round, is_my_turn } = gs;
   const my = gs.my_state;
   const opp = gs.opponent_state;
-  const pendingPassive = ((my as any).pending_passive ?? null) as any;
+  const pendingPassive = (
+      (my as any).pending_passive ??
+      (my as any).pendingPassive ??
+      (gs as any)?.my_state?.pending_passive ??
+      null
+  ) as any;
 
   const selectedHandCard = selectedHandIdx !== null ? my.hand[selectedHandIdx] : null;
   const allMyField = [...my.field.main, ...my.field.side];
@@ -388,6 +393,12 @@ const GamePage: React.FC = () => {
         {reconnecting && (
             <div className="game-reconnect-banner">
               네트워크가 잠깐 끊겼어요. 자동 재연결 중입니다.
+            </div>
+        )}
+
+        {pendingPassive && (
+            <div className="game-passive-banner">
+              패시브 선택 대기 중: {pendingPassive.type === 'mercy_resurrect' ? '메르시 부활' : pendingPassive.type}
             </div>
         )}
 

@@ -41,9 +41,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
 
-    const isHidden = card.statuses?.some((s) =>
-        ['stealth', 'burrowed', 'frozen_state'].includes(s.name)
-    );
+    const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
+    const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
+    const isFrozen = card.statuses?.some((s) => s.name === 'frozen_state');
+    const isAirborne = card.statuses?.some((s) => s.name === 'airborne');
+    const isExposed = card.statuses?.some((s) => s.name === 'exposed');
+    const isPulled = card.statuses?.some((s) => s.name === 'pulled');
+    const isHooked = card.statuses?.some((s) => s.name === 'hooked');
+
+    const isHidden = isStealthed || isBurrowed || isFrozen;
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
     const hasSilence = card.statuses?.some(
         (s) => s.name === 'skill_silence' || s.name === 'sleep'
@@ -63,6 +69,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     } else if (hasBarrier) {
         shadow = '0 0 8px #22cc8866';
     }
+
+    let moveBadge: { text: string; cls: string } | null = null;
+    if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
+    else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };
+    else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
+    else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
+    else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
+    else if (isExposed) moveBadge = { text: '노출', cls: 'exposed' };
 
     return (
         <div
@@ -86,7 +100,11 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 cursor: 'pointer',
                 flexShrink: 0,
                 opacity: isHidden ? 0.45 : 1,
-                boxShadow: shadow,
+                boxShadow: isAirborne
+                    ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)'
+                    : shadow,
+                transform: isAirborne ? 'translateY(-4px)' : undefined,
+                filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
                 transition: 'all 0.25s',
             }}
         >
@@ -115,6 +133,12 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 />
             )}
 
+            {moveBadge && (
+                <div className={`field-move-badge ${moveBadge.cls}`}>
+                    {moveBadge.text}
+                </div>
+            )}
+
             <div
                 style={{
                     fontSize: 8,
@@ -122,6 +146,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                     color,
                     textAlign: 'center',
                     lineHeight: 1.1,
+                    paddingTop: moveBadge ? 10 : 0,
                 }}
             >
                 {card.name}
