@@ -146,11 +146,17 @@ def mercy_passive(card: FieldCard, game: GameState) -> dict:
     options = []
     if ps:
         options = [
-            {"index": i, "name": c.get("name", "?"), "role": c.get("role", "?")}
+            {
+                "index": i,
+                "name": c.get("name", "?"),
+                "role": c.get("role", "?"),
+                "hero_key": c.get("hero_key", ""),
+            }
             for i, c in enumerate(ps.trash)
+            if not c.get("is_spell", False)
         ]
     if not options:
-        return {"passive": "부활", "message": "트래시 없음"}
+        return {"passive": "부활", "message": "부활 가능한 영웅 카드 없음"}
     return {
         "passive": "부활",
         "needs_choice": {

@@ -526,6 +526,9 @@ class GameEngine:
             return 2
         if hero_key == "junkerqueen" and skill_key == "skill_1":
             return 3
+        if hero_key == "roadhog" and skill_key == "skill_1": 
+            return 3
+        
         return None
 
     # ── 액션: 스킬 사용 ──────────────────────

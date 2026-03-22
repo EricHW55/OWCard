@@ -28,19 +28,45 @@ def bastion_recon(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     return {"success": True, "skill": "설정: 수색", "damage_log": result}
 
 # ── 프레야 ────────────────────────────────
-@register_skill("pharah", "skill_1")
-def pharah_skill(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """상승기류+정조준: 공중이면 한칸 무시 8딜. 아니면 공중 전환."""
-    if caster.has_status("airborne"):
-        # 공중 상태 → 한칸 무시하고 공격
-        if not target: return {"success": False, "message": "대상 필요"}
-        dmg = game.get_skill_damage(caster, "skill_1")
-        result = target.take_damage(dmg)
-        caster.remove_status("airborne")
-        return {"success": True, "skill": "정조준", "damage_log": result}
-    else:
-        caster.add_status(Airborne(duration=1, source_uid=caster.uid))
-        return {"success": True, "skill": "상승기류", "message": "다음 턴 한칸 무시 공격 가능"}
+@register_skill("freja", "skill_1")
+def freja_updraft(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """
+    상승기류
+    - 에어본 3턴 유지 (내턴 -> 상대턴 -> 다음 내턴)
+    - 재사용 시 지속시간 갱신
+    """
+    caster.remove_status("airborne")
+    caster.add_status(Airborne(duration=3, source_uid=caster.uid))
+    return {
+        "success": True,
+        "skill": "상승기류",
+        "message": "에어본 상태 돌입 (내턴-니턴-내턴 유지)",
+    }
+
+@register_skill("freja", "skill_2")
+def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """
+    정조준
+    - 에어본 상태에서만 사용 가능
+    - 8 데미지
+    - 사용 후 에어본 해제
+    """
+    if not caster.has_status("airborne"):
+        return {"success": False, "message": "에어본 상태에서만 사용 가능"}
+
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    dmg = game.get_skill_damage(caster, "skill_2")
+    result = target.take_damage(dmg)
+    caster.remove_status("airborne")
+
+    return {
+        "success": True,
+        "skill": "정조준",
+        "damage_log": result,
+        "message": "정조준 사용 후 착지",
+    }
 
 # ── 트레이서 ──────────────────────────────
 @register_passive("tracer")
@@ -102,7 +128,7 @@ def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dic
         caster.remove_status("burrowed")
         caster.extra["used_burrow_last"] = True
         return {"success": True, "skill": "잠복 공격", "damage_log": result}
-    caster.add_status(Burrowed(duration=1, source_uid=caster.uid))
+    caster.add_status(Burrowed(duration=2, source_uid=caster.uid))
     return {"success": True, "skill": "잠복"}
 
 @register_skill("venture", "skill_2")
