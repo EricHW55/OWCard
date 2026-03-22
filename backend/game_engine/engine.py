@@ -139,14 +139,11 @@ class GameState:
         ps.hand.extend(drawn)
         return drawn
 
-    def get_actual_slot_index(self, target: FieldCard, damage_table) -> int:
-        """압축 거리 대신 실제 위치 기준 인덱스.
-        MAIN: 탱커=0, 딜러=1, 힐러=2 / SIDE: 마지막 인덱스.
-        """
+    def get_actual_slot_index(self, target: FieldCard, damage_table, *, side_as_front: bool = False) -> int:
         if not isinstance(damage_table, (list, tuple)) or not damage_table:
             return 0
         if target.zone == Zone.SIDE:
-            return len(damage_table) - 1
+            return 0 if side_as_front else len(damage_table) - 1
         role_index = {
             Role.TANK: 0,
             Role.DEALER: 1,

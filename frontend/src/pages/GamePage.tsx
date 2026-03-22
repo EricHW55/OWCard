@@ -21,6 +21,24 @@ function getSession() {
   return { token, player_id: Number(pid), username: sessionStorage.getItem('username') || d?.username || `p${pid}` };
 }
 
+function roleLabel(role?: string) {
+  switch (role) {
+    case 'tank': return '탱커';
+    case 'dealer': return '딜러';
+    case 'healer': return '힐러';
+    default: return role || '미상';
+  }
+}
+
+function roleClass(role?: string) {
+  switch (role) {
+    case 'tank': return 'tank';
+    case 'dealer': return 'dealer';
+    case 'healer': return 'healer';
+    default: return 'unknown';
+  }
+}
+
 const btnS: React.CSSProperties = {
   padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
   background: '#243055', border: '1px solid #3a4a78', color: '#e8ecf8', cursor: 'pointer',
@@ -340,6 +358,14 @@ const GamePage: React.FC = () => {
     navigate('/');
   };
 
+  const showContextPanel =
+      (phase === 'mulligan' && !my.mulligan_done)
+      || fieldSkills.length > 0
+      || (actionMode === 'spell' && !!pendingSpell)
+      || (phase === 'placement' && is_my_turn && !!selectedHandCard?.is_spell && !pendingSpell)
+      || pendingPassive?.type === 'mercy_resurrect'
+      || pendingPassive?.type === 'jetpack_cat_extra_place';
+
   return (
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
         <div className="game-topbar">
@@ -401,76 +427,123 @@ const GamePage: React.FC = () => {
                 onPlaceClick={handlePlace}
             />
           </div>
-
-          {phase === 'mulligan' && !my.mulligan_done && (
-              <div className="game-toolbar">
-                <span className="game-toolbar-title">멀리건: {selectedMulligan.length}/2</span>
-                <button style={btnS} onClick={() => { send({ action: 'mulligan', card_indices: selectedMulligan }); setSelectedMulligan([]); }}>멀리건 실행</button>
-                <button style={{ ...btnS, background: '#1a2342' }} onClick={() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }}>스킵</button>
-              </div>
-          )}
-
-          {fieldSkills.length > 0 && (
-              <div className="game-toolbar">
-                <span className="game-toolbar-title">{selectedMyFieldCard!.name}</span>
-                {fieldSkills.map(sk => (
-                    <button
-                        key={sk.key}
-                        disabled={sk.onCooldown}
-                        onClick={() => { setActionMode(sk.key); addLog(`${selectedMyFieldCard!.name} — ${sk.name} 대상 선택...`); }}
-                        style={{
-                          ...btnS,
-                          opacity: sk.onCooldown ? 0.4 : 1,
-                          background: actionMode === sk.key ? '#ff9b3040' : '#243055',
-                          border: actionMode === sk.key ? '1px solid #ff9b30' : '1px solid #3a4a78',
-                        }}
-                    >
-                      ✦ {sk.name}{sk.onCooldown ? ` (${sk.cdLeft}턴)` : ''}
-                    </button>
-                ))}
-                <button onClick={() => { setSelectedFieldUid(null); setActionMode(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
-                {actionMode && actionMode !== 'spell' && <span className="game-toolbar-hint">→ 아군 또는 상대 카드를 클릭</span>}
-              </div>
-          )}
-
-          {actionMode === 'spell' && pendingSpell && (
-              <div className="game-toolbar">
-                <span className="game-toolbar-title">스킬 카드 대상 선택</span>
-                <button onClick={() => { setActionMode(null); setPendingSpell(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
-                <span className="game-toolbar-hint">→ 카드를 클릭</span>
-              </div>
-          )}
-
-          {phase === 'placement' && is_my_turn && selectedHandCard?.is_spell && !pendingSpell && (
-              <div className="game-toolbar">
-                <span className="game-toolbar-title">{selectedHandCard.name}</span>
-                <button onClick={() => handlePlace('main')} style={btnS}>✦ 스킬 카드 사용</button>
-                <button onClick={() => setSelectedHandIdx(null)} style={{ ...btnS, background: '#1a2342' }}>취소</button>
-              </div>
-          )}
-
-          {pendingPassive?.type === 'mercy_resurrect' && (
-              <div className="game-toolbar game-toolbar-wrap">
-                <span className="game-toolbar-title">메르시 부활 대상 선택</span>
-                {(pendingPassive.options || []).map((opt: any) => (
-                    <button key={opt.index} onClick={() => send({ action: 'resolve_passive_choice', trash_index: opt.index })} style={btnS}>
-                      {opt.name}
-                    </button>
-                ))}
-                <button onClick={() => send({ action: 'resolve_passive_choice', skip: true })} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
-              </div>
-          )}
-
-          {pendingPassive?.type === 'jetpack_cat_extra_place' && (
-              <div className="game-toolbar game-toolbar-wrap">
-                <span className="game-toolbar-title">제트팩 캣 추가 배치</span>
-                <span className="game-toolbar-hint">→ 손패 영웅 카드 선택 후 빈 자리를 클릭</span>
-                <button onClick={() => { setSelectedHandIdx(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
-              </div>
-          )}
         </div>
 
         <div className="game-bottom-panel">
+          {showContextPanel && (
+              <div className="game-context-stack">
+                {phase === 'mulligan' && !my.mulligan_done && (
+                    <div className="game-context-panel">
+                      <div className="game-context-head">
+                        <span className="game-toolbar-title">멀리건 선택</span>
+                        <span className="game-context-subtext">선택 {selectedMulligan.length}/2</span>
+                      </div>
+                      <div className="game-context-actions">
+                        <button style={btnS} onClick={() => { send({ action: 'mulligan', card_indices: selectedMulligan }); setSelectedMulligan([]); }}>멀리건 실행</button>
+                        <button style={{ ...btnS, background: '#1a2342' }} onClick={() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }}>스킵</button>
+                      </div>
+                    </div>
+                )}
+
+                {fieldSkills.length > 0 && (
+                    <div className="game-context-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">{selectedMyFieldCard!.name}</span>
+                        <span className="game-context-subtext">사용할 스킬을 고르세요</span>
+                      </div>
+                      <div className="game-context-actions game-context-actions-wrap">
+                        {fieldSkills.map(sk => (
+                            <button
+                                key={sk.key}
+                                disabled={sk.onCooldown}
+                                onClick={() => { setActionMode(sk.key); addLog(`${selectedMyFieldCard!.name} — ${sk.name} 대상 선택...`); }}
+                                style={{
+                                  ...btnS,
+                                  opacity: sk.onCooldown ? 0.4 : 1,
+                                  background: actionMode === sk.key ? '#ff9b3040' : '#243055',
+                                  border: actionMode === sk.key ? '1px solid #ff9b30' : '1px solid #3a4a78',
+                                }}
+                            >
+                              ✦ {sk.name}{sk.onCooldown ? ` (${sk.cdLeft}턴)` : ''}
+                            </button>
+                        ))}
+                        <button onClick={() => { setSelectedFieldUid(null); setActionMode(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                      </div>
+                      {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
+                    </div>
+                )}
+
+                {actionMode === 'spell' && pendingSpell && (
+                    <div className="game-context-panel">
+                      <div className="game-context-head">
+                        <span className="game-toolbar-title">스킬 카드 대상 선택</span>
+                        <span className="game-context-subtext">→ 적용할 카드를 클릭</span>
+                      </div>
+                      <div className="game-context-actions">
+                        <button onClick={() => { setActionMode(null); setPendingSpell(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                      </div>
+                    </div>
+                )}
+
+                {phase === 'placement' && is_my_turn && selectedHandCard?.is_spell && !pendingSpell && (
+                    <div className="game-context-panel">
+                      <div className="game-context-head">
+                        <span className="game-toolbar-title">{selectedHandCard.name}</span>
+                        <span className="game-context-subtext">스킬 카드를 바로 사용합니다</span>
+                      </div>
+                      <div className="game-context-actions">
+                        <button onClick={() => handlePlace('main')} style={btnS}>✦ 스킬 카드 사용</button>
+                        <button onClick={() => setSelectedHandIdx(null)} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                      </div>
+                    </div>
+                )}
+
+                {pendingPassive?.type === 'mercy_resurrect' && (
+                    <div className="game-context-panel mercy-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">메르시 부활 대상 선택</span>
+                        <span className="game-context-subtext">
+                    트래시에서 한 장을 선택하면 자동으로 배치 가능한 줄에 소생합니다.
+                  </span>
+                      </div>
+
+                      {(pendingPassive.options || []).length > 0 ? (
+                          <div className="mercy-choice-grid">
+                            {(pendingPassive.options || []).map((opt: any) => (
+                                <button
+                                    key={opt.index}
+                                    className={`mercy-choice-card ${roleClass(opt.role)}`}
+                                    onClick={() => send({ action: 'resolve_passive_choice', trash_index: opt.index })}
+                                >
+                                  <span className="mercy-choice-name">{opt.name}</span>
+                                  <span className={`mercy-choice-role ${roleClass(opt.role)}`}>{roleLabel(opt.role)}</span>
+                                </button>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="game-context-subtext">부활 가능한 트래시 카드가 없습니다.</div>
+                      )}
+
+                      <div className="game-context-actions">
+                        <button onClick={() => send({ action: 'resolve_passive_choice', skip: true })} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+                      </div>
+                    </div>
+                )}
+
+                {pendingPassive?.type === 'jetpack_cat_extra_place' && (
+                    <div className="game-context-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">제트팩 캣 추가 배치</span>
+                        <span className="game-context-subtext">손패 영웅 카드를 고른 뒤 빈 자리를 눌러 추가 배치하세요.</span>
+                      </div>
+                      <div className="game-context-actions">
+                        <button onClick={() => { setSelectedHandIdx(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+                      </div>
+                    </div>
+                )}
+              </div>
+          )}
+
           <div className="game-hand-row">
             {my.hand.map((card, i) => (
                 <HandCardComp

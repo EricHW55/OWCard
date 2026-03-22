@@ -157,20 +157,20 @@ def echo_beam(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
-    dist = game.get_distance_between(caster, target)
-    dmg = tbl[min(dist - 1, len(tbl) - 1)]
+    idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    dmg = tbl[idx]
     result = target.take_damage(dmg)
-    return {"success": True, "skill": "난사", "distance": dist, "damage_log": result}
+    return {"success": True, "skill": "난사", "slot_index": idx, "damage_log": result}
 
 # ── 리퍼 ──────────────────────────────────
-@register_skill("reaper", "skill_1")
+register_skill("reaper", "skill_1")
 def reaper_hellfire(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
-    dist = game.get_distance_between(caster, target)
-    dmg = tbl[min(dist - 1, len(tbl) - 1)]
+    idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    dmg = tbl[idx]
     result = target.take_damage(dmg)
-    return {"success": True, "skill": "헬파이어 샷건", "distance": dist, "damage_log": result}
+    return {"success": True, "skill": "헬파이어 샷건", "slot_index": idx, "damage_log": result}
 
 # ── 메이 ──────────────────────────────────
 @register_passive("mei")

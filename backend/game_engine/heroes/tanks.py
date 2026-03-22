@@ -70,7 +70,7 @@ def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) ->
         return {"success": False, "message": "대상 필요"}
 
     dmg_table = game.get_skill_damage(caster, "skill_2")
-    idx = game.get_actual_slot_index(target, dmg_table)
+    idx = game.get_actual_slot_index(target, dmg_table, side_as_front=True)
     dmg = dmg_table[idx]
     result = target.take_damage(dmg)
 
