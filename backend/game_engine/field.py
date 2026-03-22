@@ -411,9 +411,9 @@ class Field:
 
     # ── 공격 대상 계산 ────────────────────────
 
-    def get_targetable_from_main(self, attacker: FieldCard) -> list[FieldCard]:
+    def get_targetable_from_main(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
         """본대에서 공격 시: 사거리 내 + 도발 체크 + 타겟 가능 체크."""
-        atk_range = attacker.attack_range
+        atk_range = override_range if override_range is not None else attacker.attack_range
 
         # bypass_distance 체크 (프레야, 벤처 등)
         bypass = 0
@@ -462,10 +462,10 @@ class Field:
     def get_side_targets(self) -> list[FieldCard]:
         return [c for c in self._alive(self.side_cards) if c.is_targetable]
 
-    def get_all_targetable(self, attacker: FieldCard) -> list[FieldCard]:
+    def get_all_targetable(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
         """공격자 위치에 따른 모든 가능 대상."""
         if attacker.zone == Zone.MAIN:
-            targets = self.get_targetable_from_main(attacker)
+            targets = self.get_targetable_from_main(attacker, override_range=override_range)
         else:
             targets = self.get_targetable_from_side(attacker)
         targets += self.get_side_targets()

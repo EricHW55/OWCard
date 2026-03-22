@@ -42,12 +42,12 @@ class PlayerState:
     deck: list[dict] = dc_field(default_factory=list)
     hand: list[dict] = dc_field(default_factory=list)
     draw_pile: list[dict] = dc_field(default_factory=list)
-    trash: list[dict] = dc_field(default_factory=list)  # 파괴된 카드
+    trash: list[dict] = dc_field(default_factory=list)
     field: Field = dc_field(default_factory=Field)
     mulligan_done: bool = False
     placement_cost_used: int = 0
     connected: bool = False
-    commander_skill_uses: int = 0  # 이번 라운드 지휘관 스킬 사용 횟수
+    commander_skill_uses: int = 0
     pending_passive: Optional[dict] = None
 
     def to_dict(self, reveal_hand: bool = True) -> dict:
@@ -64,7 +64,7 @@ class PlayerState:
             "placement_cost_used": self.placement_cost_used,
             "pending_passive": self.pending_passive if reveal_hand else None,
         }
-
+        
 
 # ═══════════════════════════════════════════════════════
 #  GameState — 스킬 함수에 전달되는 헬퍼 객체
