@@ -86,6 +86,7 @@ function buildOpponentSkillCue(msg: any) {
       || action === 'execute_spell'
       || !!msg?.skill_name
       || !!result?.skill_name
+      || !!result?.skill
       || result?.type === 'spell_played';
 
   if (!hasSkillSignal) return null;
@@ -101,6 +102,7 @@ function buildOpponentSkillCue(msg: any) {
   const skillName =
       msg?.skill_name
       || result?.skill_name
+      || result?.skill
       || result?.display_name
       || result?.card?.skill_name
       || result?.card?.name;
@@ -135,6 +137,8 @@ const GamePage: React.FC = () => {
   const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [centerCue, setCenterCue] = useState<CenterCue | null>(null);
+  const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
+  const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
 
   const wsRef = useRef<GameSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -288,58 +292,99 @@ const GamePage: React.FC = () => {
           }
         }),
         ws.on('pong', () => {}),
-        ws.on('game_state', (msg: any) => setGs(msg.state)),
+        ws.on('game_state', (msg: any) => {
+          setGs(msg.state);
+          const serverPendingPassive = msg?.state?.my_state?.pending_passive ?? msg?.state?.my_state?.pendingPassive ?? null;
+          const serverPendingSpellChoice = msg?.state?.my_state?.pending_spell ?? msg?.state?.my_state?.pendingSpell ?? null;
+          if (serverPendingPassive) setLocalPendingPassive(null);
+          if (serverPendingSpellChoice) setLocalPendingSpellChoice(null);
+          if (!serverPendingPassive && !serverPendingSpellChoice && msg?.state?.phase !== 'placement') {
+            setLocalPendingPassive(null);
+            setLocalPendingSpellChoice(null);
+          }
+        }),
         ws.on('action_result', (msg: any) => {
           addLog(`내 행동: ${msg.action}`);
 
+          const result = msg?.result || {};
           const latestMyState = gsRef.current?.my_state as any;
           const myHand = latestMyState?.hand || [];
           const spellName =
-              msg?.result?.card?.name
-              || msg?.result?.skill_name
-              || myHand.find((c: any) => c.hero_key === msg?.result?.hero_key)?.name
+              result?.card?.name
+              || result?.skill_name
+              || result?.skill
+              || myHand.find((c: any) => c.hero_key === result?.hero_key)?.name
               || pendingSpellNameRef.current
               || '스킬 카드';
+          const actorName =
+              result?.caster_name
+              || result?.caster?.name
+              || result?.card?.name
+              || latestMyState?.field?.main?.find?.((c: any) => c.uid === msg?.caster_uid)?.name
+              || latestMyState?.field?.side?.find?.((c: any) => c.uid === msg?.caster_uid)?.name
+              || '영웅';
+          const resolvedSkillName = result?.skill_name || result?.skill || null;
 
-          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && msg.result?.needs_target) {
-            setPendingSpell(msg.result.hero_key);
+          if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
+            setPendingSpell(result.hero_key);
             setPendingSpellName(spellName);
             setActionMode('spell');
+            setLocalPendingSpellChoice(null);
             addLog('스킬 카드 대상 선택');
             showCenterCue(spellName, '대상을 선택하세요', 'system', 1200);
           }
 
-          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && msg.result?.needs_choice) {
+          if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_choice) {
             setPendingSpell(null);
             setPendingSpellName(spellName);
             setActionMode(null);
+            setLocalPendingSpellChoice(result?.choice || null);
             addLog('스킬 카드 추가 선택 필요');
             showCenterCue(spellName, '카드를 선택하세요', 'system', 1300);
           }
 
-          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && !msg.result?.needs_target && !msg.result?.needs_choice) {
-            showCenterCue(spellName, '스킬 카드 발동', 'skill', 1500);
+          if (msg.action === 'place_card' && result?.type === 'spell_played' && !result?.needs_target && !result?.needs_choice) {
+            showCenterCue(resolvedSkillName || spellName, '스킬 카드 발동', 'skill', 1500);
+            setLocalPendingSpellChoice(null);
           }
 
-          if (msg.result?.passive_triggered?.summoned) {
-            addLog(`설치물 소환: ${msg.result.passive_triggered.summoned.name}`);
-            showCenterCue(msg.result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300);
+          if (result?.passive_triggered?.summoned) {
+            addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
+            showCenterCue(result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300);
           }
 
-          if (msg.result?.passive_triggered?.needs_choice || msg.result?.needs_choice) {
+          if (result?.passive_triggered?.needs_choice) {
+            setLocalPendingPassive(result.passive_triggered.needs_choice);
             addLog('패시브 추가 선택 필요');
+            if (result.passive_triggered.passive) {
+              showCenterCue(result.passive_triggered.passive, '선택이 필요합니다', 'system', 1300);
+            }
           }
 
-          if (msg.action === 'resolve_passive_choice' && msg.result?.card?.name) {
-            addLog(`패시브 처리: ${msg.result.card.name}`);
-            showCenterCue(msg.result.card.name, '패시브 처리', 'system', 1300);
+          if (msg.action === 'resolve_passive_choice') {
+            setLocalPendingPassive(null);
+            if (result?.card?.name) {
+              addLog(`패시브 처리: ${result.card.name}`);
+              showCenterCue(result.card.name, '패시브 처리', 'system', 1300);
+            }
           }
 
-          if (msg.action === 'execute_spell' && msg.result?.rescued) {
-            showCenterCue(msg.result.rescued, 'TRASH → 패', 'skill', 1400);
+          if (msg.action === 'use_skill' && resolvedSkillName) {
+            showCenterCue(resolvedSkillName, `${actorName} 사용`, 'skill', 1500);
           }
-          if (msg.action === 'execute_spell' && msg.result?.drawn_card) {
-            showCenterCue(msg.result.drawn_card, '덱 → 패', 'skill', 1400);
+
+          if (msg.action === 'execute_spell') {
+            setLocalPendingSpellChoice(null);
+            if (resolvedSkillName) {
+              showCenterCue(resolvedSkillName, '스킬 카드 발동', 'skill', 1500);
+            }
+          }
+
+          if (msg.action === 'execute_spell' && result?.rescued) {
+            showCenterCue(result.rescued, 'TRASH → 패', 'skill', 1400);
+          }
+          if (msg.action === 'execute_spell' && result?.drawn_card) {
+            showCenterCue(result.drawn_card, '덱 → 패', 'skill', 1400);
           }
         }),
         ws.on('opponent_action', (msg: any) => {
@@ -420,12 +465,14 @@ const GamePage: React.FC = () => {
       (my as any).pending_passive
       ?? (my as any).pendingPassive
       ?? (gs as any)?.my_state?.pending_passive
+      ?? localPendingPassive
       ?? null
   ) as any;
   const pendingSpellChoice = (
       (my as any).pending_spell
       ?? (my as any).pendingSpell
       ?? (gs as any)?.my_state?.pending_spell
+      ?? localPendingSpellChoice
       ?? null
   ) as any;
 
@@ -542,6 +589,7 @@ const GamePage: React.FC = () => {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
     for (const [key, m] of Object.entries(meta)) {
+      if (!key.startsWith('skill_')) continue;
       fieldSkills.push({
         key,
         name: (m as any)?.name || key,
@@ -549,6 +597,7 @@ const GamePage: React.FC = () => {
         cdLeft: cds[key] ?? 0,
       });
     }
+    fieldSkills.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
 
   const leaveGame = () => {
@@ -681,7 +730,8 @@ const GamePage: React.FC = () => {
                                 disabled={sk.onCooldown}
                                 onClick={() => {
                                   setActionMode(sk.key);
-                                  addLog(`${selectedMyFieldCard!.name} — ${sk.name} 대상 선택...`);
+                                  addLog(`${selectedMyFieldCard!.name} — ${sk.name} 준비`);
+                                  showCenterCue(sk.name, `${selectedMyFieldCard!.name} 준비`, 'system', 900);
                                 }}
                                 style={{
                                   ...btnS,
@@ -724,7 +774,10 @@ const GamePage: React.FC = () => {
                                 <button
                                     key={`trash-${opt.index}`}
                                     className={`mercy-choice-card ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}
-                                    onClick={() => send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, trash_index: opt.index })}
+                                    onClick={() => {
+                                      setLocalPendingSpellChoice(null);
+                                      send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, trash_index: opt.index });
+                                    }}
                                 >
                                   <span className="mercy-choice-name">{opt.name}</span>
                                   <span className={`mercy-choice-role ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}>{roleLabel(opt.is_spell ? 'spell' : opt.role)}</span>
@@ -750,7 +803,10 @@ const GamePage: React.FC = () => {
                                 <button
                                     key={`draw-${opt.index}`}
                                     className={`mercy-choice-card ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}
-                                    onClick={() => send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, draw_index: opt.index })}
+                                    onClick={() => {
+                                      setLocalPendingSpellChoice(null);
+                                      send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, draw_index: opt.index });
+                                    }}
                                 >
                                   <span className="mercy-choice-name">{opt.name}</span>
                                   <span className={`mercy-choice-role ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}>{roleLabel(opt.is_spell ? 'spell' : opt.role)}</span>
@@ -791,7 +847,10 @@ const GamePage: React.FC = () => {
                                 <button
                                     key={opt.index}
                                     className={`mercy-choice-card ${roleClass(opt.role)}`}
-                                    onClick={() => send({ action: 'resolve_passive_choice', trash_index: opt.index })}
+                                    onClick={() => {
+                                      setLocalPendingPassive(null);
+                                      send({ action: 'resolve_passive_choice', trash_index: opt.index });
+                                    }}
                                 >
                                   <span className="mercy-choice-name">{opt.name}</span>
                                   <span className={`mercy-choice-role ${roleClass(opt.role)}`}>{roleLabel(opt.role)}</span>
@@ -803,7 +862,7 @@ const GamePage: React.FC = () => {
                       )}
 
                       <div className="game-context-actions">
-                        <button onClick={() => send({ action: 'resolve_passive_choice', skip: true })} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+                        <button onClick={() => { setLocalPendingPassive(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
                       </div>
                     </div>
                 )}
@@ -815,7 +874,7 @@ const GamePage: React.FC = () => {
                         <span className="game-context-subtext">손패 영웅 카드를 고른 뒤 빈 자리를 눌러 추가 배치하세요.</span>
                       </div>
                       <div className="game-context-actions">
-                        <button onClick={() => { setSelectedHandIdx(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
+                        <button onClick={() => { setSelectedHandIdx(null); setLocalPendingPassive(null); send({ action: 'resolve_passive_choice', skip: true }); }} style={{ ...btnS, background: '#1a2342' }}>건너뛰기</button>
                       </div>
                     </div>
                 )}

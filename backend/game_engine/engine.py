@@ -261,6 +261,15 @@ class GameEngine:
             ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
         return result
 
+
+    def _finalize_deaths(self, *player_states: PlayerState):
+        seen: set[int] = set()
+        for ps in player_states:
+            if not ps or ps.player_id in seen:
+                continue
+            seen.add(ps.player_id)
+            self._collect_dead_to_trash(ps)
+
     # ── 플레이어 등록 ─────────────────────────
 
     def add_player(self, player_id: int, username: str, deck_cards: list[dict]) -> bool:
@@ -545,8 +554,9 @@ class GameEngine:
 
             spell_result = self._execute_spell_effect(ps, hero_key)
             opp = self.players[self.opponent_player_id]
-            opp.field.remove_dead()
-            ps.field.remove_dead()
+            if spell_result.get("skill") and not spell_result.get("skill_name"):
+                spell_result["skill_name"] = spell_result["skill"]
+            self._finalize_deaths(opp, ps)
             payload = {
                 "success": True,
                 "type": "spell_played",
@@ -630,8 +640,9 @@ class GameEngine:
             draw_index=draw_index,
         )
 
-        opp.field.remove_dead()
-        ps.field.remove_dead()
+        if result.get("skill") and not result.get("skill_name"):
+            result["skill_name"] = result["skill"]
+        self._finalize_deaths(opp, ps)
         if result.get("success"):
             ps.pending_spell = None
 
@@ -701,6 +712,8 @@ class GameEngine:
             return {"error": "Skill function not found"}
 
         result = skill_fn(caster, target, self.state)
+        if result.get("skill") and not result.get("skill_name"):
+            result["skill_name"] = result["skill"]
 
         if result.get("success"):
             # 이번 턴 행동 완료 표시
@@ -722,8 +735,7 @@ class GameEngine:
                     result["reflected_to_caster"] = reflect_dmg
 
         # 사망 처리
-        opp.field.remove_dead()
-        ps.field.remove_dead()
+        self._finalize_deaths(opp, ps)
 
         self._log("skill", player_id, result)
         self._check_game_over()
@@ -769,7 +781,7 @@ class GameEngine:
         if result.get("reflected"):
             attacker.take_raw_damage(result["reflected"])
 
-        opp.field.remove_dead()
+        self._finalize_deaths(opp, ps)
 
         log = {"success": True, "type": "basic_attack",
                "attacker": attacker_uid, "damage_log": result}
