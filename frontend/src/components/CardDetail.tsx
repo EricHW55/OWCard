@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { FieldCard, HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON, ROLE_LABEL } from '../types/constants';
 import { getHeroImageSrc } from '../utils/heroImage';
@@ -63,9 +63,8 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const cooldowns: Record<string, number> = fc?.skill_cooldowns ?? {};
     const statuses = fc?.statuses ?? [];
 
-    const skillEntries = useMemo(
-        () => Object.entries(skills).sort(([a], [b]) => skillOrder(a) - skillOrder(b)),
-        [skills],
+    const skillEntries = Object.entries(skills).sort(
+        ([a], [b]) => skillOrder(a) - skillOrder(b)
     );
 
     const barrierStatus = statuses.find(s => s.name === 'barrier');
