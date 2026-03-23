@@ -609,9 +609,9 @@ class GameEngine:
     # ── 스킬 카드 실행 ───────────────────────
 
     def execute_spell(self, player_id: int, hero_key: str,
-                      target_uid: str | None = None,
-                      trash_index: int | None = None,
-                      draw_index: int | None = None) -> dict:
+                  target_uid: str | None = None,
+                  trash_index: int | None = None,
+                  draw_index: int | None = None) -> dict:
         """스킬 카드 효과 실행."""
         if player_id != self.current_player_id:
             return {"error": "Not your turn"}
@@ -621,29 +621,86 @@ class GameEngine:
             return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
-        pending = ps.pending_spell
+        pending = getattr(ps, "pending_spell", None)
         if pending:
             if pending.get("hero_key") != hero_key:
                 return {"error": "선택 중인 스킬 카드와 다릅니다"}
-        elif self._spell_requires_choice(hero_key):
+        elif hero_key in {"spell_rescue", "spell_maximilian"}:
             return {"error": "선택 중인 스킬 카드가 없습니다"}
+
+        # websocket 라우터가 draw_index / trash_index를 직접 안 넘기는 경우 대비
+        # target_uid에 실어 보낸 특수 토큰도 같이 파싱한다.
+        if isinstance(target_uid, str):
+            if target_uid.startswith("__draw__:") and draw_index is None:
+                try:
+                    draw_index = int(target_uid.split(":", 1)[1])
+                    target_uid = None
+                except (TypeError, ValueError):
+                    return {"error": "잘못된 덱 카드 선택"}
+            elif target_uid.startswith("__trash__:") and trash_index is None:
+                try:
+                    trash_index = int(target_uid.split(":", 1)[1])
+                    target_uid = None
+                except (TypeError, ValueError):
+                    return {"error": "잘못된 트래시 카드 선택"}
+
+        if pending:
+            pending_type = pending.get("type")
+            if pending_type == "spell_maximilian_select" and draw_index is None:
+                return {"error": "가져올 덱 카드를 선택하세요"}
+            if pending_type == "spell_rescue_select" and trash_index is None:
+                return {"error": "가져올 트래시 카드를 선택하세요"}
 
         target = None
         if target_uid:
             target = ps.field.find_card(target_uid) or opp.field.find_card(target_uid)
 
-        result = self._execute_spell_effect(
-            ps,
-            hero_key,
-            target=target,
-            trash_index=trash_index,
-            draw_index=draw_index,
-        )
+        # 최신 엔진이면 이 헬퍼를 쓰고,
+        # 구버전 엔진이면 아래 dummy caster fallback을 사용하면 된다.
+        if hasattr(self, "_execute_spell_effect"):
+            result = self._execute_spell_effect(
+                ps,
+                hero_key,
+                target=target,
+                trash_index=trash_index,
+                draw_index=draw_index,
+            )
+        else:
+            spell_fn = get_skill(hero_key, "skill_1")
+            if not spell_fn:
+                return {"error": f"Spell function not found: {hero_key}"}
+
+            dummy_caster = FieldCard(
+                uid="spell_dummy",
+                template_id=-1,
+                name=hero_key,
+                role=Role.DEALER,
+                max_hp=0,
+                base_attack=0,
+                base_defense=0,
+                base_attack_range=0,
+                extra={
+                    "_hero_key": hero_key,
+                    "_trash_index": trash_index,
+                    "_draw_index": draw_index,
+                },
+            )
+            ps.field.main_cards.append(dummy_caster)
+            try:
+                result = spell_fn(dummy_caster, target, self.state)
+            finally:
+                ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
 
         if result.get("skill") and not result.get("skill_name"):
             result["skill_name"] = result["skill"]
-        self._finalize_deaths(opp, ps)
-        if result.get("success"):
+
+        if hasattr(self, "_finalize_deaths"):
+            self._finalize_deaths(opp, ps)
+        else:
+            opp.field.remove_dead()
+            ps.field.remove_dead()
+
+        if result.get("success") and hasattr(ps, "pending_spell"):
             ps.pending_spell = None
 
         self._log("spell", player_id, {"hero_key": hero_key, **result})

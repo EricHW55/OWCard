@@ -181,7 +181,13 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     elif action == "use_skill":
         result = engine.use_skill(player_id, data.get("caster_uid", ""), data.get("skill_key", ""), data.get("target_uid"))
     elif action == "execute_spell":
-        result = engine.execute_spell(player_id, data.get("hero_key", ""), data.get("target_uid"))
+        result = engine.execute_spell(
+            player_id=player_id,
+            hero_key=data.get("hero_key", ""),
+            target_uid=data.get("target_uid"),
+            trash_index=data.get("trash_index"),
+            draw_index=data.get("draw_index"),
+        )
     elif action == "end_turn":
         result = engine.end_turn(player_id)
     elif action == "resolve_passive_choice":

@@ -101,7 +101,7 @@ def spell_biotic_grenade(caster: FieldCard, target: FieldCard, game: GameState) 
 
 @register_skill("spell_rescue", "skill_1")
 def spell_rescue(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """구원의 손길: TRASH에서 선택한 카드 하나를 패로 가져옴."""
+    """구원의 손길: TRASH에서 카드 하나를 패로 가져옴."""
     my_player = game.get_my_player(caster)
     if not my_player:
         return {"success": False, "message": "플레이어 찾기 실패"}
@@ -425,7 +425,7 @@ def spell_caduceus_staff(caster: FieldCard, target: FieldCard, game: GameState) 
 
 @register_skill("spell_maximilian", "skill_1")
 def spell_maximilian(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """막시밀리앙: 덱에서 선택한 카드 1장을 패로 가져옴."""
+    """막시밀리앙: 덱에서 원하는 카드 1장을 패로 가져옴."""
     my_player = game.get_my_player(caster)
     if not my_player:
         return {"success": False, "message": "플레이어 찾기 실패"}
