@@ -43,11 +43,28 @@ function roleClass(role?: string) {
 
 type CenterCueKind = 'phase' | 'skill' | 'system';
 
+type CenterCueTone = 'mine' | 'theirs' | 'neutral';
+
 type CenterCue = {
   id: number;
   title: string;
   subtitle?: string;
   kind: CenterCueKind;
+  tone?: CenterCueTone;
+};
+
+type ColumnChoice = {
+  source: 'skill' | 'spell';
+  heroKey?: string;
+  skillKey?: string;
+  skillName: string;
+};
+
+type ColumnPreview = {
+  key: string;
+  label: string;
+  repUid: string;
+  names: string[];
 };
 
 function phaseLabel(phase?: string) {
@@ -115,6 +132,86 @@ function buildOpponentSkillCue(msg: any) {
   };
 }
 
+function getHeroKey(card: any): string {
+  return String(card?.hero_key || card?.extra?._hero_key || '').toLowerCase();
+}
+
+function getChargeLevel(card: any): number {
+  const raw = card?.extra?.charge_level;
+  return typeof raw === 'number' ? raw : Number(raw || 0);
+}
+
+function isTargetlessSkill(card: any, skillKey: string): boolean {
+  const hero = getHeroKey(card);
+  const statuses = card?.statuses || [];
+  const hasStatus = (name: string) => statuses.some((s: any) => s?.name === name);
+
+  if (hero === 'tracer' && skillKey === 'skill_2') return true;
+  if (hero === 'freja' && skillKey === 'skill_1') return true;
+  if (hero === 'sombra' && skillKey === 'skill_2') return true;
+  if (hero === 'venture' && skillKey === 'skill_1') return !hasStatus('burrowed');
+  if (hero === 'soldier76' && skillKey === 'skill_1') return true;
+  if (hero === 'lucio' && skillKey === 'skill_1') return true;
+  if (hero === 'moira' && skillKey === 'skill_1') return true;
+  if (hero === 'mizuki' && skillKey === 'skill_2') return true;
+  if (hero === 'baptiste' && skillKey === 'skill_1') return true;
+  if (hero === 'junkerqueen' && skillKey === 'skill_2') return true;
+  if (hero === 'doomfist' && skillKey === 'skill_2') return true;
+  if (hero === 'ramattra' && (skillKey === 'skill_2' || skillKey === 'skill_3')) return true;
+  if (hero === 'sigma' && (skillKey === 'skill_1' || skillKey === 'skill_2')) return true;
+  if (hero === 'roadhog' && skillKey === 'skill_2') return true;
+  if (hero === 'torbjorn' && skillKey === 'skill_2') return true;
+
+  return false;
+}
+
+function needsColumnSelector(card: any, skillKey?: string | null): boolean {
+  const hero = getHeroKey(card);
+  return hero === 'sojourn' && skillKey === 'skill_2';
+}
+
+function buildColumnChoices(field: any): ColumnPreview[] {
+  const main = Array.isArray(field?.main) ? field.main : [];
+  const side = Array.isArray(field?.side) ? field.side : [];
+
+  const mainTanks = main.filter((c: any) => c?.role === 'tank');
+  const mainDealers = main.filter((c: any) => c?.role === 'dealer');
+  const mainHealers = main.filter((c: any) => c?.role === 'healer');
+
+  const previews: ColumnPreview[] = [];
+
+  const leftMembers = [mainTanks[0], mainDealers[0], mainHealers[0]].filter(Boolean);
+  if (leftMembers.length > 0) {
+    previews.push({
+      key: 'main_left',
+      label: '본대 좌열',
+      repUid: leftMembers[0].uid,
+      names: leftMembers.map((c: any) => c.name),
+    });
+  }
+
+  const rightMembers = [mainDealers[1], mainHealers[1]].filter(Boolean);
+  if (rightMembers.length > 0) {
+    previews.push({
+      key: 'main_right',
+      label: '본대 우열',
+      repUid: rightMembers[0].uid,
+      names: rightMembers.map((c: any) => c.name),
+    });
+  }
+
+  if (side.length > 0) {
+    previews.push({
+      key: 'side',
+      label: '사이드 열',
+      repUid: side[0].uid,
+      names: side.map((c: any) => c.name),
+    });
+  }
+
+  return previews;
+}
+
 const btnS: React.CSSProperties = {
   padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
   background: '#243055', border: '1px solid #3a4a78', color: '#e8ecf8', cursor: 'pointer',
@@ -139,6 +236,7 @@ const GamePage: React.FC = () => {
   const [centerCue, setCenterCue] = useState<CenterCue | null>(null);
   const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
+  const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
 
   const wsRef = useRef<GameSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -155,7 +253,7 @@ const GamePage: React.FC = () => {
     setLogs(prev => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
   }, []);
 
-  const showCenterCue = useCallback((title: string, subtitle = '', kind: CenterCueKind = 'system', duration = 1700) => {
+  const showCenterCue = useCallback((title: string, subtitle = '', kind: CenterCueKind = 'system', duration = 1700, tone: CenterCueTone = 'neutral') => {
     if (!title) return;
 
     if (cueTimerRef.current) {
@@ -168,6 +266,7 @@ const GamePage: React.FC = () => {
       title,
       subtitle,
       kind,
+      tone,
     });
 
     cueTimerRef.current = window.setTimeout(() => {
@@ -207,6 +306,7 @@ const GamePage: React.FC = () => {
         phaseSubtitle(gs.phase, gs.is_my_turn),
         'phase',
         1500,
+        gs.is_my_turn ? 'mine' : 'theirs',
     );
   }, [gs, showCenterCue]);
 
@@ -301,6 +401,7 @@ const GamePage: React.FC = () => {
           if (!serverPendingPassive && !serverPendingSpellChoice && msg?.state?.phase !== 'placement') {
             setLocalPendingPassive(null);
             setLocalPendingSpellChoice(null);
+            setColumnChoice(null);
           }
         }),
         ws.on('action_result', (msg: any) => {
@@ -328,10 +429,18 @@ const GamePage: React.FC = () => {
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
             setPendingSpell(result.hero_key);
             setPendingSpellName(spellName);
-            setActionMode('spell');
             setLocalPendingSpellChoice(null);
             addLog('스킬 카드 대상 선택');
-            showCenterCue(spellName, '대상을 선택하세요', 'system', 1200);
+
+            if (result?.hero_key === 'spell_thorn_volley') {
+              setActionMode(null);
+              setColumnChoice({ source: 'spell', heroKey: result.hero_key, skillName: spellName });
+              showCenterCue(spellName, '열을 선택하세요', 'system', 1200, 'mine');
+            } else {
+              setActionMode('spell');
+              setColumnChoice(null);
+              showCenterCue(spellName, '대상을 선택하세요', 'system', 1200, 'mine');
+            }
           }
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_choice) {
@@ -340,24 +449,24 @@ const GamePage: React.FC = () => {
             setActionMode(null);
             setLocalPendingSpellChoice(result?.choice || null);
             addLog('스킬 카드 추가 선택 필요');
-            showCenterCue(spellName, '카드를 선택하세요', 'system', 1300);
+            showCenterCue(spellName, '카드를 선택하세요', 'system', 1300, 'mine');
           }
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && !result?.needs_target && !result?.needs_choice) {
-            showCenterCue(resolvedSkillName || spellName, '스킬 카드 발동', 'skill', 1500);
+            showCenterCue(resolvedSkillName || spellName, '스킬 카드 발동', 'skill', 1500, 'mine');
             setLocalPendingSpellChoice(null);
           }
 
           if (result?.passive_triggered?.summoned) {
             addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
-            showCenterCue(result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300);
+            showCenterCue(result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300, 'mine');
           }
 
           if (result?.passive_triggered?.needs_choice) {
             setLocalPendingPassive(result.passive_triggered.needs_choice);
             addLog('패시브 추가 선택 필요');
             if (result.passive_triggered.passive) {
-              showCenterCue(result.passive_triggered.passive, '선택이 필요합니다', 'system', 1300);
+              showCenterCue(result.passive_triggered.passive, '선택이 필요합니다', 'system', 1300, 'mine');
             }
           }
 
@@ -365,40 +474,40 @@ const GamePage: React.FC = () => {
             setLocalPendingPassive(null);
             if (result?.card?.name) {
               addLog(`패시브 처리: ${result.card.name}`);
-              showCenterCue(result.card.name, '패시브 처리', 'system', 1300);
+              showCenterCue(result.card.name, '패시브 처리', 'system', 1300, 'mine');
             }
           }
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
-            showCenterCue(resolvedSkillName, `${actorName} 사용`, 'skill', 1500);
+            showCenterCue(resolvedSkillName, `${actorName} 사용`, 'skill', 1500, 'mine');
           }
 
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
             if (resolvedSkillName) {
-              showCenterCue(resolvedSkillName, '스킬 카드 발동', 'skill', 1500);
+              showCenterCue(resolvedSkillName, '스킬 카드 발동', 'skill', 1500, 'mine');
             }
           }
 
           if (msg.action === 'execute_spell' && result?.rescued) {
-            showCenterCue(result.rescued, 'TRASH → 패', 'skill', 1400);
+            showCenterCue(result.rescued, 'TRASH → 패', 'skill', 1400, 'mine');
           }
           if (msg.action === 'execute_spell' && result?.drawn_card) {
-            showCenterCue(result.drawn_card, '덱 → 패', 'skill', 1400);
+            showCenterCue(result.drawn_card, '덱 → 패', 'skill', 1400, 'mine');
           }
         }),
         ws.on('opponent_action', (msg: any) => {
           addLog(`상대: ${msg.action}`);
           const cue = buildOpponentSkillCue(msg);
           if (cue) {
-            showCenterCue(cue.title, cue.subtitle, 'skill', 1500);
+            showCenterCue(cue.title, cue.subtitle, 'skill', 1500, 'theirs');
           }
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
           addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          showCenterCue('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 'phase', 1800);
+          showCenterCue('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 'phase', 1800, 'neutral');
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
@@ -480,6 +589,9 @@ const GamePage: React.FC = () => {
   const allMyField = [...my.field.main, ...my.field.side];
   const allOppField = [...opp.field.main, ...opp.field.side];
   const selectedMyFieldCard = allMyField.find(c => c.uid === selectedFieldUid) || null;
+  const enemyColumns = buildColumnChoices(opp.field);
+  const selectedHeroKey = getHeroKey(selectedMyFieldCard);
+  const selectedChargeLevel = getChargeLevel(selectedMyFieldCard);
   const canActUids = (phase === 'action' && is_my_turn)
       ? allMyField.filter(c => !c.placed_this_turn && !c.acted_this_turn).map(c => c.uid)
       : [];
@@ -511,6 +623,7 @@ const GamePage: React.FC = () => {
       setDetailCard(card);
       setSelectedHandIdx(null);
       setActionMode(null);
+      setColumnChoice(null);
       return;
     }
     setSelectedHandIdx(index);
@@ -521,13 +634,19 @@ const GamePage: React.FC = () => {
   };
 
   const handleFieldClick = (card: FieldCard, isOpp: boolean) => {
+    if (columnChoice) {
+      addLog('위 패널에서 열을 선택하세요');
+      return;
+    }
+
     if (actionMode === 'spell' && pendingSpell) {
       send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
       addLog(`스킬 카드 → ${card.name}`);
-      showCenterCue(pendingSpellName || '스킬 카드', `${card.name} 대상`, 'skill', 1500);
+      showCenterCue(pendingSpellName || '스킬 카드', `${card.name} 대상`, 'skill', 1500, 'mine');
       setActionMode(null);
       setPendingSpell(null);
       setPendingSpellName(null);
+      setColumnChoice(null);
       setSelectedHandIdx(null);
       return;
     }
@@ -538,7 +657,7 @@ const GamePage: React.FC = () => {
         const skillName = getSkillNameFromCard(caster, actionMode);
         send({ action: 'use_skill', caster_uid: caster.uid, skill_key: actionMode, target_uid: card.uid });
         addLog(`${caster.name} → ${card.name} (${skillName})`);
-        showCenterCue(skillName, `${caster.name} 사용`, 'skill', 1500);
+        showCenterCue(skillName, `${caster.name} 사용`, 'skill', 1500, 'mine');
       }
       setSelectedFieldUid(null);
       setActionMode(null);
@@ -555,6 +674,7 @@ const GamePage: React.FC = () => {
         setActionMode(null);
         setPendingSpell(null);
         setPendingSpellName(null);
+        setColumnChoice(null);
       }
     } else {
       setDetailCard(card);
@@ -569,7 +689,7 @@ const GamePage: React.FC = () => {
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
       addLog(`${card.name} → ${zoneLabel} 추가 배치`);
-      showCenterCue(card.name, `${zoneLabel} 추가 배치`, 'system', 1200);
+      showCenterCue(card.name, `${zoneLabel} 추가 배치`, 'system', 1200, 'mine');
       setSelectedHandIdx(null);
       return;
     }
@@ -578,7 +698,7 @@ const GamePage: React.FC = () => {
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
 
     if (!card.is_spell) {
-      showCenterCue(card.name, `${zoneLabel} 배치`, 'system', 1100);
+      showCenterCue(card.name, `${zoneLabel} 배치`, 'system', 1100, 'mine');
     }
 
     setSelectedHandIdx(null);
@@ -588,11 +708,17 @@ const GamePage: React.FC = () => {
   if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && phase === 'action' && is_my_turn) {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
+    const heroKey = getHeroKey(selectedMyFieldCard);
+    const chargeLevel = getChargeLevel(selectedMyFieldCard);
     for (const [key, m] of Object.entries(meta)) {
       if (!key.startsWith('skill_')) continue;
+      let displayName = (m as any)?.name || key;
+      if (heroKey === 'sojourn' && key === 'skill_2') {
+        displayName = `${displayName} [${chargeLevel}단계]`;
+      }
       fieldSkills.push({
         key,
-        name: (m as any)?.name || key,
+        name: displayName,
         onCooldown: (cds[key] ?? 0) > 0,
         cdLeft: cds[key] ?? 0,
       });
@@ -613,6 +739,7 @@ const GamePage: React.FC = () => {
       || fieldSkills.length > 0
       || (actionMode === 'spell' && !!pendingSpell)
       || (phase === 'placement' && is_my_turn && !!selectedHandCard?.is_spell && !pendingSpell)
+      || !!columnChoice
       || pendingPassive?.type === 'mercy_resurrect'
       || pendingPassive?.type === 'jetpack_cat_extra_place'
       || !!pendingSpellChoice;
@@ -621,7 +748,7 @@ const GamePage: React.FC = () => {
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
         {centerCue && (
             <div className="game-announcer" key={centerCue.id}>
-              <div className={`game-announcer-card ${centerCue.kind}`}>
+              <div className={`game-announcer-card ${centerCue.kind} ${centerCue.tone || 'neutral'}`}>
                 <div className="game-announcer-shine" />
                 <div className="game-announcer-title">{centerCue.title}</div>
                 {centerCue.subtitle && <div className="game-announcer-subtitle">{centerCue.subtitle}</div>}
@@ -721,7 +848,7 @@ const GamePage: React.FC = () => {
                     <div className="game-context-panel">
                       <div className="game-context-head game-context-head-wrap">
                         <span className="game-toolbar-title">{selectedMyFieldCard!.name}</span>
-                        <span className="game-context-subtext">사용할 스킬을 고르세요</span>
+                        <span className="game-context-subtext">사용할 스킬을 고르세요{selectedHeroKey === 'sojourn' ? ` · 현재 차징 ${selectedChargeLevel}/3` : ''}</span>
                       </div>
                       <div className="game-context-actions game-context-actions-wrap">
                         {fieldSkills.map(sk => (
@@ -729,9 +856,37 @@ const GamePage: React.FC = () => {
                                 key={sk.key}
                                 disabled={sk.onCooldown}
                                 onClick={() => {
+                                  const caster = selectedMyFieldCard!;
+                                  const rawSkillName = getSkillNameFromCard(caster, sk.key);
+
+                                  if (isTargetlessSkill(caster, sk.key)) {
+                                    setActionMode(null);
+                                    setColumnChoice(null);
+                                    send({ action: 'use_skill', caster_uid: caster.uid, skill_key: sk.key });
+                                    addLog(`${caster.name} — ${rawSkillName} 즉시 사용`);
+                                    showCenterCue(rawSkillName, `${caster.name} 사용`, 'skill', 1400, 'mine');
+                                    setSelectedFieldUid(null);
+                                    return;
+                                  }
+
+                                  if (needsColumnSelector(caster, sk.key)) {
+                                    const chargeLevel = getChargeLevel(caster);
+                                    if (chargeLevel <= 0) {
+                                      addLog('차징샷은 차징 1단계 이상 필요');
+                                      showCenterCue('차징 부족', '레일건으로 먼저 충전하세요', 'system', 1200, 'mine');
+                                      return;
+                                    }
+                                    setActionMode(null);
+                                    setColumnChoice({ source: 'skill', heroKey: getHeroKey(caster), skillKey: sk.key, skillName: rawSkillName });
+                                    addLog(`${caster.name} — ${rawSkillName} 열 선택`);
+                                    showCenterCue(rawSkillName, '열을 선택하세요', 'system', 1000, 'mine');
+                                    return;
+                                  }
+
+                                  setColumnChoice(null);
                                   setActionMode(sk.key);
-                                  addLog(`${selectedMyFieldCard!.name} — ${sk.name} 준비`);
-                                  showCenterCue(sk.name, `${selectedMyFieldCard!.name} 준비`, 'system', 900);
+                                  addLog(`${selectedMyFieldCard!.name} — ${rawSkillName} 준비`);
+                                  showCenterCue(rawSkillName, `${selectedMyFieldCard!.name} 준비`, 'system', 900, 'mine');
                                 }}
                                 style={{
                                   ...btnS,
@@ -743,9 +898,53 @@ const GamePage: React.FC = () => {
                               ✦ {sk.name}{sk.onCooldown ? ` (${sk.cdLeft}턴)` : ''}
                             </button>
                         ))}
-                        <button onClick={() => { setSelectedFieldUid(null); setActionMode(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                        <button onClick={() => { setSelectedFieldUid(null); setActionMode(null); setColumnChoice(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
                       </div>
                       {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
+                    </div>
+                )}
+
+                {columnChoice && (
+                    <div className="game-context-panel mercy-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">{columnChoice.skillName} 열 선택</span>
+                        <span className="game-context-subtext">세로줄 단위로 적용됩니다. 원하는 열을 선택하세요.</span>
+                      </div>
+
+                      {enemyColumns.length > 0 ? (
+                          <div className="mercy-choice-grid">
+                            {enemyColumns.map((col) => (
+                                <button
+                                    key={col.key}
+                                    className="mercy-choice-card spell"
+                                    onClick={() => {
+                                      if (columnChoice.source === 'spell' && pendingSpell) {
+                                        send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: col.repUid });
+                                        addLog(`${columnChoice.skillName} → ${col.label}`);
+                                      } else if (columnChoice.source === 'skill' && selectedMyFieldCard && columnChoice.skillKey) {
+                                        send({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: columnChoice.skillKey, target_uid: col.repUid });
+                                        addLog(`${selectedMyFieldCard.name} → ${col.label} (${columnChoice.skillName})`);
+                                      }
+                                      showCenterCue(columnChoice.skillName, `${col.label} 선택`, 'skill', 1300, 'mine');
+                                      setColumnChoice(null);
+                                      setActionMode(null);
+                                      setPendingSpell(null);
+                                      setPendingSpellName(null);
+                                      setSelectedHandIdx(null);
+                                    }}
+                                >
+                                  <span className="mercy-choice-name">{col.label}</span>
+                                  <span className="mercy-choice-role spell">{col.names.join(' · ')}</span>
+                                </button>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="game-context-subtext">선택할 수 있는 적 열이 없습니다.</div>
+                      )}
+
+                      <div className="game-context-actions">
+                        <button onClick={() => { setColumnChoice(null); setPendingSpell(null); setPendingSpellName(null); }} style={{ ...btnS, background: '#1a2342' }}>취소</button>
+                      </div>
                     </div>
                 )}
 
@@ -899,7 +1098,7 @@ const GamePage: React.FC = () => {
               {phase !== 'mulligan' && (
                   <button
                       className="game-endturn"
-                      disabled={!is_my_turn || !!pendingPassive || !!pendingSpellChoice}
+                      disabled={!is_my_turn || !!pendingPassive || !!pendingSpellChoice || !!columnChoice}
                       onClick={() => {
                         if (phase === 'placement') {
                           send({ action: 'end_placement' });
@@ -910,7 +1109,7 @@ const GamePage: React.FC = () => {
                         }
                       }}
                       style={{
-                        opacity: (is_my_turn && !pendingPassive && !pendingSpellChoice) ? 1 : 0.5,
+                        opacity: (is_my_turn && !pendingPassive && !pendingSpellChoice && !columnChoice) ? 1 : 0.5,
                       }}
                   >
                     {phase === 'placement' ? '배치 완료' : phase === 'action' ? '턴 종료' : '대기'}

@@ -231,10 +231,18 @@ def juno_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("juno", "skill_1")
 def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     my = game.get_my_field(caster)
+    if not target or not my.find_card(target.uid):
+        return {"success": False, "message": "힐할 아군을 선택하세요"}
+
     heal = game.get_skill_damage(caster, "skill_1")
-    row = my.get_role_row(caster.role, include_side=True)
+    row = my.get_role_row(target.role, include_side=True)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
-    return {"success": True, "skill": "펄사어뢰", "healed": logs}
+    return {
+        "success": True,
+        "skill": "펄사어뢰",
+        "healed": logs,
+        "healed_role": target.role.value,
+    }
 
 # ── 제트팩 캣 ─────────────────────────────
 @register_passive("jetpack_cat")

@@ -607,7 +607,23 @@
     animation: gameAnnouncerPop 1.55s ease both;
 }
 
-.game-announcer-card.phase {
+.game-announcer-card.phase.mine {
+    border-color: rgba(102, 196, 255, 0.52);
+    box-shadow:
+            0 22px 60px rgba(0, 0, 0, 0.42),
+            0 0 30px rgba(82, 176, 255, 0.22),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.game-announcer-card.phase.theirs {
+    border-color: rgba(255, 96, 124, 0.56);
+    box-shadow:
+            0 22px 60px rgba(0, 0, 0, 0.42),
+            0 0 30px rgba(255, 70, 108, 0.22),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.game-announcer-card.phase.neutral {
     border-color: rgba(255, 185, 66, 0.48);
     box-shadow:
             0 22px 60px rgba(0, 0, 0, 0.42),
@@ -615,7 +631,23 @@
             inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
-.game-announcer-card.skill {
+.game-announcer-card.skill.mine {
+    border-color: rgba(120, 207, 255, 0.5);
+    box-shadow:
+            0 22px 60px rgba(0, 0, 0, 0.42),
+            0 0 28px rgba(120, 207, 255, 0.18),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.game-announcer-card.skill.theirs {
+    border-color: rgba(255, 118, 146, 0.5);
+    box-shadow:
+            0 22px 60px rgba(0, 0, 0, 0.42),
+            0 0 28px rgba(255, 118, 146, 0.18),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.game-announcer-card.skill.neutral {
     border-color: rgba(120, 207, 255, 0.5);
     box-shadow:
             0 22px 60px rgba(0, 0, 0, 0.42),
