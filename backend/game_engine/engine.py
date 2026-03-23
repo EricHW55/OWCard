@@ -49,6 +49,7 @@ class PlayerState:
     connected: bool = False
     commander_skill_uses: int = 0
     pending_passive: Optional[dict] = None
+    pending_spell: Optional[dict] = None
 
     def to_dict(self, reveal_hand: bool = True) -> dict:
         return {
@@ -63,6 +64,7 @@ class PlayerState:
             "mulligan_done": self.mulligan_done,
             "placement_cost_used": self.placement_cost_used,
             "pending_passive": self.pending_passive if reveal_hand else None,
+            "pending_spell": self.pending_spell if reveal_hand else None,
         }
         
 
@@ -179,6 +181,85 @@ class GameEngine:
     @property
     def opponent_player_id(self) -> int:
         return self.player_order[1 - self.current_turn_index]
+
+
+    def _spell_requires_choice(self, hero_key: str) -> bool:
+        return hero_key in {"spell_rescue", "spell_maximilian"}
+
+    def _spell_needs_board_target(self, hero_key: str) -> bool:
+        return hero_key in {
+            "spell_thorn_volley", "spell_blizzard", "spell_earthshatter",
+            "spell_biotic_grenade", "spell_nano_boost", "spell_duplicate",
+            "spell_riptire", "spell_dragonblade", "spell_sleep_dart",
+            "spell_immortality_field", "spell_deflect", "spell_caduceus_staff",
+        }
+
+    def _build_spell_choice(self, ps: PlayerState, hero_key: str) -> dict:
+        if hero_key == "spell_rescue":
+            options = [
+                {
+                    "index": i,
+                    "name": c.get("name", "?"),
+                    "role": c.get("role", "?"),
+                    "hero_key": c.get("hero_key", ""),
+                    "is_spell": bool(c.get("is_spell", False)),
+                }
+                for i, c in enumerate(ps.trash)
+            ]
+            return {
+                "type": "spell_rescue_select",
+                "hero_key": hero_key,
+                "title": "구원의 손길",
+                "options": options,
+            }
+
+        if hero_key == "spell_maximilian":
+            options = [
+                {
+                    "index": i,
+                    "name": c.get("name", "?"),
+                    "role": c.get("role", "?"),
+                    "hero_key": c.get("hero_key", ""),
+                    "is_spell": bool(c.get("is_spell", False)),
+                }
+                for i, c in enumerate(ps.draw_pile)
+            ]
+            return {
+                "type": "spell_maximilian_select",
+                "hero_key": hero_key,
+                "title": "막시밀리앙",
+                "options": options,
+            }
+
+        return {"type": "unknown", "hero_key": hero_key, "options": []}
+
+    def _execute_spell_effect(self, ps: PlayerState, hero_key: str, *, target: FieldCard | None = None,
+                              trash_index: int | None = None, draw_index: int | None = None) -> dict:
+        spell_fn = get_skill(hero_key, "skill_1")
+        if not spell_fn:
+            return {"error": f"Spell function not found: {hero_key}"}
+
+        dummy_caster = FieldCard(
+            uid="spell_dummy",
+            template_id=-1,
+            name=hero_key,
+            role=Role.DEALER,
+            max_hp=0,
+            base_attack=0,
+            base_defense=0,
+            base_attack_range=0,
+            extra={
+                "_hero_key": hero_key,
+                "_trash_index": trash_index,
+                "_draw_index": draw_index,
+            },
+        )
+        ps.field.main_cards.append(dummy_caster)
+        try:
+            result = spell_fn(dummy_caster, target, self.state)
+        finally:
+            ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
+        return result
 
     # ── 플레이어 등록 ─────────────────────────
 
@@ -386,6 +467,8 @@ class GameEngine:
             if not ps.field.place_card(revived, place_zone):
                 return {"error": "부활 배치 실패"}
             ps.trash.pop(trash_index)
+            if source:
+                source.extra["resurrected_uid"] = revived.uid
             ps.pending_passive = None
             self._log("passive", player_id, {"type": passive_type, "card_uid": revived.uid})
             self._check_game_over()
@@ -413,6 +496,8 @@ class GameEngine:
         ps = self.players[player_id]
         if ps.pending_passive:
             return {"error": "패시브 선택을 먼저 완료하세요"}
+        if ps.pending_spell:
+            return {"error": "스킬 카드 선택을 먼저 완료하세요"}
         if hand_index < 0 or hand_index >= len(ps.hand):
             return {"error": "Invalid hand index"}
 
@@ -421,17 +506,60 @@ class GameEngine:
         if ps.placement_cost_used + cost > CARDS_PER_TURN:
             return {"error": f"Placement full ({ps.placement_cost_used}/{CARDS_PER_TURN})"}
 
-        # 스킬 카드는 즉시 사용 대기 (타겟 선택 필요)
+        # 스킬 카드는 즉시 사용 / 선택 대기 처리
         if card_data.get("is_spell", False):
+            hero_key = card_data.get("hero_key", "")
+            if self._spell_requires_choice(hero_key):
+                preview = self._build_spell_choice(ps, hero_key)
+                if not preview.get("options"):
+                    empty_msg = "트래시가 비어있습니다" if hero_key == "spell_rescue" else "덱이 비어있습니다"
+                    return {"error": empty_msg}
+
             ps.hand.pop(hand_index)
             ps.placement_cost_used += cost
             ps.trash.append(card_data)
-            return {
-                "success": True, "type": "spell_played",
-                "card": card_data, "needs_target": True,
-                "hero_key": card_data.get("hero_key", ""),
+
+            if self._spell_requires_choice(hero_key):
+                pending = self._build_spell_choice(ps, hero_key)
+                ps.pending_spell = pending
+                return {
+                    "success": True,
+                    "type": "spell_played",
+                    "card": card_data,
+                    "hero_key": hero_key,
+                    "needs_target": False,
+                    "needs_choice": True,
+                    "choice": pending,
+                    "placement_cost_used": ps.placement_cost_used,
+                }
+
+            if self._spell_needs_board_target(hero_key):
+                return {
+                    "success": True,
+                    "type": "spell_played",
+                    "card": card_data,
+                    "hero_key": hero_key,
+                    "needs_target": True,
+                    "placement_cost_used": ps.placement_cost_used,
+                }
+
+            spell_result = self._execute_spell_effect(ps, hero_key)
+            opp = self.players[self.opponent_player_id]
+            opp.field.remove_dead()
+            ps.field.remove_dead()
+            payload = {
+                "success": True,
+                "type": "spell_played",
+                "card": card_data,
+                "hero_key": hero_key,
+                "needs_target": False,
                 "placement_cost_used": ps.placement_cost_used,
+                "skill_name": spell_result.get("skill", card_data.get("name", hero_key)),
+                **spell_result,
             }
+            self._log("spell", player_id, {"hero_key": hero_key, **payload})
+            self._check_game_over()
+            return payload
 
         target_zone = Zone(zone)
         hero_name = card_data.get("hero_key", card_data["name"].lower())
@@ -461,6 +589,8 @@ class GameEngine:
         ps = self.players[player_id]
         if ps.pending_passive:
             return {"error": "패시브 선택을 먼저 완료하세요"}
+        if ps.pending_spell:
+            return {"error": "스킬 카드 선택을 먼저 완료하세요"}
         if ps.field.is_empty() and len(ps.hand) > 0:
             return {"error": "Must place at least 1 card when field is empty"}
         self.phase = GamePhase.ACTION
@@ -469,12 +599,10 @@ class GameEngine:
     # ── 스킬 카드 실행 ───────────────────────
 
     def execute_spell(self, player_id: int, hero_key: str,
-                      target_uid: str | None = None) -> dict:
-        """스킬 카드 효과 실행.
-
-        place_card에서 spell이 감지되면 클라이언트가 타겟을 선택한 후
-        이 메서드를 호출합니다.
-        """
+                      target_uid: str | None = None,
+                      trash_index: int | None = None,
+                      draw_index: int | None = None) -> dict:
+        """스킬 카드 효과 실행."""
         if player_id != self.current_player_id:
             return {"error": "Not your turn"}
 
@@ -483,38 +611,29 @@ class GameEngine:
             return {"error": "패시브 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
-        # 스킬 함수 찾기
-        spell_fn = get_skill(hero_key, "skill_1")
-        if not spell_fn:
-            return {"error": f"Spell function not found: {hero_key}"}
+        pending = ps.pending_spell
+        if pending:
+            if pending.get("hero_key") != hero_key:
+                return {"error": "선택 중인 스킬 카드와 다릅니다"}
+        elif self._spell_requires_choice(hero_key):
+            return {"error": "선택 중인 스킬 카드가 없습니다"}
 
-        # 타겟 찾기 (아군 또는 적군)
         target = None
         if target_uid:
             target = ps.field.find_card(target_uid) or opp.field.find_card(target_uid)
 
-        # 임시 caster (스킬 카드는 필드에 없으므로 더미 생성)
-        dummy_caster = FieldCard(
-            uid="spell_dummy",
-            template_id=-1,
-            name=hero_key,
-            role=Role.DEALER,
-            max_hp=0,
-            base_attack=0,
-            base_defense=0,
-            base_attack_range=0,
+        result = self._execute_spell_effect(
+            ps,
+            hero_key,
+            target=target,
+            trash_index=trash_index,
+            draw_index=draw_index,
         )
-        # dummy의 owner를 현재 플레이어로 인식시키기 위해 잠시 필드에 추가
-        ps.field.main_cards.append(dummy_caster)
 
-        result = spell_fn(dummy_caster, target, self.state)
-
-        # dummy 제거
-        ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
-
-        # 사망 처리
         opp.field.remove_dead()
         ps.field.remove_dead()
+        if result.get("success"):
+            ps.pending_spell = None
 
         self._log("spell", player_id, {"hero_key": hero_key, **result})
         self._check_game_over()
@@ -542,6 +661,8 @@ class GameEngine:
         ps = self.players[player_id]
         if ps.pending_passive:
             return {"error": "패시브 선택을 먼저 완료하세요"}
+        if ps.pending_spell:
+            return {"error": "스킬 카드 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         caster = ps.field.find_card(caster_uid)
@@ -617,6 +738,8 @@ class GameEngine:
         ps = self.players[player_id]
         if ps.pending_passive:
             return {"error": "패시브 선택을 먼저 완료하세요"}
+        if ps.pending_spell:
+            return {"error": "스킬 카드 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         attacker = ps.field.find_card(attacker_uid)
@@ -665,6 +788,8 @@ class GameEngine:
         ps = self.players[player_id]
         if ps.pending_passive:
             return {"error": "패시브 선택을 먼저 완료하세요"}
+        if ps.pending_spell:
+            return {"error": "스킬 카드 선택을 먼저 완료하세요"}
         opp = self.players[self.opponent_player_id]
 
         # 턴 종료 처리 (화상 데미지 등)

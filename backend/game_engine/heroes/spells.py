@@ -101,25 +101,26 @@ def spell_biotic_grenade(caster: FieldCard, target: FieldCard, game: GameState) 
 
 @register_skill("spell_rescue", "skill_1")
 def spell_rescue(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """구원의 손길: TRASH에서 카드 하나를 패로 가져옴.
-    target_uid 대신 extra로 trash_index를 받아야 함."""
+    """구원의 손길: TRASH에서 카드 하나를 패로 가져옴."""
     my_player = game.get_my_player(caster)
     if not my_player:
         return {"success": False, "message": "플레이어 찾기 실패"}
     if not my_player.trash:
         return {"success": False, "message": "트래시에 카드가 없습니다"}
 
-    # 가장 최근 죽은 카드를 패로 복구 (나중에 선택 UI 추가)
-    rescued = my_player.trash.pop(-1)
-    # trash에는 dict가 저장되어 있으므로 deck의 원본 데이터를 찾아야 함
-    # 임시로 rescued 정보를 hand에 추가
-    # 실제로는 deck의 card_data를 trash에 저장해야 함
-    my_player.hand.append(rescued)
+    trash_index = caster.extra.get("_trash_index")
+    if trash_index is None:
+        return {"success": False, "message": "가져올 트래시 카드를 선택하세요"}
+    if trash_index < 0 or trash_index >= len(my_player.trash):
+        return {"success": False, "message": "잘못된 트래시 카드 선택"}
 
+    rescued = my_player.trash.pop(trash_index)
+    my_player.hand.append(rescued)
     return {
         "success": True,
         "skill": "구원의 손길",
         "rescued": rescued.get("name", "unknown"),
+        "card": rescued,
     }
 
 
@@ -424,13 +425,27 @@ def spell_caduceus_staff(caster: FieldCard, target: FieldCard, game: GameState) 
 
 @register_skill("spell_maximilian", "skill_1")
 def spell_maximilian(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """막시밀리앙: 덱에서 원하는 카드 1장을 패로 가져옴.
-    (베타: 덱 맨 위 카드를 가져옴 — 나중에 선택 UI 추가)"""
+    """막시밀리앙: 덱에서 원하는 카드 1장을 패로 가져옴."""
     my_player = game.get_my_player(caster)
     if not my_player:
         return {"success": False, "message": "플레이어 찾기 실패"}
     if not my_player.draw_pile:
         return {"success": False, "message": "덱이 비어있습니다"}
+
+    draw_index = caster.extra.get("_draw_index")
+    if draw_index is None:
+        return {"success": False, "message": "가져올 덱 카드를 선택하세요"}
+    if draw_index < 0 or draw_index >= len(my_player.draw_pile):
+        return {"success": False, "message": "잘못된 덱 카드 선택"}
+
+    drawn = my_player.draw_pile.pop(draw_index)
+    my_player.hand.append(drawn)
+    return {
+        "success": True,
+        "skill": "막시밀리앙",
+        "drawn_card": drawn.get("name", "unknown"),
+        "card": drawn,
+    }
 
     drawn = my_player.draw_pile.pop(0)
     my_player.hand.append(drawn)

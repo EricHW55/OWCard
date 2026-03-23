@@ -26,6 +26,7 @@ function roleLabel(role?: string) {
     case 'tank': return '탱커';
     case 'dealer': return '딜러';
     case 'healer': return '힐러';
+    case 'spell': return '스킬';
     default: return role || '미상';
   }
 }
@@ -35,6 +36,7 @@ function roleClass(role?: string) {
     case 'tank': return 'tank';
     case 'dealer': return 'dealer';
     case 'healer': return 'healer';
+    case 'spell': return 'spell';
     default: return 'unknown';
   }
 }
@@ -307,7 +309,15 @@ const GamePage: React.FC = () => {
             showCenterCue(spellName, '대상을 선택하세요', 'system', 1200);
           }
 
-          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && !msg.result?.needs_target) {
+          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && msg.result?.needs_choice) {
+            setPendingSpell(null);
+            setPendingSpellName(spellName);
+            setActionMode(null);
+            addLog('스킬 카드 추가 선택 필요');
+            showCenterCue(spellName, '카드를 선택하세요', 'system', 1300);
+          }
+
+          if (msg.action === 'place_card' && msg.result?.type === 'spell_played' && !msg.result?.needs_target && !msg.result?.needs_choice) {
             showCenterCue(spellName, '스킬 카드 발동', 'skill', 1500);
           }
 
@@ -323,6 +333,13 @@ const GamePage: React.FC = () => {
           if (msg.action === 'resolve_passive_choice' && msg.result?.card?.name) {
             addLog(`패시브 처리: ${msg.result.card.name}`);
             showCenterCue(msg.result.card.name, '패시브 처리', 'system', 1300);
+          }
+
+          if (msg.action === 'execute_spell' && msg.result?.rescued) {
+            showCenterCue(msg.result.rescued, 'TRASH → 패', 'skill', 1400);
+          }
+          if (msg.action === 'execute_spell' && msg.result?.drawn_card) {
+            showCenterCue(msg.result.drawn_card, '덱 → 패', 'skill', 1400);
           }
         }),
         ws.on('opponent_action', (msg: any) => {
@@ -403,6 +420,12 @@ const GamePage: React.FC = () => {
       (my as any).pending_passive
       ?? (my as any).pendingPassive
       ?? (gs as any)?.my_state?.pending_passive
+      ?? null
+  ) as any;
+  const pendingSpellChoice = (
+      (my as any).pending_spell
+      ?? (my as any).pendingSpell
+      ?? (gs as any)?.my_state?.pending_spell
       ?? null
   ) as any;
 
@@ -542,7 +565,8 @@ const GamePage: React.FC = () => {
       || (actionMode === 'spell' && !!pendingSpell)
       || (phase === 'placement' && is_my_turn && !!selectedHandCard?.is_spell && !pendingSpell)
       || pendingPassive?.type === 'mercy_resurrect'
-      || pendingPassive?.type === 'jetpack_cat_extra_place';
+      || pendingPassive?.type === 'jetpack_cat_extra_place'
+      || !!pendingSpellChoice;
 
   return (
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
@@ -582,6 +606,11 @@ const GamePage: React.FC = () => {
         {pendingPassive && (
             <div className="game-passive-banner">
               패시브 선택 대기 중: {pendingPassive.type === 'mercy_resurrect' ? '메르시 부활' : pendingPassive.type}
+            </div>
+        )}
+        {pendingSpellChoice && (
+            <div className="game-passive-banner">
+              스킬 카드 선택 대기 중: {pendingSpellChoice.title || pendingSpellChoice.hero_key || pendingSpellChoice.type}
             </div>
         )}
 
@@ -682,6 +711,58 @@ const GamePage: React.FC = () => {
                     </div>
                 )}
 
+                {pendingSpellChoice?.type === 'spell_rescue_select' && (
+                    <div className="game-context-panel mercy-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">구원의 손길</span>
+                        <span className="game-context-subtext">TRASH에서 가져올 카드를 하나 선택하세요.</span>
+                      </div>
+
+                      {(pendingSpellChoice.options || []).length > 0 ? (
+                          <div className="mercy-choice-grid">
+                            {(pendingSpellChoice.options || []).map((opt: any) => (
+                                <button
+                                    key={`trash-${opt.index}`}
+                                    className={`mercy-choice-card ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}
+                                    onClick={() => send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, trash_index: opt.index })}
+                                >
+                                  <span className="mercy-choice-name">{opt.name}</span>
+                                  <span className={`mercy-choice-role ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}>{roleLabel(opt.is_spell ? 'spell' : opt.role)}</span>
+                                </button>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="game-context-subtext">TRASH에 가져올 카드가 없습니다.</div>
+                      )}
+                    </div>
+                )}
+
+                {pendingSpellChoice?.type === 'spell_maximilian_select' && (
+                    <div className="game-context-panel mercy-panel">
+                      <div className="game-context-head game-context-head-wrap">
+                        <span className="game-toolbar-title">막시밀리앙</span>
+                        <span className="game-context-subtext">덱에서 가져올 카드를 하나 선택하세요.</span>
+                      </div>
+
+                      {(pendingSpellChoice.options || []).length > 0 ? (
+                          <div className="mercy-choice-grid">
+                            {(pendingSpellChoice.options || []).map((opt: any) => (
+                                <button
+                                    key={`draw-${opt.index}`}
+                                    className={`mercy-choice-card ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}
+                                    onClick={() => send({ action: 'execute_spell', hero_key: pendingSpellChoice.hero_key, draw_index: opt.index })}
+                                >
+                                  <span className="mercy-choice-name">{opt.name}</span>
+                                  <span className={`mercy-choice-role ${roleClass(opt.is_spell ? 'spell' : opt.role)}`}>{roleLabel(opt.is_spell ? 'spell' : opt.role)}</span>
+                                </button>
+                            ))}
+                          </div>
+                      ) : (
+                          <div className="game-context-subtext">덱에 가져올 카드가 없습니다.</div>
+                      )}
+                    </div>
+                )}
+
                 {phase === 'placement' && is_my_turn && selectedHandCard?.is_spell && !pendingSpell && (
                     <div className="game-context-panel">
                       <div className="game-context-head">
@@ -759,7 +840,7 @@ const GamePage: React.FC = () => {
               {phase !== 'mulligan' && (
                   <button
                       className="game-endturn"
-                      disabled={!is_my_turn || !!pendingPassive}
+                      disabled={!is_my_turn || !!pendingPassive || !!pendingSpellChoice}
                       onClick={() => {
                         if (phase === 'placement') {
                           send({ action: 'end_placement' });
@@ -770,7 +851,7 @@ const GamePage: React.FC = () => {
                         }
                       }}
                       style={{
-                        opacity: (is_my_turn && !pendingPassive) ? 1 : 0.5,
+                        opacity: (is_my_turn && !pendingPassive && !pendingSpellChoice) ? 1 : 0.5,
                       }}
                   >
                     {phase === 'placement' ? '배치 완료' : phase === 'action' ? '턴 종료' : '대기'}

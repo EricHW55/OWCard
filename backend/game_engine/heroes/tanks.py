@@ -25,9 +25,20 @@ def reinhardt_fire_strike(caster: FieldCard, target: FieldCard, game: GameState)
 # ── 윈스턴 ────────────────────────────────
 @register_skill("winston", "skill_1")
 def winston_tesla(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
-    result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
-    return {"success": True, "skill": "테슬라 캐논", "damage_log": result}
+    from game_engine.field import Zone, Role
+
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    if target.zone == Zone.SIDE:
+        return {"success": False, "message": "테슬라 캐논은 본대 가로줄만 공격 가능"}
+
+    enemy = game.get_enemy_field(caster)
+    targets = enemy.get_role_row(target.role, include_side=False)
+    dmg = game.get_skill_damage(caster, "skill_1")
+    logs = []
+    for card in targets:
+        logs.append({"target": card.uid, "damage_log": card.take_damage(dmg)})
+    return {"success": True, "skill": "테슬라 캐논", "affected": logs, "target_role": target.role.value if isinstance(target.role, Role) else str(target.role)}
 
 @register_skill("winston", "skill_2")
 def winston_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:

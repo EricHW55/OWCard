@@ -455,9 +455,48 @@ class Field:
     # ── 특수 타겟팅 (스킬용) ──────────────────
 
     def get_column(self, card: FieldCard) -> list[FieldCard]:
-        col = [c for c in self._alive(self.main_cards) if c.role == card.role]
-        col += self._alive(self.side_cards)
-        return col
+        """보드 세로줄 반환.
+
+        - 사이드 카드 선택 시: 사이드 세로줄 전체
+        - 본대 카드 선택 시: 좌/우 메인 열 관통
+          (탱커는 단일 슬롯이므로 좌측 열로 취급)
+        """
+        if card.zone == Zone.SIDE:
+            result: list[FieldCard] = []
+            for role in (Role.TANK, Role.DEALER, Role.HEALER):
+                side_card = next((c for c in self._alive(self.side_cards) if c.role == role), None)
+                if side_card:
+                    result.append(side_card)
+            return result
+
+        def alive_main(role: Role) -> list[FieldCard]:
+            return [c for c in self._alive(self.main_cards) if c.role == role]
+
+        if card.role == Role.TANK:
+            column_index = 0
+        else:
+            same_role_cards = alive_main(card.role)
+            column_index = 0
+            for idx, c in enumerate(same_role_cards):
+                if c.uid == card.uid:
+                    column_index = idx
+                    break
+
+        result: list[FieldCard] = []
+        tank_cards = alive_main(Role.TANK)
+        if tank_cards and column_index == 0:
+            result.append(tank_cards[0])
+        for role in (Role.DEALER, Role.HEALER):
+            role_cards = alive_main(role)
+            if column_index < len(role_cards):
+                result.append(role_cards[column_index])
+        return result
+
+    def get_role_row(self, role: Role, *, include_side: bool = True) -> list[FieldCard]:
+        row = [c for c in self._alive(self.main_cards) if c.role == role]
+        if include_side:
+            row += [c for c in self._alive(self.side_cards) if c.role == role]
+        return row
 
     def get_row(self, zone: Zone) -> list[FieldCard]:
         if zone == Zone.MAIN:

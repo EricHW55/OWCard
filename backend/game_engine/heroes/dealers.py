@@ -318,14 +318,22 @@ def sojourn_rail(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
 @register_skill("sojourn", "skill_2")
 def sojourn_charged(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
     ch = caster.extra.get("charge_level", 0)
-    if ch <= 0: return {"success": False, "message": "충전 필요"}
+    if ch <= 0:
+        return {"success": False, "message": "충전 필요"}
+
+    enemy = game.get_enemy_field(caster)
     tbl = game.get_skill_damage(caster, "skill_2")
     dmg = tbl[min(ch - 1, len(tbl) - 1)]
-    result = target.take_damage(dmg)
+    column = enemy.get_column(target)
+    logs = []
+    for card in column:
+        logs.append({"target": card.uid, "damage_log": card.take_damage(dmg)})
+
     caster.extra["charge_level"] = 0
-    return {"success": True, "skill": "차징샷", "charge_used": ch, "damage_log": result}
+    return {"success": True, "skill": "차징샷", "charge_used": ch, "affected": logs}
 
 # ── 엠레 (신규) ──────────────────────────
 @register_skill("emre", "skill_1")
