@@ -156,7 +156,7 @@ def sombra_smg(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("sombra", "skill_2")
 def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if caster.extra.get("used_stealth_last"): return {"success": False, "message": "연속 불가"}
-    caster.add_status(Stealth(heal_amount=3, duration=1, source_uid=caster.uid))
+    caster.add_status(Stealth(heal_amount=3, duration=3, source_uid=caster.uid))
     healed = caster.heal(3)
     caster.extra["used_stealth_last"] = True
     return {"success": True, "skill": "은신", "healed": healed}
