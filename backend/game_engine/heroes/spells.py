@@ -11,7 +11,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from game_engine.skill_registry import register_skill
+from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
@@ -221,22 +221,33 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("spell_duplicate", "skill_1")
 def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """복제: 상대 카드 하나를 복제해서 내 필드에 배치.
-    해당 역할군 자리가 없으면 사용 불가."""
+    같은 역할군 자리가 하나도 없으면 사용 불가."""
     import uuid
-    from game_engine.field import FieldCard as FC
+    from game_engine.field import FieldCard as FC, Zone
 
     if not target:
         return {"success": False, "message": "복제할 상대 카드를 선택하세요"}
 
+    my_player = game.get_my_player(caster)
     my_field = game.get_my_field(caster)
+    if not my_player:
+        return {"success": False, "message": "플레이어 찾기 실패"}
 
-    # 역할군 자리 체크
-    if target.zone.value == "main":
-        if not my_field.can_place_main(target.role):
-            return {"success": False, "message": f"{target.role.value} 자리가 이미 차있습니다"}
+    preferred_zone = target.zone
+    can_main = my_field.can_place_main(target.role)
+    can_side = my_field.can_place_side(target.role)
+
+    if not can_main and not can_side:
+        return {"success": False, "message": f"{target.role.value} 역할군 자리가 없습니다"}
+
+    if preferred_zone == Zone.MAIN and can_main:
+        place_zone = Zone.MAIN
+    elif preferred_zone == Zone.SIDE and can_side:
+        place_zone = Zone.SIDE
+    elif can_main:
+        place_zone = Zone.MAIN
     else:
-        if not my_field.can_place_side(target.role):
-            return {"success": False, "message": "사이드 자리가 이미 차있습니다"}
+        place_zone = Zone.SIDE
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],
@@ -247,14 +258,43 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
         base_attack=target.base_attack,
         base_defense=target.base_defense,
         base_attack_range=target.base_attack_range,
-        zone=target.zone,
+        description=target.description,
+        zone=place_zone,
         skills=dict(target.skills),
         skill_damages=dict(target.skill_damages),
+        skill_meta=dict(target.skill_meta),
+        extra=dict(target.extra),
     )
+    clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
     clone.current_hp = target.current_hp
-    my_field.place_card(clone, target.zone)
 
-    return {"success": True, "skill": "복제", "cloned": target.name, "clone_uid": clone.uid}
+    if not my_field.place_card(clone, place_zone):
+        return {"success": False, "message": "복제 카드를 배치할 수 없습니다"}
+
+    passive_result = {}
+    passive_fn = get_passive(clone.extra.get("_hero_key", ""))
+    engine = getattr(game, "_engine", None)
+    if passive_fn:
+        passive_result = passive_fn(clone, game) or {}
+        if engine and "summon_token" in passive_result:
+            spec = passive_result["summon_token"]
+            token = engine._summon_token(my_player, spec, spec.get("zone", clone.zone.value))
+            if token:
+                passive_result["summoned"] = token.to_dict()
+            else:
+                passive_result["summon_failed"] = True
+        if "needs_choice" in passive_result:
+            my_player.pending_passive = passive_result["needs_choice"]
+
+    return {
+        "success": True,
+        "skill": "복제",
+        "cloned": target.name,
+        "clone_uid": clone.uid,
+        "zone": place_zone.value,
+        "card": clone.to_dict(),
+        "passive_triggered": passive_result if passive_result else None,
+    }
 
 
 @register_skill("spell_riptire", "skill_1")
@@ -445,4 +485,12 @@ def spell_maximilian(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "skill": "막시밀리앙",
         "drawn_card": drawn.get("name", "unknown"),
         "card": drawn,
+    }
+
+    drawn = my_player.draw_pile.pop(0)
+    my_player.hand.append(drawn)
+    return {
+        "success": True,
+        "skill": "막시밀리앙",
+        "drawn_card": drawn.get("name", "unknown"),
     }

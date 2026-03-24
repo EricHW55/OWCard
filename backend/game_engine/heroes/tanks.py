@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 # ── 라인하르트 ────────────────────────────
 @register_passive("reinhardt")
 def reinhardt_passive(card: FieldCard, game: GameState) -> dict:
-    card.add_status(Barrier(barrier_hp=15, blocks_passthrough=True, duration=-1, source_uid=card.uid))
-    return {"barrier_created": 15}
+    card.add_status(Barrier(barrier_hp=15, blocks_passthrough=True, has_taunt=True, duration=-1, source_uid=card.uid))
+    return {"barrier_created": 15, "taunt": True}
 
 @register_skill("reinhardt", "skill_1")
 def reinhardt_fire_strike(caster: FieldCard, target: FieldCard, game: GameState) -> dict:

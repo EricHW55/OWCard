@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import random
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
-    RangeModifier, Knockback, HealAmplify, HealBlock, SkillSilence, AttackBuff,
+    RangeModifier, Knockback, HealAmplify, HealBlock, SkillSilence, DiscordOrb,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -82,7 +82,7 @@ def moira_orb(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("zenyatta", "skill_1")
 def zenyatta_discord(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    target.add_status(AttackBuff(name="discord", value=-2, duration=1, source_uid=caster.uid, tags=["debuff"]))
+    target.add_status(DiscordOrb(duration=1, bonus_damage=2, source_uid=caster.uid))
     return {"success": True, "skill": "부조화", "target": target.uid}
 
 @register_skill("zenyatta", "skill_2")
@@ -231,18 +231,10 @@ def juno_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("juno", "skill_1")
 def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     my = game.get_my_field(caster)
-    if not target or not my.find_card(target.uid):
-        return {"success": False, "message": "힐할 아군을 선택하세요"}
-
     heal = game.get_skill_damage(caster, "skill_1")
-    row = my.get_role_row(target.role, include_side=True)
+    row = my.get_role_row(caster.role, include_side=True)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
-    return {
-        "success": True,
-        "skill": "펄사어뢰",
-        "healed": logs,
-        "healed_role": target.role.value,
-    }
+    return {"success": True, "skill": "펄사어뢰", "healed": logs}
 
 # ── 제트팩 캣 ─────────────────────────────
 @register_passive("jetpack_cat")

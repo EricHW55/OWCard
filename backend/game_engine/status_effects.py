@@ -111,12 +111,14 @@ class Barrier(StatusEffect):
     barrier_hp: int = 0
     barrier_max_hp: int = 0
     blocks_passthrough: bool = False  # 패싱 공격도 막는지 (라인하르트)
-    has_taunt: bool = False           # 도발 효과 (시그마)
+    has_taunt: bool = False           # 방벽이 살아있는 동안만 도발 부여
     tags: list[str] = field(default_factory=lambda: ["barrier"])
 
     def on_apply(self, card):
         self.barrier_max_hp = self.barrier_hp
-        return {"barrier_hp": self.barrier_hp}
+        if self.has_taunt and not card.has_status("taunt"):
+            card.add_status(Taunt(duration=-1, source_uid=self.source_uid))
+        return {"barrier_hp": self.barrier_hp, "has_taunt": self.has_taunt}
 
     def on_take_damage(self, card, damage, **kwargs):
         if self.barrier_hp <= 0:
@@ -126,12 +128,20 @@ class Barrier(StatusEffect):
             return {"damage": damage}
         # 방벽이 HP가 남아있으면 모든 데미지를 흡수 (넘치는 데미지도 흡수)
         self.barrier_hp = max(0, self.barrier_hp - damage)
+        if self.barrier_hp <= 0:
+            card.remove_status(self.name)
         return {"damage": 0, "barrier_absorbed": damage, "barrier_hp": self.barrier_hp}
+
+    def on_remove(self, card):
+        if self.has_taunt:
+            card.remove_status("taunt")
+        return {}
 
     def to_dict(self):
         d = super().to_dict()
         d["barrier_hp"] = self.barrier_hp
         d["barrier_max_hp"] = self.barrier_max_hp
+        d["has_taunt"] = self.has_taunt
         return d
 
 
@@ -295,6 +305,23 @@ class HealAmplify(StatusEffect):
     name: str = "heal_amplify"
     value: int = 2
     tags: list[str] = field(default_factory=lambda: ["buff"])
+
+
+@dataclass
+class DiscordOrb(StatusEffect):
+    """부조화: 이 카드는 받는 피해가 +bonus_damage 증가."""
+    name: str = "discord"
+    duration: int = 1
+    bonus_damage: int = 2
+    tags: list[str] = field(default_factory=lambda: ["debuff"])
+
+    def on_take_damage(self, card, damage, **kwargs):
+        return {"damage": max(0, damage + self.bonus_damage)}
+
+    def to_dict(self):
+        d = super().to_dict()
+        d["bonus_damage"] = self.bonus_damage
+        return d
 
 
 @dataclass
