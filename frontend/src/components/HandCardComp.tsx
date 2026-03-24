@@ -68,22 +68,35 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
                     border: '1px solid #2a3560',
                 }}
             >
-                {card.is_spell ? (
-                    <span style={{ fontSize: 16 }}>✦</span>
-                ) : !imgError ? (
-                    <img
-                        src={getHeroImageSrc(card as any)}
-                        alt={card.name}
-                        onError={() => setImgError(true)}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                        }}
-                    />
-                ) : (
-                    <span style={{ fontSize: 18 }}>{ROLE_ICON[card.role]}</span>
-                )}
+                <div
+                    style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 8,
+                        overflow: 'hidden',
+                        display: 'grid',
+                        placeItems: 'center',
+                        background: '#0d1225',
+                        border: '1px solid #2a3560',
+                    }}
+                >
+                    {!imgError ? (
+                        <img
+                            src={getHeroImageSrc(card as any)}
+                            alt={card.name}
+                            onError={() => setImgError(true)}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                            }}
+                        />
+                    ) : (
+                        <span style={{ fontSize: 18 }}>
+                            {card.is_spell ? '✦' : ROLE_ICON[card.role]}
+                        </span>
+                    )}
+                </div>
             </div>
 
             <div

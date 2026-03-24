@@ -111,36 +111,36 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                     }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        {!isSpell && (
-                            <div
-                                style={{
-                                    width: 46,
-                                    height: 46,
-                                    borderRadius: 10,
-                                    overflow: 'hidden',
-                                    background: '#111832',
-                                    border: '1px solid #2a3560',
-                                    display: 'grid',
-                                    placeItems: 'center',
-                                    flexShrink: 0,
-                                }}
-                            >
-                                {!imgError ? (
-                                    <img
-                                        src={getHeroImageSrc(card as any)}
-                                        alt={card.name}
-                                        onError={() => setImgError(true)}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                        }}
-                                    />
-                                ) : (
-                                    <span style={{ fontSize: 20 }}>{ROLE_ICON[role]}</span>
-                                )}
-                            </div>
-                        )}
+                        <div
+                            style={{
+                                width: 46,
+                                height: 46,
+                                borderRadius: 10,
+                                overflow: 'hidden',
+                                background: '#111832',
+                                border: '1px solid #2a3560',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                            }}
+                        >
+                            {!imgError ? (
+                                <img
+                                    src={getHeroImageSrc(card as any)}
+                                    alt={card.name}
+                                    onError={() => setImgError(true)}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                    }}
+                                />
+                            ) : (
+                                <span style={{ fontSize: 20 }}>
+                                    {isSpell ? '✦' : ROLE_ICON[role]}
+                                </span>
+                            )}
+                        </div>
 
                         <span
                             style={{

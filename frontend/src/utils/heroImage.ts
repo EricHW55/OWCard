@@ -1,11 +1,11 @@
-type HeroLike = {
+type CardLike = {
     id?: string | number | null;
     hero_key?: string | number | null;
     name?: string | number | null;
     is_spell?: boolean;
 };
 
-const ID_ALIAS: Record<string, string> = {
+const HERO_ID_ALIAS: Record<string, string> = {
     soldier76: 'soldier_76',
     soldier_76: 'soldier_76',
     junkerqueen: 'junker_queen',
@@ -68,7 +68,7 @@ const ID_ALIAS: Record<string, string> = {
     emre: 'emre',
 };
 
-const NAME_ALIAS: Record<string, string> = {
+const HERO_NAME_ALIAS: Record<string, string> = {
     아나: 'ana',
     애쉬: 'ashe',
     바티스트: 'baptiste',
@@ -125,19 +125,106 @@ const NAME_ALIAS: Record<string, string> = {
     젠야타: 'zenyatta',
 };
 
+const SPELL_ALIAS: Record<string, string> = {
+    // Korean names
+    '가시소나기': 'thorn_barrage',
+    '눈보라': 'blizzard',
+    '대지분쇄': 'earthshatter',
+    '생체수류탄': 'biotic_grenade',
+    '구원의손길': 'rescue',
+    '소리방벽': 'sound_barrier',
+    '증폭매트릭스': 'amplification_matrix',
+    '나노강화제': 'nano_boost',
+    '복제': 'duplicate',
+    '죽이는타이어': 'riptire',
+    '지각충격': 'seismic_shock',
+    '갈라내는칼날': 'cleaving_blade',
+    '궤도광선': 'orbital_ray',
+    '막시밀리앙': 'maximilian',
+    '수면총': 'sleep_dart',
+    '불사장치': 'immortality_field',
+    '튕겨내기': 'deflect',
+    '강철덫': 'steel_trap',
+    '카드세우스지팡이': 'caduceus_staff',
+    '밥': 'bob',
+    '비오비': 'bob',
+    'b.o.b': 'bob',
+
+    // probable hero_key / id values
+    thorn_barrage: 'thorn_barrage',
+    thornbarrage: 'thorn_barrage',
+    blizzard: 'blizzard',
+    earthshatter: 'earthshatter',
+    biotic_grenade: 'biotic_grenade',
+    bioticgrenade: 'biotic_grenade',
+    rescue: 'rescue',
+    sound_barrier: 'sound_barrier',
+    soundbarrier: 'sound_barrier',
+    amplification_matrix: 'amplification_matrix',
+    amplificationmatrix: 'amplification_matrix',
+    nano_boost: 'nano_boost',
+    nanoboost: 'nano_boost',
+    bob: 'bob',
+    duplicate: 'duplicate',
+    riptire: 'riptire',
+    rip_tire: 'riptire',
+    seismic_shock: 'seismic_shock',
+    seismicshock: 'seismic_shock',
+    cleaving_blade: 'cleaving_blade',
+    cleavingblade: 'cleaving_blade',
+    orbital_ray: 'orbital_ray',
+    orbitalray: 'orbital_ray',
+    emp: 'emp',
+    maximilian: 'maximilian',
+    sleep_dart: 'sleep_dart',
+    sleepdart: 'sleep_dart',
+    immortality_field: 'immortality_field',
+    immortalityfield: 'immortality_field',
+    deflect: 'deflect',
+    steel_trap: 'steel_trap',
+    steeltrap: 'steel_trap',
+    caduceus_staff: 'caduceus_staff',
+    caduceusstaff: 'caduceus_staff',
+
+    // probable spell_* forms from backend
+    spell_thorn_barrage: 'thorn_barrage',
+    spell_blizzard: 'blizzard',
+    spell_earthshatter: 'earthshatter',
+    spell_biotic_grenade: 'biotic_grenade',
+    spell_rescue: 'rescue',
+    spell_sound_barrier: 'sound_barrier',
+    spell_amplification_matrix: 'amplification_matrix',
+    spell_nano_boost: 'nano_boost',
+    spell_bob: 'bob',
+    spell_duplicate: 'duplicate',
+    spell_riptire: 'riptire',
+    spell_seismic_shock: 'seismic_shock',
+    spell_cleaving_blade: 'cleaving_blade',
+    spell_orbital_ray: 'orbital_ray',
+    spell_emp: 'emp',
+    spell_maximilian: 'maximilian',
+    spell_sleep_dart: 'sleep_dart',
+    spell_immortality_field: 'immortality_field',
+    spell_deflect: 'deflect',
+    spell_steel_trap: 'steel_trap',
+    spell_caduceus_staff: 'caduceus_staff',
+};
+
 function normalize(value: unknown): string {
     if (typeof value !== 'string') return '';
-    return value.toLowerCase().trim().replace(/\s+/g, '').replace(/-/g, '_');
+    return value
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(/-/g, '_')
+        .replace(/[.'"`~!@#$%^&*()+={}\[\]|\\/:;<>?,]/g, '');
 }
 
 function pickString(value: unknown): string | null {
     return typeof value === 'string' && value.trim() ? value : null;
 }
 
-export function getHeroImageSrc(card: HeroLike): string {
-    if (!card || card.is_spell) return '/heroes/_unknown.png';
-
-    // 숫자 DB id보다 hero_key / name을 우선 사용
+function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
         pickString(card.hero_key),
         pickString(card.name),
@@ -145,13 +232,51 @@ export function getHeroImageSrc(card: HeroLike): string {
     ].filter(Boolean) as string[];
 
     for (const raw of candidates) {
-        const named = NAME_ALIAS[raw] ?? raw;
+        const named = HERO_NAME_ALIAS[raw] ?? raw;
         const normalized = normalize(named);
         if (!normalized) continue;
 
-        const aliased = ID_ALIAS[normalized] ?? normalized;
-        return `/heroes/${aliased}.png`;
+        const aliased = HERO_ID_ALIAS[normalized] ?? normalized;
+        return aliased;
     }
 
-    return '/heroes/_unknown.png';
+    return null;
+}
+
+function resolveSpellKey(card: CardLike): string | null {
+    const candidates = [
+        pickString(card.hero_key),
+        pickString(card.name),
+        pickString(card.id),
+    ].filter(Boolean) as string[];
+
+    for (const raw of candidates) {
+        const direct = SPELL_ALIAS[raw];
+        if (direct) return direct;
+
+        const normalized = normalize(raw);
+        if (!normalized) continue;
+
+        const aliased = SPELL_ALIAS[normalized] ?? SPELL_ALIAS[raw.replace(/\s+/g, '')];
+        if (aliased) return aliased;
+    }
+
+    return null;
+}
+
+export function getCardImageSrc(card: CardLike): string {
+    if (!card) return '/heroes/_unknown.png';
+
+    if (card.is_spell) {
+        const spellKey = resolveSpellKey(card);
+        return spellKey ? `/skills/${spellKey}.png` : '/skills/_unknown.png';
+    }
+
+    const heroKey = resolveHeroKey(card);
+    return heroKey ? `/heroes/${heroKey}.png` : '/heroes/_unknown.png';
+}
+
+// 기존 코드 호환용
+export function getHeroImageSrc(card: CardLike): string {
+    return getCardImageSrc(card);
 }
