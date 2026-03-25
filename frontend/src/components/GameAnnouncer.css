@@ -1,287 +1,91 @@
 /* components/GameAnnouncer.css */
 
 .game-announcer-overlay {
-    position: fixed;
-    inset: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    pointer-events: none;
+    pointer-events: none; /* 클릭 방해 금지 */
     z-index: 1000;
-    padding: 14px;
 }
 
-/* phase */
+/* --- 페이즈(턴) 알림 스타일 (기존 스타일 유지/보완) --- */
 .announcer-phase {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 16px;
-    width: min(86vw, 760px);
-    animation: phaseAnnouncer 1.15s ease-out forwards;
+    background: linear-gradient(90deg, transparent, rgba(10, 14, 26, 0.8), transparent);
+    width: 100%;
+    padding: 20px 0;
+    animation: gameAnnouncerPop 2s ease-in-out forwards;
 }
 
-.announcer-phase-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-}
-
-.announcer-phase-body {
-    min-width: min(72vw, 360px);
-    padding: 14px 24px;
-    border-radius: 18px;
-    text-align: center;
-    background: linear-gradient(180deg, rgba(12,18,36,0.94), rgba(17,24,48,0.94));
-    border: 1px solid rgba(135, 181, 255, 0.32);
-    box-shadow:
-            0 16px 42px rgba(0,0,0,0.42),
-            0 0 18px rgba(90, 150, 255, 0.16);
-    backdrop-filter: blur(6px);
-}
-
-.game-announcer-title {
-    font-size: clamp(21px, 4.6vw, 34px);
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    color: #f8fbff;
-    text-shadow: 0 0 10px rgba(255,255,255,0.12);
-}
-
-.game-announcer-subtitle {
-    margin-top: 6px;
-    font-size: clamp(10px, 1.9vw, 13px);
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    color: #a9b7db;
-}
-
-/* skill card */
+/* --- 스킬 카드 알림 스타일 --- */
 .announcer-skill-card {
-    width: min(78vw, 290px);
-    animation: skillAnnouncer 1.35s ease-out forwards;
-}
-
-.skill-card-frame {
-    position: relative;
-    min-height: 420px;
-    border-radius: 22px;
+    width: 240px;
+    background: #12182b;
+    border: 2px solid #3a4a78;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(112, 210, 255, 0.2);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, rgba(14,21,44,0.98), rgba(11,17,35,0.98));
-    border: 1px solid rgba(160, 187, 255, 0.32);
-    box-shadow:
-            0 24px 70px rgba(0,0,0,0.52),
-            inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.announcer-skill-card.spell .skill-card-frame {
-    border-color: rgba(255, 181, 86, 0.42);
-    box-shadow:
-            0 24px 70px rgba(0,0,0,0.52),
-            0 0 24px rgba(255, 169, 72, 0.14),
-            inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.announcer-skill-card.hero .skill-card-frame {
-    border-color: rgba(120, 207, 255, 0.34);
-    box-shadow:
-            0 24px 70px rgba(0,0,0,0.52),
-            0 0 24px rgba(120, 207, 255, 0.12),
-            inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.skill-card-top-emblem {
-    padding-top: 14px;
-    text-align: center;
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    font-weight: 900;
-    color: #d9e2ff;
-    opacity: 0.8;
+    animation: skillCardPop 2.5s ease-in-out forwards;
 }
 
 .skill-card-image-wrapper {
-    height: 138px;
-    margin: 10px 18px 0;
-    border-radius: 16px;
-    border: 1px solid rgba(100, 126, 182, 0.35);
-    background: radial-gradient(circle at top, rgba(58, 84, 140, 0.24), rgba(13,18,37,0.98) 72%);
+    width: 100%;
+    height: 160px;
+    background: #0d1225;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 14px;
+    border-bottom: 2px solid #2a3560;
     overflow: hidden;
 }
 
 .skill-card-image {
-    width: auto;
-    max-width: 78%;
-    max-height: 90%;
-    object-fit: contain;
-    filter: drop-shadow(0 10px 16px rgba(0,0,0,0.34));
-}
-
-.skill-card-fallback {
-    font-size: 42px;
-    font-weight: 900;
-    color: #d8e1ff;
-    opacity: 0.86;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .skill-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px 18px 18px;
-    flex: 1;
+    padding: 16px;
+    text-align: center;
 }
 
 .skill-card-title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 900;
-    color: #f7fbff;
-    line-height: 1.14;
-    word-break: keep-all;
-    text-shadow: 0 0 10px rgba(255,255,255,0.1);
-}
-
-.skill-card-subtitle {
-    display: inline-flex;
-    align-self: flex-start;
-    padding: 5px 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(145, 176, 255, 0.26);
-    background: rgba(255,255,255,0.05);
-    font-size: 10px;
-    font-weight: 800;
-    color: #bfd0ff;
-}
-
-.skill-card-desc-block {
-    margin-top: 2px;
-    padding: 12px 12px 13px;
-    border-radius: 14px;
-    border: 1px solid rgba(76, 102, 158, 0.36);
-    background: rgba(9, 14, 30, 0.56);
-}
-
-.skill-card-desc-label {
-    margin-bottom: 7px;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    color: #f6c467;
+    color: #f8fbff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .skill-card-desc {
     font-size: 13px;
-    color: #b9c6e7;
-    line-height: 1.55;
-    white-space: pre-wrap;
+    color: #8a94b8;
+    line-height: 1.4;
     word-break: keep-all;
 }
 
-.skill-card-bottom-trim {
-    height: 18px;
-    margin: 0 18px 12px;
-    border-top: 1px solid rgba(125, 151, 214, 0.18);
-    opacity: 0.7;
+/* 애니메이션 */
+@keyframes gameAnnouncerPop {
+    0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+    15% { opacity: 1; transform: translateY(0) scale(1); }
+    85% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-20px) scale(1.05); }
 }
 
-@keyframes phaseAnnouncer {
-    0% {
-        opacity: 0;
-        transform: translateY(10px) scale(0.98);
-        filter: blur(6px);
-    }
-    16% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-    76% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-6px) scale(0.995);
-        filter: blur(1px);
-    }
-}
-
-@keyframes skillAnnouncer {
-    0% {
-        opacity: 0;
-        transform: translateY(16px) scale(0.96);
-        filter: blur(7px);
-    }
-    14% {
-        opacity: 1;
-        transform: translateY(0) scale(1.015);
-        filter: blur(0);
-    }
-    68% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-8px) scale(0.99);
-        filter: blur(1px);
-    }
-}
-
-@media (max-width: 768px) {
-    .game-announcer-overlay {
-        padding: 10px;
-    }
-
-    .announcer-phase {
-        gap: 10px;
-        width: min(92vw, 560px);
-    }
-
-    .announcer-phase-body {
-        min-width: min(76vw, 290px);
-        padding: 11px 16px;
-        border-radius: 14px;
-    }
-
-    .announcer-skill-card {
-        width: min(80vw, 250px);
-    }
-
-    .skill-card-frame {
-        min-height: 360px;
-        border-radius: 18px;
-    }
-
-    .skill-card-image-wrapper {
-        height: 118px;
-        margin: 10px 14px 0;
-        border-radius: 14px;
-        padding: 12px;
-    }
-
-    .skill-card-content {
-        padding: 14px;
-        gap: 8px;
-    }
-
-    .skill-card-title {
-        font-size: 20px;
-    }
-
-    .skill-card-desc {
-        font-size: 12px;
-        line-height: 1.45;
-    }
-
-    .skill-card-bottom-trim {
-        margin: 0 14px 10px;
-    }
+@keyframes skillCardPop {
+    0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+    10% { opacity: 1; transform: scale(1.05) translateY(0); }
+    15% { transform: scale(1); }
+    85% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.9) translateY(-30px); filter: blur(4px); }
 }

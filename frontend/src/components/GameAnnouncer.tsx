@@ -8,6 +8,7 @@ export interface AnnouncerData {
     subtitle?: string;
     description?: string;
     heroKey?: string;
+    imageName?: string;
     isSpell?: boolean;
     duration?: number;
 }
@@ -22,30 +23,34 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
 
     useEffect(() => {
         setImgError(false);
-    }, [data?.title, data?.heroKey, data?.isSpell]);
+    }, [data?.title, data?.heroKey, data?.imageName, data?.isSpell]);
 
     useEffect(() => {
         if (!data) return;
-        const displayTime = data.duration || (data.type === 'skill' ? 2100 : 1400);
+        const displayTime = data.duration || (data.type === 'skill' ? 2600 : 1500);
         const timer = window.setTimeout(() => onClose(), displayTime);
         return () => window.clearTimeout(timer);
     }, [data, onClose]);
+
+    const displayTime = data?.duration || (data?.type === 'skill' ? 2600 : 1500);
 
     const imageSrc = useMemo(() => {
         if (!data || data.type !== 'skill') return '';
         return getCardImageSrc({
             hero_key: data.heroKey,
-            name: data.title,
+            name: data.imageName || data.title,
             is_spell: data.isSpell,
         });
     }, [data]);
 
     if (!data) return null;
 
+    const animationStyle = { animationDuration: `${displayTime}ms` };
+
     return (
         <div className="game-announcer-overlay">
             {data.type === 'phase' && (
-                <div className="announcer-phase">
+                <div className="announcer-phase" style={animationStyle}>
                     <div className="announcer-phase-line" />
                     <div className="announcer-phase-body">
                         <div className="game-announcer-title">{data.title}</div>
@@ -56,7 +61,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
             )}
 
             {data.type === 'skill' && (
-                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`}>
+                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
                     <div className="skill-card-frame">
                         <div className="skill-card-top-emblem">{data.isSpell ? '✦ 스킬 카드' : '영웅 스킬'}</div>
 
