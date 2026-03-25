@@ -53,8 +53,8 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                 <div className="announcer-phase" style={animationStyle}>
                     <div className="announcer-phase-line" />
                     <div className="announcer-phase-body">
-                        <div className="game-announcer-title">{data.title}</div>
-                        {data.subtitle && <div className="game-announcer-subtitle">{data.subtitle}</div>}
+                        <div className="announcer-phase-title">{data.title}</div>
+                        {data.subtitle && <div className="announcer-phase-subtitle">{data.subtitle}</div>}
                     </div>
                     <div className="announcer-phase-line" />
                 </div>
