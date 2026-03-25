@@ -6,6 +6,7 @@ import { GameSocket, buildWsUrl } from '../api/ws';
 import FieldSection from '../components/FieldSection';
 import HandCardComp from '../components/HandCardComp';
 import CardDetail from '../components/CardDetail';
+import GameAnnouncer, { AnnouncerData } from '../components/GameAnnouncer';
 import './GamePage.css';
 
 function decodeJwt(token: string): any | null {
@@ -40,18 +41,6 @@ function roleClass(role?: string) {
     default: return 'unknown';
   }
 }
-
-type CenterCueKind = 'phase' | 'skill' | 'system';
-
-type CenterCueTone = 'mine' | 'theirs' | 'neutral';
-
-type CenterCue = {
-  id: number;
-  title: string;
-  subtitle?: string;
-  kind: CenterCueKind;
-  tone?: CenterCueTone;
-};
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -95,6 +84,14 @@ function getSkillNameFromCard(card: any, skillKey?: string | null) {
   return first?.name || card?.name || '스킬';
 }
 
+function getSkillDescriptionFromCard(card: any, skillKey?: string | null) {
+  const meta = card?.skill_meta || {};
+  if (skillKey && meta?.[skillKey]?.description) return String(meta[skillKey].description);
+  if (meta?.skill_1?.description) return String(meta.skill_1.description);
+  const first = Object.values(meta).find((item: any) => item?.description) as any;
+  return first?.description || card?.description || '';
+}
+
 function buildOpponentSkillCue(msg: any) {
   const result = msg?.result || {};
   const action = msg?.action;
@@ -126,9 +123,27 @@ function buildOpponentSkillCue(msg: any) {
 
   if (!skillName) return null;
 
+  const isSpell =
+      action === 'execute_spell'
+      || result?.type === 'spell_played'
+      || !!result?.card?.is_spell
+      || String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').startsWith('spell_');
+
   return {
     title: skillName,
     subtitle: `${actorName} 사용`,
+    heroKey:
+        result?.hero_key
+        || msg?.hero_key
+        || result?.card?.hero_key
+        || result?.caster?.hero_key
+        || result?.caster?.extra?._hero_key
+        || undefined,
+    isSpell,
+    description:
+        result?.description
+        || result?.card?.description
+        || undefined,
   };
 }
 
@@ -233,7 +248,6 @@ const GamePage: React.FC = () => {
   const [pendingSpell, setPendingSpell] = useState<string | null>(null);
   const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
-  const [centerCue, setCenterCue] = useState<CenterCue | null>(null);
   const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
@@ -244,36 +258,29 @@ const GamePage: React.FC = () => {
   const reconnectAttemptRef = useRef(0);
   const manualCloseRef = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
-  const cueTimerRef = useRef<number | null>(null);
   const phaseStampRef = useRef('');
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
+  const [announcerData, setAnnouncerData] = useState<AnnouncerData | null>(null);
+
+  const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
+    setAnnouncerData({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
+  }, []);
+
+  const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 1300) => {
+    if (!title) return;
+    setAnnouncerData({ type: 'phase', title, subtitle, duration });
+  }, []);
+
+  const showSkillUse = useCallback((skillName: string, description = '', heroKey = '', isSpell = false, duration = 3000) => {
+    if (!skillName) return;
+    setAnnouncerData({ type: 'skill', title: skillName, description, heroKey, isSpell, duration });
+  }, []);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
   }, []);
 
-  const showCenterCue = useCallback((title: string, subtitle = '', kind: CenterCueKind = 'system', duration = 1700, tone: CenterCueTone = 'neutral') => {
-    if (!title) return;
-
-    if (cueTimerRef.current) {
-      window.clearTimeout(cueTimerRef.current);
-      cueTimerRef.current = null;
-    }
-
-    setCenterCue({
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      title,
-      subtitle,
-      kind,
-      tone,
-    });
-
-    cueTimerRef.current = window.setTimeout(() => {
-      setCenterCue(null);
-      cueTimerRef.current = null;
-    }, duration);
-  }, []);
 
   useEffect(() => {
     gsRef.current = gs;
@@ -283,13 +290,6 @@ const GamePage: React.FC = () => {
     pendingSpellNameRef.current = pendingSpellName;
   }, [pendingSpellName]);
 
-  useEffect(() => {
-    return () => {
-      if (cueTimerRef.current) {
-        window.clearTimeout(cueTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -300,15 +300,8 @@ const GamePage: React.FC = () => {
     const stamp = `${gs.round}-${gs.turn}-${gs.phase}-${gs.is_my_turn ? 'me' : 'opp'}`;
     if (phaseStampRef.current === stamp) return;
     phaseStampRef.current = stamp;
-
-    showCenterCue(
-        phaseLabel(gs.phase),
-        phaseSubtitle(gs.phase, gs.is_my_turn),
-        'phase',
-        1500,
-        gs.is_my_turn ? 'mine' : 'theirs',
-    );
-  }, [gs, showCenterCue]);
+    showPhaseChange(phaseLabel(gs.phase), phaseSubtitle(gs.phase, gs.is_my_turn), 1600);
+  }, [gs, showPhaseChange]);
 
   useEffect(() => {
     if (!session || !gameId) return;
@@ -435,11 +428,11 @@ const GamePage: React.FC = () => {
             if (result?.hero_key === 'spell_thorn_volley') {
               setActionMode(null);
               setColumnChoice({ source: 'spell', heroKey: result.hero_key, skillName: spellName });
-              showCenterCue(spellName, '열을 선택하세요', 'system', 1200, 'mine');
+              showSystemNotice(spellName, '열을 선택하세요', 1200);
             } else {
               setActionMode('spell');
               setColumnChoice(null);
-              showCenterCue(spellName, '대상을 선택하세요', 'system', 1200, 'mine');
+              showSystemNotice(spellName, '대상을 선택하세요', 1200);
             }
           }
 
@@ -449,24 +442,31 @@ const GamePage: React.FC = () => {
             setActionMode(null);
             setLocalPendingSpellChoice(result?.choice || null);
             addLog('스킬 카드 추가 선택 필요');
-            showCenterCue(spellName, '카드를 선택하세요', 'system', 1300, 'mine');
+            showSystemNotice(spellName, '카드를 선택하세요', 1300);
           }
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && !result?.needs_target && !result?.needs_choice) {
-            showCenterCue(resolvedSkillName || spellName, '스킬 카드 발동', 'skill', 1500, 'mine');
+            const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
+            showSkillUse(
+                resolvedSkillName || spellName,
+                getSkillDescriptionFromCard(spellCard),
+                result?.hero_key || spellCard?.hero_key || '',
+                true,
+                2600,
+            );
             setLocalPendingSpellChoice(null);
           }
 
           if (result?.passive_triggered?.summoned) {
             addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
-            showCenterCue(result.passive_triggered.summoned.name, '설치물 소환', 'system', 1300, 'mine');
+            showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
           }
 
           if (result?.passive_triggered?.needs_choice) {
             setLocalPendingPassive(result.passive_triggered.needs_choice);
             addLog('패시브 추가 선택 필요');
             if (result.passive_triggered.passive) {
-              showCenterCue(result.passive_triggered.passive, '선택이 필요합니다', 'system', 1300, 'mine');
+              showSystemNotice(result.passive_triggered.passive, '선택이 필요합니다', 1300);
             }
           }
 
@@ -474,40 +474,56 @@ const GamePage: React.FC = () => {
             setLocalPendingPassive(null);
             if (result?.card?.name) {
               addLog(`패시브 처리: ${result.card.name}`);
-              showCenterCue(result.card.name, '패시브 처리', 'system', 1300, 'mine');
+              showSystemNotice(result.card.name, '패시브 처리', 1300);
             }
           }
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
-            showCenterCue(resolvedSkillName, `${actorName} 사용`, 'skill', 1500, 'mine');
+            const casterCard =
+                [...(latestMyState?.field?.main || []), ...(latestMyState?.field?.side || [])].find((c: any) => c.uid === msg?.caster_uid)
+                || result?.caster;
+            showSkillUse(
+                resolvedSkillName,
+                getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
+                getHeroKey(casterCard),
+                false,
+                2800,
+            );
           }
 
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
             if (resolvedSkillName) {
-              showCenterCue(resolvedSkillName, '스킬 카드 발동', 'skill', 1500, 'mine');
+              const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
+              showSkillUse(
+                  resolvedSkillName,
+                  getSkillDescriptionFromCard(spellCard),
+                  result?.hero_key || spellCard?.hero_key || '',
+                  true,
+                  2600,
+              );
             }
           }
 
           if (msg.action === 'execute_spell' && result?.rescued) {
-            showCenterCue(result.rescued, 'TRASH → 패', 'skill', 1400, 'mine');
+            showSystemNotice(result.rescued, 'TRASH → 패', 1400);
           }
           if (msg.action === 'execute_spell' && result?.drawn_card) {
-            showCenterCue(result.drawn_card, '덱 → 패', 'skill', 1400, 'mine');
+            showSystemNotice(result.drawn_card, '덱 → 패', 1400);
           }
         }),
         ws.on('opponent_action', (msg: any) => {
           addLog(`상대: ${msg.action}`);
           const cue = buildOpponentSkillCue(msg);
           if (cue) {
-            showCenterCue(cue.title, cue.subtitle, 'skill', 1500, 'theirs');
+            showSkillUse(cue.title, cue.description || cue.subtitle || '', cue.heroKey || '', !!cue.isSpell, 2600);
           }
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
           addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          showCenterCue('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 'phase', 1800, 'neutral');
+          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 2000);
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
@@ -536,7 +552,7 @@ const GamePage: React.FC = () => {
       clearReconnectTimer();
       cleanupSocket();
     };
-  }, [session, gameId, addLog, showCenterCue]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice]);
 
   const send = (data: Record<string, unknown>) => {
     if (wsRef.current?.connected) {
@@ -642,7 +658,7 @@ const GamePage: React.FC = () => {
     if (actionMode === 'spell' && pendingSpell) {
       send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
       addLog(`스킬 카드 → ${card.name}`);
-      showCenterCue(pendingSpellName || '스킬 카드', `${card.name} 대상`, 'skill', 1500, 'mine');
+      showSystemNotice(pendingSpellName || '스킬 카드', `${card.name} 대상`, 1200);
       setActionMode(null);
       setPendingSpell(null);
       setPendingSpellName(null);
@@ -657,7 +673,7 @@ const GamePage: React.FC = () => {
         const skillName = getSkillNameFromCard(caster, actionMode);
         send({ action: 'use_skill', caster_uid: caster.uid, skill_key: actionMode, target_uid: card.uid });
         addLog(`${caster.name} → ${card.name} (${skillName})`);
-        showCenterCue(skillName, `${caster.name} 사용`, 'skill', 1500, 'mine');
+        showSystemNotice(skillName, `${caster.name} 사용`, 900);
       }
       setSelectedFieldUid(null);
       setActionMode(null);
@@ -689,7 +705,7 @@ const GamePage: React.FC = () => {
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
       addLog(`${card.name} → ${zoneLabel} 추가 배치`);
-      showCenterCue(card.name, `${zoneLabel} 추가 배치`, 'system', 1200, 'mine');
+      showSystemNotice(card.name, `${zoneLabel} 추가 배치`, 1200);
       setSelectedHandIdx(null);
       return;
     }
@@ -698,7 +714,7 @@ const GamePage: React.FC = () => {
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
 
     if (!card.is_spell) {
-      showCenterCue(card.name, `${zoneLabel} 배치`, 'system', 1100, 'mine');
+      showSystemNotice(card.name, `${zoneLabel} 배치`, 1100);
     }
 
     setSelectedHandIdx(null);
@@ -746,15 +762,7 @@ const GamePage: React.FC = () => {
 
   return (
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
-        {centerCue && (
-            <div className="game-announcer" key={centerCue.id}>
-              <div className={`game-announcer-card ${centerCue.kind} ${centerCue.tone || 'neutral'}`}>
-                <div className="game-announcer-shine" />
-                <div className="game-announcer-title">{centerCue.title}</div>
-                {centerCue.subtitle && <div className="game-announcer-subtitle">{centerCue.subtitle}</div>}
-              </div>
-            </div>
-        )}
+        <GameAnnouncer data={announcerData} onClose={() => setAnnouncerData(null)} />
 
         <div className="game-topbar">
           <div className="game-topbar-left">
@@ -864,7 +872,7 @@ const GamePage: React.FC = () => {
                                     setColumnChoice(null);
                                     send({ action: 'use_skill', caster_uid: caster.uid, skill_key: sk.key });
                                     addLog(`${caster.name} — ${rawSkillName} 즉시 사용`);
-                                    showCenterCue(rawSkillName, `${caster.name} 사용`, 'skill', 1400, 'mine');
+                                    showSystemNotice(rawSkillName, `${caster.name} 사용`, 900);
                                     setSelectedFieldUid(null);
                                     return;
                                   }
@@ -873,20 +881,20 @@ const GamePage: React.FC = () => {
                                     const chargeLevel = getChargeLevel(caster);
                                     if (chargeLevel <= 0) {
                                       addLog('차징샷은 차징 1단계 이상 필요');
-                                      showCenterCue('차징 부족', '레일건으로 먼저 충전하세요', 'system', 1200, 'mine');
+                                      showSystemNotice('차징 부족', '레일건으로 먼저 충전하세요', 1200);
                                       return;
                                     }
                                     setActionMode(null);
                                     setColumnChoice({ source: 'skill', heroKey: getHeroKey(caster), skillKey: sk.key, skillName: rawSkillName });
                                     addLog(`${caster.name} — ${rawSkillName} 열 선택`);
-                                    showCenterCue(rawSkillName, '열을 선택하세요', 'system', 1000, 'mine');
+                                    showSystemNotice(rawSkillName, '열을 선택하세요', 1000);
                                     return;
                                   }
 
                                   setColumnChoice(null);
                                   setActionMode(sk.key);
                                   addLog(`${selectedMyFieldCard!.name} — ${rawSkillName} 준비`);
-                                  showCenterCue(rawSkillName, `${selectedMyFieldCard!.name} 준비`, 'system', 900, 'mine');
+                                  showSystemNotice(rawSkillName, `${selectedMyFieldCard!.name} 준비`, 900);
                                 }}
                                 style={{
                                   ...btnS,
@@ -925,7 +933,7 @@ const GamePage: React.FC = () => {
                                         send({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: columnChoice.skillKey, target_uid: col.repUid });
                                         addLog(`${selectedMyFieldCard.name} → ${col.label} (${columnChoice.skillName})`);
                                       }
-                                      showCenterCue(columnChoice.skillName, `${col.label} 선택`, 'skill', 1300, 'mine');
+                                      showSystemNotice(columnChoice.skillName, `${col.label} 선택`, 1200);
                                       setColumnChoice(null);
                                       setActionMode(null);
                                       setPendingSpell(null);

@@ -1,0 +1,91 @@
+/* components/GameAnnouncer.css */
+
+.game-announcer-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none; /* 클릭 방해 금지 */
+    z-index: 1000;
+}
+
+/* --- 페이즈(턴) 알림 스타일 (기존 스타일 유지/보완) --- */
+.announcer-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(90deg, transparent, rgba(10, 14, 26, 0.8), transparent);
+    width: 100%;
+    padding: 20px 0;
+    animation: gameAnnouncerPop 2s ease-in-out forwards;
+}
+
+/* --- 스킬 카드 알림 스타일 --- */
+.announcer-skill-card {
+    width: 240px;
+    background: #12182b;
+    border: 2px solid #3a4a78;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(112, 210, 255, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: skillCardPop 2.5s ease-in-out forwards;
+}
+
+.skill-card-image-wrapper {
+    width: 100%;
+    height: 160px;
+    background: #0d1225;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 2px solid #2a3560;
+    overflow: hidden;
+}
+
+.skill-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.skill-card-content {
+    padding: 16px;
+    text-align: center;
+}
+
+.skill-card-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #f8fbff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.skill-card-desc {
+    font-size: 13px;
+    color: #8a94b8;
+    line-height: 1.4;
+    word-break: keep-all;
+}
+
+/* 애니메이션 */
+@keyframes gameAnnouncerPop {
+    0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+    15% { opacity: 1; transform: translateY(0) scale(1); }
+    85% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes skillCardPop {
+    0% { opacity: 0; transform: scale(0.8) translateY(30px); }
+    10% { opacity: 1; transform: scale(1.05) translateY(0); }
+    15% { transform: scale(1); }
+    85% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.9) translateY(-30px); filter: blur(4px); }
+}
