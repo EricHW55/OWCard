@@ -326,19 +326,20 @@ def spell_seismic_slam(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_dragonblade", "skill_1")
 def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """갈라내는 칼날: 한 세로줄 전체에 10딜."""
+    """갈라내는 칼날: 한 세로줄 전체에 즉시 피해."""
     if not target:
         return {"success": False, "message": "대상 열을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
     column = enemy_field.get_column(target)
+    damage = game.get_skill_damage(caster, "skill_1") or 7
     logs = []
     for card in column:
-        dmg_log = card.take_damage(10)
+        dmg_log = card.take_damage(damage)
         logs.append({"target": card.uid, "damage": dmg_log})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "갈라내는 칼날", "affected": logs}
+    return {"success": True, "skill": "갈라내는 칼날", "damage": damage, "affected": logs}
 
 
 @register_skill("spell_orbital_ray", "skill_1")
