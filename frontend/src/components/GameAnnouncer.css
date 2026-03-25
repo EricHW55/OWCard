@@ -65,56 +65,116 @@
 
 /* --- 스킬 카드 --- */
 .announcer-skill-card {
-    width: min(82vw, 300px);
+    width: min(82vw, 320px);
     animation: skillCardPop 3.2s ease-in-out forwards;
-    filter: drop-shadow(0 22px 44px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 24px 46px rgba(0, 0, 0, 0.52));
 }
 
 .skill-card-frame {
     position: relative;
-    padding: 24px 24px 34px;
-    min-height: 402px;
+    isolation: isolate;
+    padding: 26px 24px 36px;
+    min-height: 426px;
     display: flex;
     flex-direction: column;
     align-items: center;
     clip-path: polygon(14% 0, 86% 0, 100% 10%, 100% 89%, 50% 100%, 0 89%, 0 10%);
-    background:
-            radial-gradient(circle at 50% 18%, rgba(94, 140, 255, 0.18), transparent 34%),
-            linear-gradient(180deg, rgba(17, 28, 58, 0.98) 0%, rgba(11, 18, 39, 0.98) 100%);
     overflow: hidden;
 }
 
+/* border를 직접 그리지 말고 금색 셸 + 내부 패널을 겹쳐서 모서리 깨짐을 줄임 */
 .skill-card-frame::before,
 .skill-card-frame::after {
     content: '';
     position: absolute;
+    inset: 0;
     pointer-events: none;
-    clip-path: polygon(14% 0, 86% 0, 100% 10%, 100% 89%, 50% 100%, 0 89%, 0 10%);
 }
 
 .skill-card-frame::before {
-    inset: 0;
-    border: 2px solid rgba(214, 177, 142, 0.92);
-    box-shadow: inset 0 0 0 1px rgba(255, 232, 212, 0.2);
+    z-index: 0;
+    clip-path: polygon(14% 0, 86% 0, 100% 10%, 100% 89%, 50% 100%, 0 89%, 0 10%);
+    background: linear-gradient(180deg,
+    rgba(255, 237, 221, 0.98) 0%,
+    rgba(235, 199, 161, 0.98) 12%,
+    rgba(174, 128, 89, 0.98) 100%);
+    box-shadow:
+            0 0 0 1px rgba(255, 241, 228, 0.14),
+            0 0 22px rgba(216, 173, 129, 0.14);
 }
 
 .skill-card-frame::after {
-    inset: 8px;
-    border: 1px solid rgba(220, 189, 162, 0.5);
+    z-index: 0;
+    inset: 2px;
+    clip-path: polygon(14% 0.8%, 86% 0.8%, 99.2% 10.7%, 99.2% 88.2%, 50% 99.1%, 0.8% 88.2%, 0.8% 10.7%);
+    background:
+            radial-gradient(circle at 50% 18%, rgba(94, 140, 255, 0.18), transparent 34%),
+            linear-gradient(180deg, rgba(17, 28, 58, 0.985) 0%, rgba(11, 18, 39, 0.985) 100%);
+    box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+            inset 0 0 28px rgba(48, 78, 146, 0.16);
+}
+
+/* 카드의 상단/좌우 금 장식선을 별도로 얹어서 모서리 마감 완성 */
+.skill-card-top-trim,
+.skill-card-side-trim,
+.skill-card-inner-outline {
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.skill-card-top-trim {
+    top: 14px;
+    left: 34px;
+    right: 34px;
+    height: 2px;
+    background: linear-gradient(90deg,
+    rgba(229, 194, 160, 0),
+    rgba(245, 219, 191, 0.97) 18%,
+    rgba(219, 177, 137, 0.97) 50%,
+    rgba(245, 219, 191, 0.97) 82%,
+    rgba(229, 194, 160, 0));
+    box-shadow: 0 0 8px rgba(230, 190, 150, 0.22);
+}
+
+.skill-card-side-trim {
+    top: 38px;
+    bottom: 34px;
+    width: 2px;
+    background: linear-gradient(180deg,
+    rgba(226, 184, 143, 0),
+    rgba(244, 214, 184, 0.98) 12%,
+    rgba(217, 172, 131, 0.98) 50%,
+    rgba(244, 214, 184, 0.98) 88%,
+    rgba(226, 184, 143, 0));
+    box-shadow: 0 0 8px rgba(230, 190, 150, 0.22);
+}
+
+.skill-card-side-trim.left { left: 18px; }
+.skill-card-side-trim.right { right: 18px; }
+
+.skill-card-inner-outline {
+    inset: 12px;
+    clip-path: polygon(14% 0.8%, 86% 0.8%, 99.2% 10.7%, 99.2% 88.2%, 50% 99.1%, 0.8% 88.2%, 0.8% 10.7%);
+    border: 1px solid rgba(230, 196, 166, 0.26);
+}
+
+.skill-card-frame > *:not(.skill-card-top-trim):not(.skill-card-side-trim):not(.skill-card-inner-outline) {
+    position: relative;
+    z-index: 2;
 }
 
 .announcer-skill-card.hero .skill-card-frame {
-    box-shadow: 0 0 26px rgba(99, 180, 255, 0.12);
+    box-shadow: 0 0 28px rgba(99, 180, 255, 0.13);
 }
 
 .announcer-skill-card.spell .skill-card-frame {
-    box-shadow: 0 0 26px rgba(255, 191, 98, 0.12);
+    box-shadow: 0 0 28px rgba(255, 191, 98, 0.13);
 }
 
 .skill-card-top-emblem {
-    position: relative;
-    z-index: 1;
-    margin-top: 6px;
+    margin-top: 10px;
     margin-bottom: 18px;
     padding: 5px 12px;
     border-radius: 999px;
@@ -127,10 +187,8 @@
 }
 
 .skill-card-image-wrapper {
-    position: relative;
-    z-index: 1;
-    width: 138px;
-    height: 138px;
+    width: 132px;
+    height: 132px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -146,8 +204,8 @@
 }
 
 .skill-card-image {
-    width: 72%;
-    height: 72%;
+    width: 68%;
+    height: 68%;
     object-fit: contain;
     filter: drop-shadow(0 0 12px rgba(255,255,255,0.06));
 }
@@ -155,8 +213,8 @@
 .skill-card-fallback {
     display: grid;
     place-items: center;
-    width: 72%;
-    height: 72%;
+    width: 68%;
+    height: 68%;
     border-radius: 24px;
     font-size: 32px;
     font-weight: 900;
@@ -165,8 +223,6 @@
 }
 
 .skill-card-content {
-    position: relative;
-    z-index: 1;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -228,10 +284,9 @@
     height: 4px;
     border-radius: 999px;
     background: linear-gradient(90deg, transparent, rgba(214, 177, 142, 0.9), transparent);
-    opacity: 0.8;
+    opacity: 0.82;
 }
 
-/* 애니메이션: 선명한 구간을 늘리고 blur 구간을 짧게 */
 @keyframes phaseAnnouncerPop {
     0% {
         opacity: 0;
@@ -255,6 +310,7 @@
     }
 }
 
+/* 선명한 상태 유지시간은 길게, 마지막 블러는 짧게 */
 @keyframes skillCardPop {
     0% {
         opacity: 0;
@@ -298,17 +354,17 @@
     }
 
     .announcer-skill-card {
-        width: min(84vw, 280px);
+        width: min(84vw, 286px);
     }
 
     .skill-card-frame {
-        min-height: 374px;
-        padding: 20px 18px 30px;
+        min-height: 388px;
+        padding: 22px 18px 30px;
     }
 
     .skill-card-image-wrapper {
-        width: 122px;
-        height: 122px;
+        width: 118px;
+        height: 118px;
         margin-bottom: 18px;
     }
 

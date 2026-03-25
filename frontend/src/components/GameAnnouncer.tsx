@@ -63,6 +63,11 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
             {data.type === 'skill' && (
                 <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
                     <div className="skill-card-frame">
+                        <div className="skill-card-top-trim" />
+                        <div className="skill-card-side-trim left" />
+                        <div className="skill-card-side-trim right" />
+                        <div className="skill-card-inner-outline" />
+
                         <div className="skill-card-top-emblem">{data.isSpell ? '✦ 스킬 카드' : '영웅 스킬'}</div>
 
                         <div className="skill-card-image-wrapper">
