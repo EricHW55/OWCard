@@ -45,20 +45,24 @@ def spell_thorn_volley(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_blizzard", "skill_1")
 def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """눈보라: 한 가로줄 전체를 1턴 동안 빙결 상태로 만든다."""
-    from game_engine.field import Zone
     if not target:
-        return {"success": False, "message": "영역을 선택하세요 (본대/사이드의 카드 클릭)"}
+        return {"success": False, "message": "영역을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
-    zone = target.zone
-    targets = enemy_field.get_row(zone)
+    targets = enemy_field.get_role_row_in_zone(target.role, target.zone)
+
     logs = []
     for card in targets:
         card.add_status(FrozenState(duration=1, source_uid="spell"))
         logs.append({"target": card.uid, "frozen": True})
 
-    return {"success": True, "skill": "눈보라", "zone": zone.value, "affected": logs}
+    return {
+        "success": True,
+        "skill": "눈보라",
+        "zone": target.zone.value,
+        "target_role": target.role.value,
+        "affected": logs,
+    }
 
 
 @register_skill("spell_gravity_flux", "skill_1")

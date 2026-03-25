@@ -515,6 +515,10 @@ class Field:
         if zone == Zone.MAIN:
             return self._alive(self.main_cards)
         return self._alive(self.side_cards)
+    
+    def get_role_row_in_zone(self, role: Role, zone: Zone) -> list[FieldCard]:
+        cards = self.main_cards if zone == Zone.MAIN else self.side_cards
+        return [c for c in self._alive(cards) if c.role == role]
 
     def get_role_cards(self, role: Role) -> list[FieldCard]:
         return [c for c in self.all_cards() if c.role == role]

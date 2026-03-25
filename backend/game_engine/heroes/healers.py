@@ -131,13 +131,23 @@ def mizuki_kasa(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def baptiste_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target:
         return {"success": False, "message": "힐 대상 선택"}
+
     my = game.get_my_field(caster)
     if not my.find_card(target.uid):
         return {"success": False, "message": "아군만 회복할 수 있습니다"}
-    heal = game.get_skill_damage(caster, "skill_1")
-    healed = target.heal(heal)
-    return {"success": True, "skill": "생체탄 발사기", "target": target.uid, "healed": healed}
 
+    heal = game.get_skill_damage(caster, "skill_1")
+    row = my.get_role_row_in_zone(target.role, target.zone)
+    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
+
+    return {
+        "success": True,
+        "skill": "생체탄 발사기",
+        "target_role": target.role.value,
+        "zone": target.zone.value,
+        "healed": logs,
+    }
+    
 @register_skill("baptiste", "skill_2")
 def baptiste_attack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
@@ -240,11 +250,23 @@ def juno_passive(card: FieldCard, game: GameState) -> dict:
 
 @register_skill("juno", "skill_1")
 def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "힐 대상 선택"}
+
     my = game.get_my_field(caster)
+    if not my.find_card(target.uid):
+        return {"success": False, "message": "아군만 회복할 수 있습니다"}
+
     heal = game.get_skill_damage(caster, "skill_1")
-    row = my.get_role_row(caster.role, include_side=True)
+    row = my.get_role_row(target.role, include_side=True)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
-    return {"success": True, "skill": "펄사어뢰", "healed": logs}
+
+    return {
+        "success": True,
+        "skill": "펄사어뢰",
+        "target_role": target.role.value,
+        "healed": logs,
+    }
 
 # ── 제트팩 캣 ─────────────────────────────
 @register_passive("jetpack_cat")
