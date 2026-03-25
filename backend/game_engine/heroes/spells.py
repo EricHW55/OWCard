@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
-    DamageReduction, Immortality, Reflect, Burn, FrozenState,
+    DamageReduction, Immortality, Reflect, Burn, FrozenState, GravityFluxAirborne,
 )
 
 if TYPE_CHECKING:
@@ -59,6 +59,45 @@ def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dic
         logs.append({"target": card.uid, "frozen": True})
 
     return {"success": True, "skill": "눈보라", "zone": zone.value, "affected": logs}
+
+
+@register_skill("spell_gravity_flux", "skill_1")
+def spell_gravity_flux(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """중력붕괴: 한 영역의 모든 적을 턴 종료시까지 에어본시키고, 턴 종료 시 최대체력 절반(반올림) 피해."""
+    if not target:
+        return {"success": False, "message": "영역을 선택하세요"}
+
+    enemy_field = game.get_enemy_field(caster)
+    enemy_player = game.get_enemy_player(caster)
+    my_player = game.get_my_player(caster)
+    engine = getattr(game, "_engine", None)
+
+    zone = target.zone
+    targets = enemy_field.get_row(zone)
+    logs = []
+    target_uids = []
+
+    for card in targets:
+        card.add_status(GravityFluxAirborne(duration=-1, source_uid="spell_gravity_flux"))
+        target_uids.append(card.uid)
+        logs.append({"target": card.uid, "airborne": True})
+
+    if engine and my_player and enemy_player and target_uids:
+        engine.pending_end_turn_effects.append({
+            "kind": "gravity_flux",
+            "trigger_player_id": my_player.player_id,
+            "target_player_id": enemy_player.player_id,
+            "target_uids": target_uids,
+            "zone": zone.value,
+        })
+
+    return {
+        "success": True,
+        "skill": "중력붕괴",
+        "zone": zone.value,
+        "affected": logs,
+        "delayed_damage": True,
+    }
 
 
 @register_skill("spell_earthshatter", "skill_1")

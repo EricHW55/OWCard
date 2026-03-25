@@ -184,6 +184,20 @@ class Airborne(StatusEffect):
 
 
 @dataclass
+class GravityFluxAirborne(StatusEffect):
+    """중력붕괴 전용 에어본: 턴 종료시까지 공중에 뜨며, 종료 시 엔진이 피해를 처리한다."""
+    name: str = "gravity_flux_airborne"
+    duration: int = -1
+    tags: list[str] = field(default_factory=lambda: ["movement", "cc", "spell"])
+
+    def on_before_attack(self, card, target):
+        return {"bypass_distance": 1}
+
+    def on_before_targeted(self, card, attacker):
+        return {"distance_modifier": -1}
+
+
+@dataclass
 class Stealth(StatusEffect):
     """은신 (솜브라): 타겟팅 제외 + 힐.
     단, 같은 역할군에 혼자면 힐러가 공격당할 위험."""
