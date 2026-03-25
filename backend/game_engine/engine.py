@@ -192,6 +192,7 @@ class GameEngine:
             "spell_biotic_grenade", "spell_nano_boost", "spell_duplicate",
             "spell_riptire", "spell_dragonblade", "spell_sleep_dart",
             "spell_immortality_field", "spell_deflect", "spell_caduceus_staff",
+            "spell_gravity_flux",
         }
 
     def _build_spell_choice(self, ps: PlayerState, hero_key: str) -> dict:
