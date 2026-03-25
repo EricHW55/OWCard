@@ -224,6 +224,18 @@ function pickString(value: unknown): string | null {
     return typeof value === 'string' && value.trim() ? value : null;
 }
 
+
+function buildNormalizedAliasMap(source: Record<string, string>): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(source)) {
+        out[normalize(key)] = value;
+    }
+    return out;
+}
+
+const HERO_NAME_ALIAS_NORMALIZED = buildNormalizedAliasMap(HERO_NAME_ALIAS);
+const SPELL_ALIAS_NORMALIZED = buildNormalizedAliasMap(SPELL_ALIAS);
+
 function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
         pickString(card.hero_key),
@@ -232,7 +244,8 @@ function resolveHeroKey(card: CardLike): string | null {
     ].filter(Boolean) as string[];
 
     for (const raw of candidates) {
-        const named = HERO_NAME_ALIAS[raw] ?? raw;
+        const normalizedRaw = normalize(raw);
+        const named = HERO_NAME_ALIAS[raw] ?? HERO_NAME_ALIAS_NORMALIZED[normalizedRaw] ?? raw;
         const normalized = normalize(named);
         if (!normalized) continue;
 
@@ -257,7 +270,9 @@ function resolveSpellKey(card: CardLike): string | null {
         const normalized = normalize(raw);
         if (!normalized) continue;
 
-        const aliased = SPELL_ALIAS[normalized] ?? SPELL_ALIAS[raw.replace(/\s+/g, '')];
+        const aliased = SPELL_ALIAS[normalized]
+            ?? SPELL_ALIAS_NORMALIZED[normalized]
+            ?? SPELL_ALIAS[raw.replace(/\s+/g, '')];
         if (aliased) return aliased;
     }
 
@@ -265,7 +280,7 @@ function resolveSpellKey(card: CardLike): string | null {
 }
 
 export function getCardImageSrc(card: CardLike): string {
-    if (!card) return '/hero/_unknown.png';
+    if (!card) return '/heroes/_unknown.png';
 
     if (card.is_spell) {
         const spellKey = resolveSpellKey(card);
@@ -273,7 +288,7 @@ export function getCardImageSrc(card: CardLike): string {
     }
 
     const heroKey = resolveHeroKey(card);
-    return heroKey ? `/hero/${heroKey}.png` : '/hero/_unknown.png';
+    return heroKey ? `/heroes/${heroKey}.png` : '/heroes/_unknown.png';
 }
 
 // 기존 코드 호환용
