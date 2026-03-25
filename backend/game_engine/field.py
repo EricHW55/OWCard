@@ -121,7 +121,7 @@ class FieldCard:
 
     @property
     def is_silenced(self) -> bool:
-        return self.has_status("skill_silence")
+        return self.has_status("skill_silence") or self.has_status("frozen_state")
 
     @property
     def is_targetable(self) -> bool:
@@ -181,7 +181,7 @@ class FieldCard:
         return {"died": True}
 
     def heal(self, amount: int) -> int:
-        if self.has_status("heal_block"):
+        if self.has_status("heal_block") or self.has_status("frozen_state"):
             return 0
         amp = sum(s.value for s in self.statuses if s.name == "heal_amplify")
         actual = amount + amp
@@ -222,6 +222,8 @@ class FieldCard:
             return False, "이번 턴에 배치한 카드"
         if self.acted_this_turn:
             return False, "이번 턴에 이미 행동함"
+        if self.has_status("frozen_state"):
+            return False, "빙결 상태"
         if self.is_silenced:
             return False, "스킬 봉쇄 상태"
         if skill_key not in self.skills:
@@ -277,18 +279,8 @@ class Field:
     def all_cards(self) -> list[FieldCard]:
         return self._alive(self.main_cards) + self._alive(self.side_cards)
 
-    def _cards_for_status_processing(self) -> list[FieldCard]:
-        cards: list[FieldCard] = []
-        seen: set[str] = set()
-        for card in self.main_cards + self.side_cards:
-            if card.alive or card.has_status("frozen_state"):
-                if card.uid not in seen:
-                    cards.append(card)
-                    seen.add(card.uid)
-        return cards
-
     def is_empty(self) -> bool:
-        return not any(c.alive or c.has_status("frozen_state") for c in self.main_cards + self.side_cards)
+        return len(self.all_cards()) == 0
 
     def find_card(self, uid: str) -> Optional[FieldCard]:
         for c in self.main_cards + self.side_cards:
@@ -330,14 +322,6 @@ class Field:
         else:
             if not self.can_place_side(card.role):
                 return False
-            self.side_cards.append(card)
-        card.zone = zone
-        return True
-
-    def force_place_card(self, card: FieldCard, zone: Zone) -> bool:
-        if zone == Zone.MAIN:
-            self.main_cards.append(card)
-        else:
             self.side_cards.append(card)
         card.zone = zone
         return True
@@ -396,12 +380,12 @@ class Field:
         return mod
 
     def _layer_ignored_as_blocker(self, attacker: FieldCard, layer: list[FieldCard]) -> bool:
-        alive_targetables = [c for c in layer if c.is_targetable]
-        if not alive_targetables:
+        alive_cards = [c for c in layer if c.alive]
+        if not alive_cards:
             return False
 
-        for card in alive_targetables:
-            ignore = False
+        for card in alive_cards:
+            ignore = not card.is_targetable
             for s in card.statuses:
                 res = s.on_before_targeted(card, attacker)
                 if res.get("ignore_as_blocker"):
@@ -543,13 +527,13 @@ class Field:
 
     def process_all_turn_start(self) -> list[dict]:
         logs = []
-        for card in self._cards_for_status_processing():
+        for card in self.all_cards():
             logs.extend(card.process_turn_start())
         return logs
 
     def process_all_turn_end(self) -> list[dict]:
         logs = []
-        for card in self._cards_for_status_processing():
+        for card in self.all_cards():
             logs.extend(card.process_turn_end())
         return logs
 

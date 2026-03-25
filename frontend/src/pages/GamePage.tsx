@@ -194,6 +194,10 @@ function getChargeLevel(card: any): number {
   return typeof raw === 'number' ? raw : Number(raw || 0);
 }
 
+function isFrozenCard(card: any): boolean {
+  return !!card?.statuses?.some((s: any) => s?.name === 'frozen_state');
+}
+
 function isTargetlessSkill(card: any, skillKey: string): boolean {
   const hero = getHeroKey(card);
   const statuses = card?.statuses || [];
@@ -299,7 +303,6 @@ const GamePage: React.FC = () => {
   const phaseStampRef = useRef('');
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
-  const opponentSpellCueRef = useRef<Record<string, { description?: string; imageName?: string }>>({});
   const [announcerData, setAnnouncerData] = useState<AnnouncerData | null>(null);
 
   const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
@@ -648,7 +651,7 @@ const GamePage: React.FC = () => {
   const selectedHeroKey = getHeroKey(selectedMyFieldCard);
   const selectedChargeLevel = getChargeLevel(selectedMyFieldCard);
   const canActUids = (phase === 'action' && is_my_turn)
-      ? allMyField.filter(c => !c.placed_this_turn && !c.acted_this_turn).map(c => c.uid)
+      ? allMyField.filter(c => !c.placed_this_turn && !c.acted_this_turn && !isFrozenCard(c)).map(c => c.uid)
       : [];
 
   const handleHandClick = (card: HandCard, index: number) => {
@@ -760,7 +763,7 @@ const GamePage: React.FC = () => {
   };
 
   const fieldSkills: { key: string; name: string; onCooldown: boolean; cdLeft: number }[] = [];
-  if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && phase === 'action' && is_my_turn) {
+  if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && !isFrozenCard(selectedMyFieldCard) && phase === 'action' && is_my_turn) {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
     const heroKey = getHeroKey(selectedMyFieldCard);

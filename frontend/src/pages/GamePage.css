@@ -544,6 +544,13 @@
     white-space: nowrap;
 }
 
+
+.field-move-badge.frozen {
+    color: #dff6ff;
+    background: rgba(120, 205, 255, 0.2);
+    border-color: rgba(140, 220, 255, 0.48);
+    box-shadow: 0 0 10px rgba(120, 205, 255, 0.2);
+}
 .field-move-badge.airborne {
     color: #9fe3ff;
     background: rgba(68, 170, 255, 0.18);

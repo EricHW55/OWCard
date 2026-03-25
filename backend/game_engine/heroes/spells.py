@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
-    DamageReduction, Immortality, Reflect, Burn,
+    DamageReduction, Immortality, Reflect, Burn, FrozenState,
 )
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ def spell_thorn_volley(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_blizzard", "skill_1")
 def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """눈보라: 한 가로줄(본대 or 사이드)을 얼려서 한턴 스킬 사용 불가."""
+    """눈보라: 한 가로줄 전체를 1턴 동안 빙결 상태로 만든다."""
     from game_engine.field import Zone
     if not target:
         return {"success": False, "message": "영역을 선택하세요 (본대/사이드의 카드 클릭)"}
@@ -55,7 +55,7 @@ def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     targets = enemy_field.get_row(zone)
     logs = []
     for card in targets:
-        card.add_status(SkillSilence(duration=1, source_uid="spell"))
+        card.add_status(FrozenState(duration=1, source_uid="spell"))
         logs.append({"target": card.uid, "frozen": True})
 
     return {"success": True, "skill": "눈보라", "zone": zone.value, "affected": logs}
@@ -221,7 +221,7 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("spell_duplicate", "skill_1")
 def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """복제: 상대 카드 하나를 복제해서 내 필드에 배치.
-    복제로 생성된 카드는 일반 역할군 자리 제한을 무시한다."""
+    같은 역할군 자리가 하나도 없으면 사용 불가."""
     import uuid
     from game_engine.field import FieldCard as FC, Zone
 
@@ -234,7 +234,20 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
         return {"success": False, "message": "플레이어 찾기 실패"}
 
     preferred_zone = target.zone
-    place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
+    can_main = my_field.can_place_main(target.role)
+    can_side = my_field.can_place_side(target.role)
+
+    if not can_main and not can_side:
+        return {"success": False, "message": f"{target.role.value} 역할군 자리가 없습니다"}
+
+    if preferred_zone == Zone.MAIN and can_main:
+        place_zone = Zone.MAIN
+    elif preferred_zone == Zone.SIDE and can_side:
+        place_zone = Zone.SIDE
+    elif can_main:
+        place_zone = Zone.MAIN
+    else:
+        place_zone = Zone.SIDE
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],
@@ -255,9 +268,7 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
     clone.current_hp = target.current_hp
 
-    if hasattr(my_field, "force_place_card"):
-        my_field.force_place_card(clone, place_zone)
-    elif not my_field.place_card(clone, place_zone):
+    if not my_field.place_card(clone, place_zone):
         return {"success": False, "message": "복제 카드를 배치할 수 없습니다"}
 
     passive_result = {}

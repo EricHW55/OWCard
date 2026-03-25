@@ -270,30 +270,6 @@ class GameEngine:
             seen.add(ps.player_id)
             self._collect_dead_to_trash(ps)
 
-    def _process_turn_start_passives(self, ps: PlayerState) -> list[dict]:
-        logs: list[dict] = []
-        for card in ps.field.all_cards():
-            hero_key = str(card.extra.get("_hero_key", "")).lower()
-            if hero_key != "brigitte":
-                continue
-            heal_amount = int(card.extra.get("inspire_heal", 2) or 2)
-            healed = []
-            for ally in ps.field.all_cards():
-                if ally.uid == card.uid:
-                    continue
-                amount = ally.heal(heal_amount)
-                if amount > 0:
-                    healed.append({"uid": ally.uid, "healed": amount})
-            if healed:
-                logs.append({
-                    "type": "passive_inspire",
-                    "source_uid": card.uid,
-                    "source_name": card.name,
-                    "heal_amount": heal_amount,
-                    "healed": healed,
-                })
-        return logs
-
     # ── 플레이어 등록 ─────────────────────────
 
     def add_player(self, player_id: int, username: str, deck_cards: list[dict]) -> bool:
@@ -840,6 +816,10 @@ class GameEngine:
             return {"error": "Attacker not found"}
         if attacker.placed_this_turn:
             return {"error": "Placed this turn"}
+        if attacker.acted_this_turn:
+            return {"error": "Already acted"}
+        if attacker.has_status("frozen_state"):
+            return {"error": "빙결 상태"}
 
         target = opp.field.find_card(target_uid)
         if not target:
@@ -901,7 +881,6 @@ class GameEngine:
 
         # 새 턴 시작 처리 (점착폭탄 터짐 등)
         turn_start_logs = new_ps.field.process_all_turn_start()
-        turn_start_logs.extend(self._process_turn_start_passives(new_ps))
         turn_start_logs.extend(self._process_auto_structures(new_ps))
         # 시작 처리에서 죽은 카드도 트래시로
         self._collect_dead_to_trash(new_ps)

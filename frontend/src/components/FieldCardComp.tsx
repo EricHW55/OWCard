@@ -49,7 +49,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
-    const isHidden = isStealthed || isBurrowed || isFrozen;
+    const isHidden = isStealthed || isBurrowed;
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
     const hasSilence = card.statuses?.some(
         (s) => s.name === 'skill_silence' || s.name === 'sleep'
@@ -71,7 +71,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     }
 
     let moveBadge: { text: string; cls: string } | null = null;
-    if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
+    if (isFrozen) moveBadge = { text: '빙결', cls: 'frozen' };
+    else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
@@ -100,11 +101,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 cursor: 'pointer',
                 flexShrink: 0,
                 opacity: isHidden ? 0.45 : 1,
-                boxShadow: isAirborne
-                    ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)'
-                    : shadow,
+                boxShadow: isFrozen
+                    ? '0 0 12px rgba(170, 225, 255, 0.55), 0 0 22px rgba(110, 190, 255, 0.22)'
+                    : isAirborne
+                        ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)'
+                        : shadow,
                 transform: isAirborne ? 'translateY(-4px)' : undefined,
-                filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
+                filter: isFrozen
+                    ? 'saturate(0.9) brightness(1.05)'
+                    : isBurrowed
+                        ? 'saturate(0.75) blur(0.2px)'
+                        : undefined,
                 transition: 'all 0.25s',
             }}
         >

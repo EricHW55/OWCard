@@ -133,8 +133,6 @@ def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 
 @register_skill("venture", "skill_2")
 def venture_drill(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.has_status("burrowed"):
-        return {"success": False, "message": "잠복 상태에서는 스마트 굴착기를 사용할 수 없음"}
     if not target: return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
     caster.extra["used_burrow_last"] = False
@@ -203,7 +201,7 @@ def reaper_hellfire(caster: FieldCard, target: FieldCard, game: GameState) -> di
 # ── 메이 ──────────────────────────────────
 @register_passive("mei")
 def mei_passive(card: FieldCard, game: GameState) -> dict:
-    card.add_status(FrozenRevive(revive_hp=card.max_hp // 2, source_uid=card.uid))
+    card.add_status(FrozenRevive(revive_hp=(card.max_hp + 1) // 2, source_uid=card.uid))
     return {"passive": "급속 빙결"}
 
 @register_skill("mei", "skill_1")
