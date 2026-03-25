@@ -170,7 +170,9 @@ class GameEngine:
         self.phase: GamePhase = GamePhase.WAITING
         self.winner: Optional[int] = None
         self.action_log: list[dict] = []
-
+        
+        self.pending_end_turn_effects: list[dict] = []
+        
         # 스킬 함수 호출용 헬퍼
         self.state = GameState(self)
 
@@ -869,6 +871,7 @@ class GameEngine:
         # 턴 종료 처리 (화상 데미지 등)
         turn_end_logs = ps.field.process_all_turn_end()
         ps.placement_cost_used = 0
+        turn_end_logs.extend(self._process_pending_end_turn_effects(player_id))
 
         # 양쪽 사망 카드 → 각자 트래시로 (전체 카드 데이터 저장)
         self._collect_dead_to_trash(ps)
@@ -929,6 +932,46 @@ class GameEngine:
                     "role": d.role.value,
                     "hp": d.max_hp,
                 })
+                
+    def _process_pending_end_turn_effects(self, trigger_player_id: int) -> list[dict]:
+        import math
+
+        logs = []
+        remaining = []
+
+        for eff in self.pending_end_turn_effects:
+            if eff.get("trigger_player_id") != trigger_player_id:
+                remaining.append(eff)
+                continue
+
+            if eff.get("kind") != "gravity_flux":
+                remaining.append(eff)
+                continue
+
+            target_ps = self.players.get(eff.get("target_player_id"))
+            if not target_ps:
+                continue
+
+            for uid in eff.get("target_uids", []):
+                card = target_ps.field.find_card(uid)
+                if not card or not card.alive:
+                    continue
+
+                if card.has_status("gravity_flux_airborne"):
+                    dmg = math.ceil(card.max_hp / 2)
+                    dmg_log = card.take_damage(dmg)
+                    card.remove_status("gravity_flux_airborne")
+                    logs.append({
+                        "type": "gravity_flux",
+                        "target_uid": uid,
+                        "damage_log": dmg_log,
+                        "damage": dmg,
+                    })
+
+            self._collect_dead_to_trash(target_ps)
+
+        self.pending_end_turn_effects = remaining
+        return logs
 
     # ── 지휘관 스킬 ──────────────────────────
 
