@@ -310,9 +310,34 @@ const GamePage: React.FC = () => {
     setAnnouncerData({ type: 'phase', title, subtitle, duration });
   }, []);
 
-  const showSkillUse = useCallback((skillName: string, description = '', heroKey = '', isSpell = false, duration = 3000) => {
+  const showSkillUse = useCallback(({
+                                      skillName,
+                                      description = '',
+                                      heroKey = '',
+                                      imageName,
+                                      subtitle,
+                                      isSpell = false,
+                                      duration = 3200,
+                                    }: {
+    skillName: string;
+    description?: string;
+    heroKey?: string;
+    imageName?: string;
+    subtitle?: string;
+    isSpell?: boolean;
+    duration?: number;
+  }) => {
     if (!skillName) return;
-    setAnnouncerData({ type: 'skill', title: skillName, description, heroKey, isSpell, duration });
+    setAnnouncerData({
+      type: 'skill',
+      title: skillName,
+      description,
+      heroKey,
+      imageName,
+      subtitle,
+      isSpell,
+      duration,
+    });
   }, []);
 
   const addLog = useCallback((msg: string) => {
@@ -485,13 +510,14 @@ const GamePage: React.FC = () => {
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && !result?.needs_target && !result?.needs_choice) {
             const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
-            showSkillUse(
-                resolvedSkillName || spellName,
-                getSkillDescriptionFromCard(spellCard),
-                result?.hero_key || spellCard?.hero_key || '',
-                true,
-                2600,
-            );
+            showSkillUse({
+              skillName: resolvedSkillName || spellName,
+              description: getSkillDescriptionFromCard(spellCard),
+              heroKey: result?.hero_key || spellCard?.hero_key || '',
+              imageName: spellCard?.name || spellName,
+              isSpell: true,
+              duration: 3200,
+            });
             setLocalPendingSpellChoice(null);
           }
 
@@ -520,26 +546,29 @@ const GamePage: React.FC = () => {
             const casterCard =
                 [...(latestMyState?.field?.main || []), ...(latestMyState?.field?.side || [])].find((c: any) => c.uid === msg?.caster_uid)
                 || result?.caster;
-            showSkillUse(
-                resolvedSkillName,
-                getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
-                getHeroKey(casterCard),
-                false,
-                2800,
-            );
+            showSkillUse({
+              skillName: resolvedSkillName,
+              description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
+              heroKey: getHeroKey(casterCard),
+              imageName: casterCard?.name,
+              subtitle: result?.caster_name || casterCard?.name,
+              isSpell: false,
+              duration: 3200,
+            });
           }
 
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
             if (resolvedSkillName) {
               const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
-              showSkillUse(
-                  resolvedSkillName,
-                  getSkillDescriptionFromCard(spellCard),
-                  result?.hero_key || spellCard?.hero_key || '',
-                  true,
-                  2600,
-              );
+              showSkillUse({
+                skillName: resolvedSkillName,
+                description: getSkillDescriptionFromCard(spellCard),
+                heroKey: result?.hero_key || spellCard?.hero_key || '',
+                imageName: spellCard?.name || resolvedSkillName,
+                isSpell: true,
+                duration: 3200,
+              });
             }
           }
 
@@ -552,9 +581,9 @@ const GamePage: React.FC = () => {
         }),
         ws.on('opponent_action', (msg: any) => {
           addLog(`상대: ${msg.action}`);
-          const cue = buildOpponentSkillCue(msg);
+          const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state);
           if (cue) {
-            showSkillUse(cue.title, cue.description || cue.subtitle || '', cue.heroKey || '', !!cue.isSpell, 2600);
+            showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           }
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
