@@ -263,16 +263,16 @@ const GamePage: React.FC = () => {
   const pendingSpellNameRef = useRef<string | null>(null);
   const [announcerData, setAnnouncerData] = useState<AnnouncerData | null>(null);
 
-  const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
+  const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1400) => {
     setAnnouncerData({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
   }, []);
 
-  const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 1300) => {
+  const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 950) => {
     if (!title) return;
     setAnnouncerData({ type: 'phase', title, subtitle, duration });
   }, []);
 
-  const showSkillUse = useCallback((skillName: string, description = '', heroKey = '', isSpell = false, duration = 3000) => {
+  const showSkillUse = useCallback((skillName: string, description = '', heroKey = '', isSpell = false, duration = 2100) => {
     if (!skillName) return;
     setAnnouncerData({ type: 'skill', title: skillName, description, heroKey, isSpell, duration });
   }, []);
@@ -300,7 +300,7 @@ const GamePage: React.FC = () => {
     const stamp = `${gs.round}-${gs.turn}-${gs.phase}-${gs.is_my_turn ? 'me' : 'opp'}`;
     if (phaseStampRef.current === stamp) return;
     phaseStampRef.current = stamp;
-    showPhaseChange(phaseLabel(gs.phase), phaseSubtitle(gs.phase, gs.is_my_turn), 1600);
+    showPhaseChange(phaseLabel(gs.phase), phaseSubtitle(gs.phase, gs.is_my_turn), 1250);
   }, [gs, showPhaseChange]);
 
   useEffect(() => {
@@ -452,7 +452,7 @@ const GamePage: React.FC = () => {
                 getSkillDescriptionFromCard(spellCard),
                 result?.hero_key || spellCard?.hero_key || '',
                 true,
-                2600,
+                2000,
             );
             setLocalPendingSpellChoice(null);
           }
@@ -487,7 +487,7 @@ const GamePage: React.FC = () => {
                 getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
                 getHeroKey(casterCard),
                 false,
-                2800,
+                2100,
             );
           }
 
@@ -500,7 +500,7 @@ const GamePage: React.FC = () => {
                   getSkillDescriptionFromCard(spellCard),
                   result?.hero_key || spellCard?.hero_key || '',
                   true,
-                  2600,
+                  2000,
               );
             }
           }
@@ -516,14 +516,14 @@ const GamePage: React.FC = () => {
           addLog(`상대: ${msg.action}`);
           const cue = buildOpponentSkillCue(msg);
           if (cue) {
-            showSkillUse(cue.title, cue.description || cue.subtitle || '', cue.heroKey || '', !!cue.isSpell, 2600);
+            showSkillUse(cue.title, cue.description || cue.subtitle || '', cue.heroKey || '', !!cue.isSpell, 2000);
           }
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
           addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 2000);
+          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 1600);
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
