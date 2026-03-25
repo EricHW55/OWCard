@@ -221,7 +221,7 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("spell_duplicate", "skill_1")
 def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """복제: 상대 카드 하나를 복제해서 내 필드에 배치.
-    같은 역할군 자리가 하나도 없으면 사용 불가."""
+    복제로 생성된 카드는 일반 역할군 자리 제한을 무시한다."""
     import uuid
     from game_engine.field import FieldCard as FC, Zone
 
@@ -234,20 +234,7 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
         return {"success": False, "message": "플레이어 찾기 실패"}
 
     preferred_zone = target.zone
-    can_main = my_field.can_place_main(target.role)
-    can_side = my_field.can_place_side(target.role)
-
-    if not can_main and not can_side:
-        return {"success": False, "message": f"{target.role.value} 역할군 자리가 없습니다"}
-
-    if preferred_zone == Zone.MAIN and can_main:
-        place_zone = Zone.MAIN
-    elif preferred_zone == Zone.SIDE and can_side:
-        place_zone = Zone.SIDE
-    elif can_main:
-        place_zone = Zone.MAIN
-    else:
-        place_zone = Zone.SIDE
+    place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],
@@ -268,7 +255,9 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
     clone.current_hp = target.current_hp
 
-    if not my_field.place_card(clone, place_zone):
+    if hasattr(my_field, "force_place_card"):
+        my_field.force_place_card(clone, place_zone)
+    elif not my_field.place_card(clone, place_zone):
         return {"success": False, "message": "복제 카드를 배치할 수 없습니다"}
 
     passive_result = {}
@@ -326,20 +315,19 @@ def spell_seismic_slam(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_dragonblade", "skill_1")
 def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """갈라내는 칼날: 한 세로줄 전체에 즉시 피해."""
+    """갈라내는 칼날: 한 세로줄 전체에 10딜."""
     if not target:
         return {"success": False, "message": "대상 열을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
     column = enemy_field.get_column(target)
-    damage = game.get_skill_damage(caster, "skill_1") or 7
     logs = []
     for card in column:
-        dmg_log = card.take_damage(damage)
+        dmg_log = card.take_damage(10)
         logs.append({"target": card.uid, "damage": dmg_log})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "갈라내는 칼날", "damage": damage, "affected": logs}
+    return {"success": True, "skill": "갈라내는 칼날", "affected": logs}
 
 
 @register_skill("spell_orbital_ray", "skill_1")

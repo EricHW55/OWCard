@@ -277,8 +277,18 @@ class Field:
     def all_cards(self) -> list[FieldCard]:
         return self._alive(self.main_cards) + self._alive(self.side_cards)
 
+    def _cards_for_status_processing(self) -> list[FieldCard]:
+        cards: list[FieldCard] = []
+        seen: set[str] = set()
+        for card in self.main_cards + self.side_cards:
+            if card.alive or card.has_status("frozen_state"):
+                if card.uid not in seen:
+                    cards.append(card)
+                    seen.add(card.uid)
+        return cards
+
     def is_empty(self) -> bool:
-        return len(self.all_cards()) == 0
+        return not any(c.alive or c.has_status("frozen_state") for c in self.main_cards + self.side_cards)
 
     def find_card(self, uid: str) -> Optional[FieldCard]:
         for c in self.main_cards + self.side_cards:
@@ -320,6 +330,14 @@ class Field:
         else:
             if not self.can_place_side(card.role):
                 return False
+            self.side_cards.append(card)
+        card.zone = zone
+        return True
+
+    def force_place_card(self, card: FieldCard, zone: Zone) -> bool:
+        if zone == Zone.MAIN:
+            self.main_cards.append(card)
+        else:
             self.side_cards.append(card)
         card.zone = zone
         return True
@@ -525,13 +543,13 @@ class Field:
 
     def process_all_turn_start(self) -> list[dict]:
         logs = []
-        for card in self.all_cards():
+        for card in self._cards_for_status_processing():
             logs.extend(card.process_turn_start())
         return logs
 
     def process_all_turn_end(self) -> list[dict]:
         logs = []
-        for card in self.all_cards():
+        for card in self._cards_for_status_processing():
             logs.extend(card.process_turn_end())
         return logs
 

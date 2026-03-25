@@ -129,10 +129,14 @@ def mizuki_kasa(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 바티스트 ──────────────────────────────
 @register_skill("baptiste", "skill_1")
 def baptiste_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "힐 대상 선택"}
     my = game.get_my_field(caster)
+    if not my.find_card(target.uid):
+        return {"success": False, "message": "아군만 회복할 수 있습니다"}
     heal = game.get_skill_damage(caster, "skill_1")
-    logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in my.get_row(caster.zone)]
-    return {"success": True, "skill": "생체탄 발사기", "healed": logs}
+    healed = target.heal(heal)
+    return {"success": True, "skill": "생체탄 발사기", "target": target.uid, "healed": healed}
 
 @register_skill("baptiste", "skill_2")
 def baptiste_attack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
@@ -174,12 +178,18 @@ def mercy_staff(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 브리기테 ──────────────────────────────
 @register_passive("brigitte")
 def brigitte_passive(card: FieldCard, game: GameState) -> dict:
-    """격려: 배치 시 + 매턴 시작 시 아군 1힐. (턴 시작은 엔진에서 호출)"""
+    """격려: 배치 시 + 매턴 시작 시 다른 아군 모두 2힐."""
+    heal_amount = int(card.extra.get("inspire_heal", 2) or 2)
+    card.extra["inspire_heal"] = heal_amount
     my = game.get_my_field(card)
+    logs = []
     for a in my.all_cards():
-        if a.uid != card.uid:
-            a.heal(1)
-    return {"passive": "격려"}
+        if a.uid == card.uid:
+            continue
+        healed = a.heal(heal_amount)
+        if healed > 0:
+            logs.append({"uid": a.uid, "healed": healed})
+    return {"passive": "격려", "healed": logs}
 
 @register_skill("brigitte", "skill_1")
 def brigitte_repair(caster: FieldCard, target: FieldCard, game: GameState) -> dict:

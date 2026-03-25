@@ -371,6 +371,26 @@ class StickyBomb(StatusEffect):
 # ── 생존 계열 ─────────────────────────────────────────
 
 @dataclass
+class FrozenState(StatusEffect):
+    """얼음 상태: 타겟/치유 대상에서 빠지고 다음 내 턴 시작에 반피 부활."""
+    name: str = "frozen_state"
+    duration: int = -1
+    revive_hp: int = 0
+    visible_to_opponent: bool = True
+    tags: list[str] = field(default_factory=lambda: ["passive", "frozen"])
+
+    def on_apply(self, card):
+        card.current_hp = 0
+        return {"frozen": True, "revive_hp": self.revive_hp}
+
+    def on_turn_start(self, card):
+        revive_hp = max(1, self.revive_hp)
+        card.current_hp = min(card.max_hp, revive_hp)
+        card.remove_status(self.name)
+        return {"revived": True, "hp": card.current_hp}
+
+
+@dataclass
 class FrozenRevive(StatusEffect):
     """메이 급속 빙결: 사망 시 1턴 얼음 → 반피 부활."""
     name: str = "frozen_revive"
@@ -382,6 +402,8 @@ class FrozenRevive(StatusEffect):
     def on_death(self, card):
         if not self.used:
             self.used = True
+            if not card.has_status("frozen_state"):
+                card.add_status(FrozenState(revive_hp=self.revive_hp, source_uid=self.source_uid))
             return {
                 "prevent_death": True,
                 "enter_frozen": True,
@@ -452,6 +474,7 @@ class MechDestruction(StatusEffect):
     def on_death(self, card):
         if not self.used and card.extra.get("form") == "mech":
             self.used = True
+            card.extra.setdefault("original_name", card.name)
             card.extra["form"] = "hana"
             card.extra["hana_survive_turns"] = 0
             card.name = "송하나"
@@ -461,6 +484,21 @@ class MechDestruction(StatusEffect):
                 "transform": "hana_song",
             }
         return {}
+
+    def on_turn_start(self, card):
+        if card.extra.get("form") != "hana":
+            return {}
+        survived = int(card.extra.get("hana_survive_turns", 0)) + 1
+        card.extra["hana_survive_turns"] = survived
+        if survived < 2:
+            return {"hana_survive_turns": survived}
+
+        card.extra["form"] = "mech"
+        card.extra["hana_survive_turns"] = 0
+        card.name = card.extra.get("original_name", "디바")
+        card.current_hp = card.max_hp
+        self.used = False
+        return {"remech": True, "hp": card.current_hp}
     
 
 @dataclass
