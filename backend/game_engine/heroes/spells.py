@@ -318,7 +318,7 @@ def spell_seismic_slam(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_dragonblade", "skill_1")
 def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """갈라내는 칼날: 한 세로줄 전체에 10딜."""
+    """갈라내는 칼날: 한 세로줄 전체의 보호효과를 파괴한 뒤 7딜."""
     if not target:
         return {"success": False, "message": "대상 열을 선택하세요"}
 
@@ -326,13 +326,43 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
     column = enemy_field.get_column(target)
     damage = game.get_skill_damage(caster, "skill_1")
     logs = []
+
+    def break_protection(card: FieldCard) -> dict:
+        broken = {
+            "barrier_broken": False,
+            "particle_barrier_broken": False,
+            "extra_hp_removed": 0,
+        }
+
+        barrier = card.get_status("barrier")
+        if barrier:
+            broken["barrier_broken"] = True
+            card.remove_status("barrier")
+
+        particle = card.get_status("particle_barrier")
+        if particle:
+            broken["particle_barrier_broken"] = True
+            card.remove_status("particle_barrier")
+
+        extra_hp = card.get_status("extra_hp")
+        if extra_hp:
+            broken["extra_hp_removed"] = int(getattr(extra_hp, "value", 0) or 0)
+            card.remove_status("extra_hp")
+
+        return broken
+
     for card in column:
+        broken = break_protection(card)
         dmg_log = card.take_damage(damage)
-        logs.append({"target": card.uid, "damage": dmg_log})
+        logs.append({"target": card.uid, "broken": broken, "damage": dmg_log})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "갈라내는 칼날", "damage": damage, "affected": logs}
-
+    return {
+        "success": True,
+        "skill": "갈라내는 칼날",
+        "damage": damage,
+        "affected": logs,
+    }
 
 @register_skill("spell_orbital_ray", "skill_1")
 def spell_orbital_ray(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
