@@ -133,6 +133,8 @@ def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 
 @register_skill("venture", "skill_2")
 def venture_drill(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if caster.has_status("burrowed"):
+        return {"success": False, "message": "잠복 상태에서는 스마트 굴착기를 사용할 수 없음"}
     if not target: return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
     caster.extra["used_burrow_last"] = False
