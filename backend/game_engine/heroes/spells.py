@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
-    DamageReduction, Immortality, Reflect, Burn, FrozenState, GravityFluxAirborne,
+    DamageReduction, Immortality, Reflect, Burn,
 )
 
 if TYPE_CHECKING:
@@ -45,63 +45,20 @@ def spell_thorn_volley(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_blizzard", "skill_1")
 def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """눈보라: 한 가로줄(본대 or 사이드)을 얼려서 한턴 스킬 사용 불가."""
+    from game_engine.field import Zone
     if not target:
-        return {"success": False, "message": "영역을 선택하세요"}
+        return {"success": False, "message": "영역을 선택하세요 (본대/사이드의 카드 클릭)"}
 
     enemy_field = game.get_enemy_field(caster)
-    targets = enemy_field.get_role_row_in_zone(target.role, target.zone)
-
-    logs = []
-    for card in targets:
-        card.add_status(FrozenState(duration=1, source_uid="spell"))
-        logs.append({"target": card.uid, "frozen": True})
-
-    return {
-        "success": True,
-        "skill": "눈보라",
-        "zone": target.zone.value,
-        "target_role": target.role.value,
-        "affected": logs,
-    }
-
-
-@register_skill("spell_gravity_flux", "skill_1")
-def spell_gravity_flux(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """중력붕괴: 한 영역의 모든 적을 턴 종료시까지 에어본시키고, 턴 종료 시 최대체력 절반(반올림) 피해."""
-    if not target:
-        return {"success": False, "message": "영역을 선택하세요"}
-
-    enemy_field = game.get_enemy_field(caster)
-    enemy_player = game.get_enemy_player(caster)
-    my_player = game.get_my_player(caster)
-    engine = getattr(game, "_engine", None)
-
     zone = target.zone
     targets = enemy_field.get_row(zone)
     logs = []
-    target_uids = []
-
     for card in targets:
-        card.add_status(GravityFluxAirborne(duration=-1, source_uid="spell_gravity_flux"))
-        target_uids.append(card.uid)
-        logs.append({"target": card.uid, "airborne": True})
+        card.add_status(SkillSilence(duration=1, source_uid="spell"))
+        logs.append({"target": card.uid, "frozen": True})
 
-    if engine and my_player and enemy_player and target_uids:
-        engine.pending_end_turn_effects.append({
-            "kind": "gravity_flux",
-            "trigger_player_id": my_player.player_id,
-            "target_player_id": enemy_player.player_id,
-            "target_uids": target_uids,
-            "zone": zone.value,
-        })
-
-    return {
-        "success": True,
-        "skill": "중력붕괴",
-        "zone": zone.value,
-        "affected": logs,
-        "delayed_damage": True,
-    }
+    return {"success": True, "skill": "눈보라", "zone": zone.value, "affected": logs}
 
 
 @register_skill("spell_earthshatter", "skill_1")
@@ -132,14 +89,15 @@ def spell_biotic_grenade(caster: FieldCard, target: FieldCard, game: GameState) 
     enemy_field = game.get_enemy_field(caster)
     zone = target.zone
     targets = enemy_field.get_row(zone)
+    dmg = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in targets:
-        dmg_log = card.take_damage(2)
+        dmg_log = card.take_damage(dmg)
         card.add_status(HealBlock(duration=1, source_uid="spell"))
         logs.append({"target": card.uid, "damage": dmg_log, "heal_blocked": True})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "생체 수류탄", "affected": logs}
+    return {"success": True, "skill": "생체 수류탄", "damage": dmg, "affected": logs}
 
 
 @register_skill("spell_rescue", "skill_1")
@@ -264,7 +222,7 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("spell_duplicate", "skill_1")
 def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """복제: 상대 카드 하나를 복제해서 내 필드에 배치.
-    같은 역할군 자리가 하나도 없으면 사용 불가."""
+    복제로 생성된 카드는 일반 역할군 자리 제한을 무시한다."""
     import uuid
     from game_engine.field import FieldCard as FC, Zone
 
@@ -277,20 +235,7 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
         return {"success": False, "message": "플레이어 찾기 실패"}
 
     preferred_zone = target.zone
-    can_main = my_field.can_place_main(target.role)
-    can_side = my_field.can_place_side(target.role)
-
-    if not can_main and not can_side:
-        return {"success": False, "message": f"{target.role.value} 역할군 자리가 없습니다"}
-
-    if preferred_zone == Zone.MAIN and can_main:
-        place_zone = Zone.MAIN
-    elif preferred_zone == Zone.SIDE and can_side:
-        place_zone = Zone.SIDE
-    elif can_main:
-        place_zone = Zone.MAIN
-    else:
-        place_zone = Zone.SIDE
+    place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],
@@ -311,7 +256,9 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
     clone.current_hp = target.current_hp
 
-    if not my_field.place_card(clone, place_zone):
+    if hasattr(my_field, "force_place_card"):
+        my_field.force_place_card(clone, place_zone)
+    elif not my_field.place_card(clone, place_zone):
         return {"success": False, "message": "복제 카드를 배치할 수 없습니다"}
 
     passive_result = {}
@@ -346,11 +293,12 @@ def spell_riptire(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     if not target:
         return {"success": False, "message": "대상을 선택하세요"}
 
-    result = target.take_damage(15)
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
     enemy_field = game.get_enemy_field(caster)
     enemy_field.remove_dead()
 
-    return {"success": True, "skill": "죽이는 타이어", "damage_log": result}
+    return {"success": True, "skill": "죽이는 타이어", "damage": damage, "damage_log": result}
 
 
 @register_skill("spell_seismic_slam", "skill_1")
@@ -358,13 +306,14 @@ def spell_seismic_slam(caster: FieldCard, target: FieldCard, game: GameState) ->
     """지각 충격: 상대 필드 전체에 5딜."""
     enemy_field = game.get_enemy_field(caster)
     targets = enemy_field.all_cards()
+    damage = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in targets:
-        dmg_log = card.take_damage(5)
+        dmg_log = card.take_damage(damage)
         logs.append({"target": card.uid, "damage": dmg_log})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "지각 충격", "affected": logs}
+    return {"success": True, "skill": "지각 충격", "damage": damage, "affected": logs}
 
 
 @register_skill("spell_dragonblade", "skill_1")
@@ -375,13 +324,14 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
 
     enemy_field = game.get_enemy_field(caster)
     column = enemy_field.get_column(target)
+    damage = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in column:
-        dmg_log = card.take_damage(10)
+        dmg_log = card.take_damage(damage)
         logs.append({"target": card.uid, "damage": dmg_log})
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "갈라내는 칼날", "affected": logs}
+    return {"success": True, "skill": "갈라내는 칼날", "damage": damage, "affected": logs}
 
 
 @register_skill("spell_orbital_ray", "skill_1")

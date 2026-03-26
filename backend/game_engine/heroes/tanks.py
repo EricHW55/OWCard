@@ -147,7 +147,7 @@ def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     if not target: return {"success": False, "message": "대상 필요"}
     empowered = caster.extra.pop("empowered_punch", False)
     if empowered:
-        dmg = game.get_skill_damage(caster, "skill_1_empowered") or 6
+        dmg = game.get_skill_damage(caster, "skill_1_empowered")
         result = target.take_damage(dmg)
         # 뒤 카드도 같은 데미지
         enemy = game.get_enemy_field(caster)

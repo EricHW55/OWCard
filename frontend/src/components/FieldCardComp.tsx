@@ -44,7 +44,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
     const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
     const isFrozen = card.statuses?.some((s) => s.name === 'frozen_state');
-    const isAirborne = card.statuses?.some((s) => s.name === 'airborne' || s.name === 'gravity_flux_airborne');
+    const isAirborne = card.statuses?.some((s) => s.name === 'airborne');
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
@@ -71,7 +71,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     }
 
     let moveBadge: { text: string; cls: string } | null = null;
-    if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
+    if (isFrozen) moveBadge = { text: 'FROZEN', cls: 'frozen' };
+    else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
