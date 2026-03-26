@@ -46,21 +46,27 @@ def spell_thorn_volley(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_blizzard", "skill_1")
 def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """눈보라: 한 가로줄(본대 or 사이드)을 얼려서 한턴 스킬 사용 불가."""
-    from game_engine.field import Zone
+    """눈보라: 선택한 영역 내 가로줄(같은 역할군) 전체를 상대 턴 종료시까지 빙결."""
     if not target:
-        return {"success": False, "message": "영역을 선택하세요 (본대/사이드의 카드 클릭)"}
+        return {"success": False, "message": "영역의 대상을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
-    zone = target.zone
-    targets = enemy_field.get_row(zone)
+    targets = enemy_field.get_role_row_in_zone(target.role, target.zone)
+
     logs = []
     for card in targets:
-        card.add_status(SkillSilence(duration=1, source_uid="spell"))
+        # duration=1 이면 상대 필드의 turn_end 시점에 해제됨
+        card.add_status(FrozenState(duration=1, source_uid="spell"))
         logs.append({"target": card.uid, "frozen": True})
 
-    return {"success": True, "skill": "눈보라", "zone": zone.value, "affected": logs}
-
+    return {
+        "success": True,
+        "skill": "눈보라",
+        "zone": target.zone.value,
+        "target_role": target.role.value,
+        "affected": logs,
+    }
+    
 
 @register_skill("spell_earthshatter", "skill_1")
 def spell_earthshatter(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
