@@ -20,6 +20,7 @@ from typing import Optional
 
 from game_engine.field import Field, FieldCard, Role, Zone
 from game_engine.skill_registry import get_skill, get_passive, get_hero_skills
+from game_engine.status_effects import SkillSilence
 from config import DECK_SIZE, HAND_SIZE, MAX_MULLIGAN, CARDS_PER_TURN
 
 
@@ -236,25 +237,55 @@ class GameEngine:
 
         return {"type": "unknown", "hero_key": hero_key, "options": []}
 
+
+    def _get_spell_template_data(self, ps: PlayerState, hero_key: str) -> dict:
+        """현재 사용한 스펠 카드의 원본 템플릿 데이터 검색."""
+        sources = [ps.hand, ps.trash, ps.deck, ps.draw_pile]
+        for src in sources:
+            for card in src:
+                if card.get("hero_key") == hero_key and card.get("is_spell", False):
+                    return dict(card)
+        return {
+            "id": -1,
+            "hero_key": hero_key,
+            "name": hero_key,
+            "role": "spell",
+            "hp": 0,
+            "base_attack": 0,
+            "base_defense": 0,
+            "base_attack_range": 0,
+            "description": "",
+            "skill_damages": {},
+            "skill_meta": {},
+            "extra": {},
+            "is_spell": True,
+        }
+
     def _execute_spell_effect(self, ps: PlayerState, hero_key: str, *, target: FieldCard | None = None,
                               trash_index: int | None = None, draw_index: int | None = None) -> dict:
         spell_fn = get_skill(hero_key, "skill_1")
         if not spell_fn:
             return {"error": f"Spell function not found: {hero_key}"}
 
+        spell_card = self._get_spell_template_data(ps, hero_key)
         dummy_caster = FieldCard(
             uid="spell_dummy",
-            template_id=-1,
-            name=hero_key,
+            template_id=spell_card.get("id", -1),
+            name=spell_card.get("name", hero_key),
             role=Role.DEALER,
             max_hp=0,
             base_attack=0,
             base_defense=0,
             base_attack_range=0,
+            description=spell_card.get("description", ""),
+            skill_damages=dict(spell_card.get("skill_damages", {})),
+            skill_meta=dict(spell_card.get("skill_meta", {})),
             extra={
+                **dict(spell_card.get("extra", {})),
                 "_hero_key": hero_key,
                 "_trash_index": trash_index,
                 "_draw_index": draw_index,
+                "is_spell": True,
             },
         )
         ps.field.main_cards.append(dummy_caster)
@@ -450,6 +481,33 @@ class GameEngine:
         ps.field.remove_dead()
         return logs
 
+
+    def _trigger_field_traps(self, ps: PlayerState, placed_card: FieldCard) -> dict | None:
+        """필드에 설치된 강철 덫 처리. 현재는 다음 배치 카드 1장에 발동."""
+        traps = getattr(ps.field, "traps", None)
+        if not traps:
+            return None
+
+        trap = traps.pop(0)
+        damage = int(trap.get("damage", 0) or 0)
+        silence_duration = int(trap.get("silence_duration", 2) or 2)
+
+        damage_log = placed_card.take_damage(damage) if damage > 0 else None
+        placed_card.add_status(SkillSilence(
+            duration=silence_duration,
+            source_uid=trap.get("source", "spell"),
+            tags=["debuff", "cc", "install", "trap"],
+        ))
+        self._collect_dead_to_trash(ps)
+
+        return {
+            "type": "steel_trap",
+            "target_uid": placed_card.uid,
+            "damage": damage,
+            "silence_duration": silence_duration,
+            "damage_log": damage_log,
+        }
+
     def resolve_passive_choice(self, player_id: int, *, trash_index: Optional[int] = None,
                                hand_index: Optional[int] = None, zone: Optional[str] = None,
                                skip: bool = False) -> dict:
@@ -583,12 +641,15 @@ class GameEngine:
         ps.hand.pop(hand_index)
         ps.placement_cost_used += cost
 
-        passive_result = self._apply_place_passive(ps, fc, hero_name)
+        trap_result = self._trigger_field_traps(ps, fc)
+        passive_result = self._apply_place_passive(ps, fc, hero_name) if fc.alive else {}
         result = {
             "success": True, "type": "card_placed",
             "card_uid": fc.uid, "card": fc.to_dict(),
             "zone": zone, "placement_cost_used": ps.placement_cost_used,
         }
+        if trap_result:
+            result["trap_triggered"] = trap_result
         if passive_result:
             result["passive_triggered"] = passive_result
 
@@ -673,19 +734,25 @@ class GameEngine:
             if not spell_fn:
                 return {"error": f"Spell function not found: {hero_key}"}
 
+            spell_card = self._get_spell_template_data(ps, hero_key)
             dummy_caster = FieldCard(
                 uid="spell_dummy",
-                template_id=-1,
-                name=hero_key,
+                template_id=spell_card.get("id", -1),
+                name=spell_card.get("name", hero_key),
                 role=Role.DEALER,
                 max_hp=0,
                 base_attack=0,
                 base_defense=0,
                 base_attack_range=0,
+                description=spell_card.get("description", ""),
+                skill_damages=dict(spell_card.get("skill_damages", {})),
+                skill_meta=dict(spell_card.get("skill_meta", {})),
                 extra={
+                    **dict(spell_card.get("extra", {})),
                     "_hero_key": hero_key,
                     "_trash_index": trash_index,
                     "_draw_index": draw_index,
+                    "is_spell": True,
                 },
             )
             ps.field.main_cards.append(dummy_caster)

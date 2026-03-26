@@ -15,6 +15,7 @@ from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
+    FrozenState,
 )
 
 if TYPE_CHECKING:
@@ -309,7 +310,7 @@ def spell_seismic_slam(caster: FieldCard, target: FieldCard, game: GameState) ->
     damage = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in targets:
-        dmg_log = card.take_damage(damage)
+        dmg_log = card.take_damage(damage, ignore_barrier=True)
         logs.append({"target": card.uid, "damage": dmg_log})
 
     enemy_field.remove_dead()
@@ -450,22 +451,27 @@ def spell_deflect(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 
 @register_skill("spell_steel_trap", "skill_1")
 def spell_steel_trap(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """강철 덫: 상대 빈칸에 설치.
-    상대가 카드를 내려놓으면 4딜 + 한턴 비활성화.
-    이건 엔진의 place_card에서 체크해야 함."""
-    # 덫은 필드에 직접 설치하는 방식 → 엔진에서 별도 처리
+    """강철 덫: 상대 필드에 설치. 다음으로 배치되는 적 1장에 4딜 + 다음 턴까지 스킬 봉쇄."""
     enemy_field = game.get_enemy_field(caster)
+    damage = game.get_skill_damage(caster, "skill_1")
 
-    # 덫 정보를 적 필드에 저장
-    if not hasattr(enemy_field, 'traps'):
+    if not hasattr(enemy_field, "traps"):
         enemy_field.traps = []
+
     enemy_field.traps.append({
-        "damage": 4,
-        "silence_duration": 1,
+        "kind": "steel_trap",
+        "damage": damage,
+        # 이번 턴 종료에 한 번 줄고, 다음 턴까지 막으려면 2가 필요
+        "silence_duration": 2,
         "source": "spell",
     })
 
-    return {"success": True, "skill": "강철 덫", "message": "상대 필드에 덫 설치 완료"}
+    return {
+        "success": True,
+        "skill": "강철 덫",
+        "damage": damage,
+        "message": "상대가 다음 카드를 배치하면 덫이 발동합니다",
+    }
 
 
 @register_skill("spell_caduceus_staff", "skill_1")

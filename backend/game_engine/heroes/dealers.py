@@ -191,7 +191,7 @@ def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     return {"success": True, "skill": "난사", "slot_index": idx, "damage_log": result}
 
 # ── 리퍼 ──────────────────────────────────
-register_skill("reaper", "skill_1")
+@register_skill("reaper", "skill_1")
 def reaper_hellfire(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
