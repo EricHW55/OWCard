@@ -27,6 +27,19 @@
 }
 .deck-builder-header h1 { margin: 0; font-size: clamp(16px, 4.5vw, 28px); font-weight: 900; }
 .deck-builder-header p { margin: 2px 0 0; color: #8a94b8; font-size: clamp(9px, 2.2vw, 13px); }
+.deck-builder-tip {
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #33406b;
+    background: rgba(36, 48, 85, 0.9);
+    color: #cdd7ff;
+    font-size: clamp(9px, 2vw, 12px);
+    font-weight: 700;
+}
 .deck-builder-actions { display: flex; gap: 5px; flex-wrap: wrap; }
 
 .primary-btn, .ghost-btn {
@@ -89,12 +102,28 @@
     border: 1px solid #243055;
     border-radius: 8px;
     padding: 4px;
-    cursor: pointer;
     color: #e8ecf8;
     transition: transform 0.15s, border-color 0.15s;
 }
 .hero-tile:hover { transform: translateY(-1px); border-color: #ff9b30; }
-
+.hero-tile-preview,
+.deck-icon-preview {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font: inherit;
+    text-align: inherit;
+}
+.hero-tile-preview:focus-visible,
+.deck-icon-preview:focus-visible {
+    outline: 2px solid #ff9b30;
+    outline-offset: 2px;
+    border-radius: 8px;
+}
 .hero-tile-image {
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -136,7 +165,6 @@
     border-radius: 6px;
     padding: 3px;
     text-align: center;
-    cursor: pointer;
     transition: border-color 0.15s;
 }
 .deck-icon-item:hover { border-color: #ff9b30; }
