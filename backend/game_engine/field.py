@@ -184,7 +184,12 @@ class FieldCard:
         if self.has_status("heal_block") or self.has_status("frozen_state"):
             return 0
         amp = sum(s.value for s in self.statuses if s.name == "heal_amplify")
-        actual = amount + amp
+        # actual = amount + amp
+        mult = 1.0
+        for s in self.statuses:
+            if s.name == "heal_multiplier":
+                mult *= float(getattr(s, "value", 1.0))
+        actual = int((amount + amp) * mult)
         before = self.current_hp
         self.current_hp = min(self.max_hp, self.current_hp + actual)
         return self.current_hp - before

@@ -322,6 +322,14 @@ class HealAmplify(StatusEffect):
 
 
 @dataclass
+class HealMultiplier(StatusEffect):
+    """힐 배율 (증폭 매트릭스): 받는 힐량에 배율 적용."""
+    name: str = "heal_multiplier"
+    value: float = 2.0
+    tags: list[str] = field(default_factory=lambda: ["buff"])
+
+
+@dataclass
 class DiscordOrb(StatusEffect):
     """부조화: 이 카드는 받는 피해가 +bonus_damage 증가."""
     name: str = "discord"

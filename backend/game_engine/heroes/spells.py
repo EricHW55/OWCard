@@ -15,7 +15,7 @@ from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
-    FrozenState, GravityFluxAirborne
+    FrozenState, GravityFluxAirborne, HealMultiplier
 )
 
 if TYPE_CHECKING:
@@ -194,7 +194,14 @@ def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> d
             source_uid="spell",
             tags=["buff", "amp_matrix"],
         ))
-        logs.append({"target": ally.uid, "attack_doubled": True})
+        # logs.append({"target": ally.uid, "attack_doubled": True})
+        ally.add_status(HealMultiplier(
+            value=2.0,
+            duration=1,
+            source_uid="spell",
+            tags=["buff", "amp_matrix"],
+        ))
+        logs.append({"target": ally.uid, "attack_doubled": True, "heal_doubled": True})
 
     return {"success": True, "skill": "증폭 매트릭스", "affected": logs}
 
@@ -522,7 +529,7 @@ def spell_caduceus_staff(caster: FieldCard, target: FieldCard, game: GameState) 
         return {"success": False, "message": "아군을 선택하세요"}
 
     target.add_status(AttackBuff(
-        name="caduceus_staff",
+        # name="caduceus_staff",
         value=3,
         duration=-1,
         source_uid="spell",
