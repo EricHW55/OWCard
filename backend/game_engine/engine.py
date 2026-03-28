@@ -517,6 +517,25 @@ class GameEngine:
         opp.field.remove_dead()
         ps.field.remove_dead()
         return logs
+    
+    
+    def _process_turn_start_hero_passives(self, ps: PlayerState) -> list[dict]:
+        logs: list[dict] = []
+        for card in list(ps.field.all_cards()):
+            hero_key = card.extra.get("_hero_key", "")
+            if hero_key != "brigitte":
+                continue
+            passive_fn = get_passive(hero_key)
+            if not passive_fn:
+                continue
+            passive_result = passive_fn(card, self.state) or {}
+            logs.append({
+                "type": "turn_start_passive",
+                "hero_key": hero_key,
+                "source_uid": card.uid,
+                "result": passive_result,
+            })
+        return logs
 
 
     def _trigger_field_traps(self, ps: PlayerState, placed_card: FieldCard) -> dict | None:
@@ -989,6 +1008,7 @@ class GameEngine:
 
         # 새 턴 시작 처리 (점착폭탄 터짐 등)
         turn_start_logs = new_ps.field.process_all_turn_start()
+        turn_start_logs.extend(self._process_turn_start_hero_passives(new_ps))
         turn_start_logs.extend(self._process_auto_structures(new_ps))
         # 시작 처리에서 죽은 카드도 트래시로
         self._collect_dead_to_trash(new_ps)
