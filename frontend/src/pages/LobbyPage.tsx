@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LobbySocket, buildWsUrl, getApiBase } from '../api/ws';
+import './LobbyPage.css';
 
 interface RoomInfo {
     room_id: string;
@@ -28,6 +29,9 @@ interface DeckInfo {
     cards: Array<{ card_template_id: number; quantity: number }>;
 }
 
+type MenuKey = 'play' | 'deck' | 'rules';
+type PlayMode = 'none' | 'quick' | 'private';
+
 function getSession(): SessionInfo | null {
     const token = sessionStorage.getItem('access_token');
     const playerIdRaw = sessionStorage.getItem('player_id');
@@ -44,40 +48,25 @@ function getSession(): SessionInfo | null {
     };
 }
 
-const cardStyle: React.CSSProperties = {
-    background: '#111832',
-    border: '1px solid #2a3560',
-    borderRadius: 12,
-    padding: 16,
-};
+const horizontalWallpapers = [
+    '/wallpaper/Horizontal/1.jpg',
+    '/wallpaper/Horizontal/2.webp',
+    '/wallpaper/Horizontal/3.webp',
+    '/wallpaper/Horizontal/4.webp',
+    '/wallpaper/Horizontal/5.webp',
+    '/wallpaper/Horizontal/6.webp',
+    '/wallpaper/Horizontal/7.webp',
+    '/wallpaper/Horizontal/8.jpg',
+    '/wallpaper/Horizontal/9.jpg',
+    '/wallpaper/Horizontal/10.jpg',
+];
 
-const buttonStyle: React.CSSProperties = {
-    padding: '10px 14px',
-    borderRadius: 8,
-    border: '1px solid #3a4a78',
-    background: '#243055',
-    color: '#e8ecf8',
-    fontWeight: 700,
-    cursor: 'pointer',
-};
-
-const primaryButton: React.CSSProperties = {
-    ...buttonStyle,
-    background: '#ff9b30',
-    color: '#0a0e1a',
-    border: 'none',
-};
-
-const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #33406b',
-    background: '#0d1225',
-    color: '#e8ecf8',
-    outline: 'none',
-    boxSizing: 'border-box',
-};
+const verticalWallpapers = [
+    '/wallpaper/Vertical/1.jpg',
+    '/wallpaper/Vertical/2.jpg',
+    '/wallpaper/Vertical/3.jpg',
+    '/wallpaper/Vertical/4.jpg',
+];
 
 const LobbyPage: React.FC = () => {
     const navigate = useNavigate();
@@ -95,10 +84,28 @@ const LobbyPage: React.FC = () => {
     const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queueing, setQueueing] = useState(false);
+    const [isPortrait, setIsPortrait] = useState(() =>
+        typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false,
+    );
+    const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+    const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
+    const [playMode, setPlayMode] = useState<PlayMode>('none');
+    const [showPlayModal, setShowPlayModal] = useState(false);
+    const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
 
     const addLog = useCallback((msg: string) => {
-        setLogs((prev) => [...prev.slice(-19), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+        setLogs((prev) => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
     }, []);
+
+    const send = useCallback((data: Record<string, unknown>) => {
+        wsRef.current?.send(data);
+    }, []);
+
+    const applyDeckToRoom = useCallback((roomId: string, selectedDeckId?: number) => {
+        const chosenDeckId = selectedDeckId ?? deckId;
+        send({ action: 'set_deck', room_id: roomId, deck_id: chosenDeckId });
+        addLog(`덱 자동 적용 요청: ${chosenDeckId}`);
+    }, [send, deckId, addLog]);
 
     const refreshRooms = useCallback(async () => {
         try {
@@ -147,6 +154,31 @@ const LobbyPage: React.FC = () => {
     }, [session, refreshDecks]);
 
     useEffect(() => {
+        const updateOrientation = () => {
+            setIsPortrait(window.innerHeight > window.innerWidth);
+        };
+
+        updateOrientation();
+        window.addEventListener('resize', updateOrientation);
+        window.addEventListener('orientationchange', updateOrientation);
+
+        return () => {
+            window.removeEventListener('resize', updateOrientation);
+            window.removeEventListener('orientationchange', updateOrientation);
+        };
+    }, []);
+
+    useEffect(() => {
+        const candidates = isPortrait ? verticalWallpapers : horizontalWallpapers;
+        if (candidates.length === 0) {
+            setBackgroundImage(null);
+            return;
+        }
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        setBackgroundImage(candidates[randomIndex]);
+    }, [isPortrait]);
+
+    useEffect(() => {
         if (!session) return;
 
         const ws = new LobbySocket();
@@ -173,12 +205,18 @@ const LobbyPage: React.FC = () => {
         const offRoomCreated = ws.on('room_created', (msg: any) => {
             setRoom(msg.room);
             addLog(`방 생성 완료 (${msg.room.room_code})`);
+            applyDeckToRoom(msg.room.room_id);
+            setPlayMode('private');
+            setShowPlayModal(false);
             refreshRooms();
         });
 
         const offRoomJoined = ws.on('room_joined', (msg: any) => {
             setRoom(msg.room);
             addLog(`방 참가 완료 (${msg.room.room_code})`);
+            applyDeckToRoom(msg.room.room_id);
+            setPlayMode('private');
+            setShowPlayModal(false);
             refreshRooms();
         });
 
@@ -190,7 +228,6 @@ const LobbyPage: React.FC = () => {
 
         const offRoomUpdated = ws.on('room_updated', (msg: any) => {
             setRoom(msg.room);
-            addLog('방 정보가 업데이트되었습니다.');
             refreshRooms();
         });
 
@@ -214,10 +251,6 @@ const LobbyPage: React.FC = () => {
             addLog('매칭 대기열에서 나왔습니다.');
         });
 
-        const offDeckSet = ws.on('deck_set', () => {
-            addLog(`덱 ${deckId} 적용 요청 완료`);
-        });
-
         const offError = ws.on('error', (msg: any) => {
             addLog(`오류: ${msg.message}`);
         });
@@ -233,11 +266,10 @@ const LobbyPage: React.FC = () => {
             offGameStarting();
             offQueueJoined();
             offQueueLeft();
-            offDeckSet();
             offError();
             ws.disconnect();
         };
-    }, [session, addLog, navigate, refreshRooms, deckId]);
+    }, [session, addLog, navigate, refreshRooms, applyDeckToRoom]);
 
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();
@@ -260,7 +292,6 @@ const LobbyPage: React.FC = () => {
             }
 
             const data = await res.json();
-
             const nextSession: SessionInfo = {
                 token: data.access_token,
                 player_id: data.player_id,
@@ -276,8 +307,7 @@ const LobbyPage: React.FC = () => {
             setSession(nextSession);
             setDeckId(data.default_deck_id ?? 1);
             await refreshDecks(nextSession.player_id, data.default_deck_id ?? null);
-
-            addLog(`게스트 입장 완료: ${nextSession.nickname} / 기본 덱 ${data.default_deck_id ?? 1}`);
+            addLog(`게스트 입장 완료: ${nextSession.nickname}`);
         } catch (e: any) {
             addLog(`게스트 입장 실패: ${e.message}`);
         } finally {
@@ -285,54 +315,76 @@ const LobbyPage: React.FC = () => {
         }
     };
 
-    const send = (data: Record<string, unknown>) => {
-        wsRef.current?.send(data);
+    const openMenu = (key: MenuKey) => {
+        setActiveMenu(key);
+        if (key === 'play') {
+            setShowPlayModal(true);
+            return;
+        }
+        if (key === 'deck') {
+            navigate('/deck-builder');
+        }
+        if (key === 'rules') {
+            navigate('/rules');
+        }
     };
 
-    const handleCreateRoom = () => send({ action: 'create_room' });
+    const startQuickMatch = () => {
+        setPlayMode('quick');
+        setActiveMenu('play');
+        if (queueing) {
+            send({ action: 'leave_queue' });
+            setShowPlayModal(false);
+            return;
+        }
+        send({ action: 'join_queue', deck_id: deckId });
+        setShowPlayModal(false);
+    };
 
-    const handleJoinRoom = () => {
-        if (!roomCode.trim()) {
+    const openPrivateLobby = () => {
+        setActiveMenu('play');
+        setPlayMode('private');
+        setShowPlayModal(false);
+    };
+
+    const handleCreateRoom = () => {
+        if (!decks.length) {
+            addLog('덱이 없어 방을 만들 수 없습니다. 덱 빌더에서 덱을 먼저 만들어주세요.');
+            return;
+        }
+        send({ action: 'create_room' });
+    };
+
+    const handleJoinRoom = (code?: string) => {
+        const joiningCode = (code ?? roomCode).trim().toUpperCase();
+        if (!joiningCode) {
             addLog('방 코드를 입력해줘.');
             return;
         }
-        send({ action: 'join_room', room_code: roomCode.trim().toUpperCase() });
+        setRoomCode(joiningCode);
+        send({ action: 'join_room', room_code: joiningCode });
     };
 
-    const handleSetDeck = () => {
-        if (!room) {
-            addLog('먼저 방에 들어가야 합니다.');
-            return;
-        }
-        send({ action: 'set_deck', room_id: room.room_id, deck_id: deckId });
-    };
-
-    const handleStartGame = () => {
-        if (!room) return;
-        send({ action: 'start_game', room_id: room.room_id });
-    };
-
-    const handleJoinQueue = () => {
-        send({ action: 'join_queue', deck_id: deckId });
-    };
-
-    const handleLeaveQueue = () => {
-        send({ action: 'leave_queue' });
+    const handleBackToLobby = () => {
+        setActiveMenu(null);
+        setPlayMode('none');
+        setShowPlayModal(false);
+        setPendingJoinRoom(null);
+        setRoomCode('');
     };
 
     const isHost = room?.host.id === session?.player_id;
+    const bgVarStyle = { '--lobby-bg-image': backgroundImage ? `url('${backgroundImage}')` : 'none' } as React.CSSProperties;
 
     if (!session) {
         return (
-            <div style={{ minHeight: '100vh', background: '#0a0e1a', color: '#e8ecf8', display: 'grid', placeItems: 'center' }}>
-                <div style={{ ...cardStyle, width: 420, textAlign: 'center' }}>
-                    <h2 style={{ marginTop: 0 }}>배틀태그 입력</h2>
-                    <p style={{ color: '#8a94b8', marginBottom: 16 }}>
-                        배틀태그 입력시 바로 로비에 들어갑니다.
-                    </p>
-
+            <div className="lobby-auth-page" style={bgVarStyle}>
+                <div className="lobby-background" />
+                <div className="lobby-auth-card">
+                    <h2>배틀태그 입력</h2>
+                    <p>배틀태그 입력시 바로 로비에 들어갑니다.</p>
                     <input
-                        style={inputStyle}
+                        className="lobby-input"
                         placeholder="닉네임 입력"
                         value={nicknameInput}
                         maxLength={20}
@@ -341,12 +393,7 @@ const LobbyPage: React.FC = () => {
                             if (e.key === 'Enter' && !authLoading) createGuestSession();
                         }}
                     />
-
-                    <button
-                        style={{ ...primaryButton, width: '100%', marginTop: 12, opacity: authLoading ? 0.7 : 1 }}
-                        onClick={createGuestSession}
-                        disabled={authLoading}
-                    >
+                    <button className="lobby-solid-btn" onClick={createGuestSession} disabled={authLoading}>
                         {authLoading ? '입장 중...' : '로비 입장'}
                     </button>
                 </div>
@@ -355,175 +402,156 @@ const LobbyPage: React.FC = () => {
     }
 
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)',
-                color: '#e8ecf8',
-                padding: 24,
-                boxSizing: 'border-box',
-            }}
-        >
-            <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gap: 16 }}>
-                <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ fontSize: 26, fontWeight: 900 }}>오버워치 카드게임 로비</div>
-                        <div style={{ color: '#8a94b8', marginTop: 6 }}>
-                            유저: <b>{session.nickname}</b> / player_id: {session.player_id}
+        <div className={`lobby-page ${isPortrait ? 'mobile' : 'desktop'}`} style={bgVarStyle}>
+            <div className="lobby-background" />
+            <div className="lobby-dim" />
+
+            <div className="lobby-shell">
+                <aside className="lobby-menu">
+                    {activeMenu === 'play' && playMode === 'private' ? (
+                        <div className="private-back-wrap">
+                            <button className="lobby-ghost-btn private-back-btn" onClick={handleBackToLobby}>
+                                로비로 돌아가기
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            {isPortrait ? (
+                                <div className="mobile-menu-buttons">
+                                    <button className="lobby-solid-btn" onClick={() => openMenu('play')}>플레이</button>
+                                    <button className="lobby-solid-btn" onClick={() => openMenu('deck')}>덱 수정</button>
+                                    <button className="lobby-solid-btn" onClick={() => openMenu('rules')}>게임 규칙</button>
+                                </div>
+                            ) : (
+                                <div className="desktop-menu-text">
+                                    <button className={`menu-text-item ${activeMenu === 'play' ? 'active' : ''}`} onClick={() => openMenu('play')}>플레이</button>
+                                    <button className={`menu-text-item ${activeMenu === 'deck' ? 'active' : ''}`} onClick={() => openMenu('deck')}>덱 수정</button>
+                                    <button className={`menu-text-item ${activeMenu === 'rules' ? 'active' : ''}`} onClick={() => openMenu('rules')}>게임 규칙</button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </aside>
+
+                <main className="lobby-main">
+                    {activeMenu === 'play' && playMode === 'private' && (
+                        <section className="panel private-room-grid">
+                            <div>
+                                <h3>사설방</h3>
+
+                                <div className="deck-row">
+                                    <label>사용할 덱</label>
+                                    <select className="lobby-input" value={deckId} onChange={(e) => setDeckId(Number(e.target.value))}>
+                                        {decks.length === 0 ? (
+                                            <option value={deckId}>덱 없음</option>
+                                        ) : (
+                                            decks.map((d) => (
+                                                <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                            ))
+                                        )}
+                                    </select>
+                                </div>
+
+                                <div className="inline-actions">
+                                    <button className="lobby-solid-btn" onClick={handleCreateRoom}>방 만들기</button>
+                                </div>
+
+                                <div className="join-by-code">
+                                    <label>방 코드로 입장</label>
+                                    <div>
+                                        <input
+                                            className="lobby-input"
+                                            placeholder="예: ABC123"
+                                            value={roomCode}
+                                            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                                        />
+                                        <button className="lobby-ghost-btn" onClick={() => handleJoinRoom()}>입장</button>
+                                    </div>
+                                </div>
+
+                                {room && (
+                                    <div className="current-room">
+                                        <div className="current-room-title">현재 방: {room.room_code}</div>
+                                        <div>상태: <b>{room.status}</b></div>
+                                        <div>방장: <b>{room.host.username}</b></div>
+                                        <div>참가자: <b>{room.guest?.username ?? '대기 중'}</b></div>
+                                        {isHost && (
+                                            <button className="lobby-solid-btn" onClick={() => send({ action: 'start_game', room_id: room.room_id })}>게임 시작</button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <h3>열린 방 목록</h3>
+                                <div className="room-list-wrap">
+                                    {rooms.length === 0 && <div className="empty-text">현재 열린 방이 없음.</div>}
+                                    {rooms.map((r) => (
+                                        <div className="room-item" key={r.room_id}>
+                                            <div>
+                                                <div className="room-item-title">{r.room_code} · {r.status}</div>
+                                                <div className="room-item-sub">{r.host.username} vs {r.guest?.username ?? '대기 중'}</div>
+                                            </div>
+                                            <button
+                                                className="lobby-ghost-btn"
+                                                disabled={r.status !== 'waiting'}
+                                                onClick={() => setPendingJoinRoom(r)}
+                                            >
+                                                참가
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="log-wrap">
+                                    <div className="log-title">로그</div>
+                                    <div className="log-list">
+                                        {logs.map((log, i) => <div key={i}>{log}</div>)}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+                </main>
+            </div>
+
+            {showPlayModal && (
+                <div className="play-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="play-modal">
+                        <button className="play-modal-close" onClick={() => setShowPlayModal(false)}>×</button>
+                        <h3>게임 플레이</h3>
+                        <p>모드를 선택하세요.</p>
+                        <div className="play-modal-actions">
+                            <button className="lobby-ghost-btn" onClick={startQuickMatch}>
+                                {queueing ? '퀵매칭 취소' : '퀵매칭'}
+                            </button>
+                            <button className="lobby-ghost-btn" onClick={openPrivateLobby}>사설방</button>
                         </div>
                     </div>
-                    <div style={{ fontWeight: 800, color: connected ? '#22dd77' : '#ff4466' }}>
-                        {connected ? '● 연결됨' : '○ 연결 안 됨'}
-                    </div>
                 </div>
+            )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16 }}>
-                    <div style={{ ...cardStyle }}>
-                        <h3 style={{ marginTop: 0 }}>내 방 / 매칭</h3>
-
-                        <div style={{ marginBottom: 14 }}>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: 6,
-                                    gap: 8,
+            {pendingJoinRoom && (
+                <div className="play-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="play-modal">
+                        <button className="play-modal-close" onClick={() => setPendingJoinRoom(null)}>×</button>
+                        <h3>방 참가</h3>
+                        <p><b>{pendingJoinRoom.room_code}</b> 방에 참가할까요?</p>
+                        <div className="play-modal-actions">
+                            <button
+                                className="lobby-ghost-btn"
+                                onClick={() => {
+                                    handleJoinRoom(pendingJoinRoom.room_code);
+                                    setPendingJoinRoom(null);
                                 }}
                             >
-                                <label style={{ display: 'block', fontSize: 13, color: '#8a94b8' }}>사용할 덱</label>
-                                <button style={buttonStyle} onClick={() => navigate('/deck-builder')}>
-                                    덱 구성
-                                </button>
-                            </div>
-
-                            <select
-                                style={inputStyle}
-                                value={deckId}
-                                onChange={(e) => setDeckId(Number(e.target.value))}
-                            >
-                                {decks.length === 0 ? (
-                                    <option value={deckId}>덱 없음</option>
-                                ) : (
-                                    decks.map((d) => (
-                                        <option key={d.id} value={d.id}>
-                                            {d.name} (ID: {d.id})
-                                        </option>
-                                    ))
-                                )}
-                            </select>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-                            <button style={primaryButton} onClick={handleCreateRoom}>방 만들기</button>
-                            {!queueing ? (
-                                <button style={buttonStyle} onClick={handleJoinQueue}>퀵매칭</button>
-                            ) : (
-                                <button style={buttonStyle} onClick={handleLeaveQueue}>매칭 취소</button>
-                            )}
-                        </div>
-
-                        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid #243055' }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>방 코드로 입장</div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <input
-                                    style={inputStyle}
-                                    placeholder="예: ABC123"
-                                    value={roomCode}
-                                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                                />
-                                <button style={buttonStyle} onClick={handleJoinRoom}>입장</button>
-                            </div>
-                        </div>
-
-                        {room && (
-                            <div style={{ marginTop: 22, padding: 14, borderRadius: 10, background: '#0d1225', border: '1px solid #243055' }}>
-                                <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 10 }}>
-                                    현재 방: {room.room_code}
-                                </div>
-
-                                <div style={{ fontSize: 13, color: '#8a94b8', marginBottom: 6 }}>
-                                    상태: <b style={{ color: '#e8ecf8' }}>{room.status}</b>
-                                </div>
-
-                                <div style={{ fontSize: 13, color: '#8a94b8', marginBottom: 6 }}>
-                                    방장: <b style={{ color: '#e8ecf8' }}>{room.host.username}</b>
-                                </div>
-
-                                <div style={{ fontSize: 13, color: '#8a94b8', marginBottom: 10 }}>
-                                    참가자: <b style={{ color: '#e8ecf8' }}>{room.guest?.username ?? '대기 중'}</b>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                    <button style={buttonStyle} onClick={handleSetDeck}>내 덱 적용</button>
-                                    {isHost && (
-                                        <button style={primaryButton} onClick={handleStartGame}>
-                                            게임 시작
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={{ ...cardStyle }}>
-                        <h3 style={{ marginTop: 0 }}>열린 방 목록</h3>
-
-                        <div style={{ display: 'grid', gap: 8 }}>
-                            {rooms.length === 0 && (
-                                <div style={{ color: '#8a94b8' }}>현재 열린 방이 없음.</div>
-                            )}
-
-                            {rooms.map((r) => (
-                                <div
-                                    key={r.room_id}
-                                    style={{
-                                        padding: 12,
-                                        borderRadius: 10,
-                                        background: '#0d1225',
-                                        border: '1px solid #243055',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        gap: 12,
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ fontWeight: 800 }}>
-                                            {r.room_code} · {r.status}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: '#8a94b8', marginTop: 4 }}>
-                                            {r.host.username} vs {r.guest?.username ?? '대기 중'}
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        style={buttonStyle}
-                                        disabled={r.status !== 'waiting'}
-                                        onClick={() => {
-                                            setRoomCode(r.room_code);
-                                            send({ action: 'join_room', room_code: r.room_code });
-                                        }}
-                                    >
-                                        입장
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid #243055' }}>
-                            <div style={{ fontWeight: 800, marginBottom: 8 }}>로그</div>
-                            <div style={{ maxHeight: 280, overflowY: 'auto', fontSize: 12, color: '#8a94b8' }}>
-                                {logs.map((log, i) => (
-                                    <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #111832' }}>
-                                        {log}
-                                    </div>
-                                ))}
-                            </div>
+                                참가하기
+                            </button>
+                            <button className="lobby-ghost-btn" onClick={() => setPendingJoinRoom(null)}>취소</button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
