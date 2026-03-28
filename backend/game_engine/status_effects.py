@@ -283,6 +283,14 @@ class AttackBuff(StatusEffect):
 
     def on_before_attack(self, card, target):
         return {"attack_modifier": self.value}
+    
+    
+@dataclass
+class DamageMultiplier(StatusEffect):
+    """스킬 피해 배율 증감. value=2.0이면 2배, value=1.5면 50% 증가."""
+    name: str = "damage_multiplier"
+    value: float = 1.0
+    tags: list[str] = field(default_factory=lambda: ["buff"])
 
 
 @dataclass

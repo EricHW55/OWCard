@@ -15,7 +15,7 @@ from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
-    FrozenState, GravityFluxAirborne, HealMultiplier
+    FrozenState, GravityFluxAirborne, HealMultiplier, DamageMultiplier
 )
 
 if TYPE_CHECKING:
@@ -182,19 +182,18 @@ def spell_sound_barrier(caster: FieldCard, target: FieldCard, game: GameState) -
 @register_skill("spell_amp_matrix", "skill_1")
 def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """증폭 매트릭스: 한턴 동안 딜량과 힐량 2배.
-    아군 전체에 공격력 버프로 구현."""
+    아군 전체 스킬 피해/치유 배율 버프로 구현."""
     my_field = game.get_my_field(caster)
     allies = my_field.all_cards()
     logs = []
     for ally in allies:
-        # 공격력을 현재 값만큼 추가 (= 2배)
-        ally.add_status(AttackBuff(
-            value=ally.attack,  # 현재 공격력만큼 추가
+        # 스킬 피해 배율 2배
+        ally.add_status(DamageMultiplier(
+            value=2.0,
             duration=1,
             source_uid="spell",
             tags=["buff", "amp_matrix"],
         ))
-        # logs.append({"target": ally.uid, "attack_doubled": True})
         ally.add_status(HealMultiplier(
             value=2.0,
             duration=1,
@@ -208,14 +207,13 @@ def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> d
 
 @register_skill("spell_nano_boost", "skill_1")
 def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """나노 강화제: 아군 한명 공격력 +50%, 피해감소 50%. 영구."""
+    """나노 강화제: 아군 한명 스킬 피해량 +50%, 피해감소 50%. 영구."""
     if not target:
         return {"success": False, "message": "강화할 아군을 선택하세요"}
 
-    # 공격력 50% 증가 (영구)
-    bonus = max(1, target.attack // 2)
-    target.add_status(AttackBuff(
-        value=bonus,
+    # 스킬 피해량 50% 증가 (영구)
+    target.add_status(DamageMultiplier(
+        value=1.5,
         duration=-1,  # 영구
         source_uid="spell",
         tags=["buff", "nano"],
@@ -233,7 +231,7 @@ def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "success": True,
         "skill": "나노 강화제",
         "target": target.uid,
-        "attack_bonus": bonus,
+        "attack_bonus": 1.5,
         "damage_reduction": 50,
     }
 

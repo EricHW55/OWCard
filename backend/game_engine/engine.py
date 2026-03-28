@@ -94,8 +94,18 @@ class GameState:
             if status.name == "attack_buff"
         )
 
-    def _apply_attack_buff_to_damage(self, value: Any, attack_bonus: int) -> Any:
-        if attack_bonus == 0:
+    # def _apply_attack_buff_to_damage(self, value: Any, attack_bonus: int) -> Any:
+    #     if attack_bonus == 0:
+    def _get_damage_multiplier(self, caster: FieldCard) -> float:
+        multiplier = 1.0
+        for status in caster.statuses:
+            if status.name != "damage_multiplier":
+                continue
+            multiplier *= float(getattr(status, "value", 1.0) or 1.0)
+        return max(0.0, multiplier)
+
+    def _apply_damage_modifiers(self, value: Any, attack_bonus: int, multiplier: float) -> Any:
+        if attack_bonus == 0 and abs(multiplier - 1.0) < 1e-9:
             return value
 
         if isinstance(value, dict):
@@ -103,14 +113,18 @@ class GameState:
             for k, v in value.items():
                 lowered = str(k).lower()
                 if "damage" in lowered and "heal" not in lowered:
-                    patched[k] = self._apply_attack_buff_to_damage(v, attack_bonus)
+                    # patched[k] = self._apply_attack_buff_to_damage(v, attack_bonus)
+                    patched[k] = self._apply_damage_modifiers(v, attack_bonus, multiplier)
             return patched
         if isinstance(value, list):
-            return [self._apply_attack_buff_to_damage(v, attack_bonus) for v in value]
+            # return [self._apply_attack_buff_to_damage(v, attack_bonus) for v in value]
+            return [self._apply_damage_modifiers(v, attack_bonus, multiplier) for v in value]
         if isinstance(value, tuple):
-            return tuple(self._apply_attack_buff_to_damage(v, attack_bonus) for v in value)
+            # return tuple(self._apply_attack_buff_to_damage(v, attack_bonus) for v in value)
+            return tuple(self._apply_damage_modifiers(v, attack_bonus, multiplier) for v in value)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return max(0, int(value + attack_bonus))
+            # return max(0, int(value + attack_bonus))
+            return max(0, int((value + attack_bonus) * multiplier))
         return value
 
     def get_skill_damage(self, caster: FieldCard, skill_key: str, *, apply_attack_buff: bool = True):
@@ -122,7 +136,9 @@ class GameState:
         if not apply_attack_buff:
             return base_value
         attack_bonus = self._get_attack_buff_value(caster)
-        return self._apply_attack_buff_to_damage(base_value, attack_bonus)
+        # return self._apply_attack_buff_to_damage(base_value, attack_bonus)
+        damage_multiplier = self._get_damage_multiplier(caster)
+        return self._apply_damage_modifiers(base_value, attack_bonus, damage_multiplier)
     
     def get_my_field(self, card: FieldCard) -> Field:
         """이 카드가 속한 플레이어의 필드."""

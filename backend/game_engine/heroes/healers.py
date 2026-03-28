@@ -199,9 +199,16 @@ def brigitte_passive(card: FieldCard, game: GameState) -> dict:
         if a.uid == card.uid:
             continue
         healed = a.heal(heal_amount)
-        if healed > 0:
-            logs.append({"uid": a.uid, "healed": healed})
-    return {"passive": "격려", "healed": logs}
+        logs.append({"uid": a.uid, "healed": healed})
+    return {
+        "passive": "격려",
+        "triggered": True,
+        "heal_amount": heal_amount,
+        "healed": logs,
+    }
+    #     if healed > 0:
+    #         logs.append({"uid": a.uid, "healed": healed})
+    # return {"passive": "격려", "healed": logs}
 
 @register_skill("brigitte", "skill_1")
 def brigitte_repair(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
