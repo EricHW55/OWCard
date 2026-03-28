@@ -339,7 +339,21 @@ class GameEngine:
             if not ps or ps.player_id in seen:
                 continue
             seen.add(ps.player_id)
+            self._process_reactive_passives(ps)
             self._collect_dead_to_trash(ps)
+            
+    
+    def _process_reactive_passives(self, ps: PlayerState):
+        for card in list(ps.field.side_cards):
+            if not card.alive:
+                continue
+            hero_key = card.extra.get("_hero_key", "")
+            if hero_key != "kiriko":
+                continue
+            threshold = int(card.extra.get("swift_step_threshold", 4) or 4)
+            if card.current_hp > threshold:
+                continue
+            ps.field.move_card(card, Zone.MAIN)
 
     # ── 플레이어 등록 ─────────────────────────
 

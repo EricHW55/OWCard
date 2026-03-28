@@ -301,6 +301,9 @@ class DamageReduction(StatusEffect):
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_take_damage(self, card, damage, **kwargs):
+        barrier = card.get_status("barrier")
+        if barrier and getattr(barrier, "barrier_hp", 0) > 0 and not kwargs.get("ignore_barrier", False):
+            return {"damage": damage}
         reduced = int(damage * (1 - self.percent / 100))
         return {"damage": reduced}
 

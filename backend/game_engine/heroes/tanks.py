@@ -233,8 +233,9 @@ def domina_crystal(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 @register_skill("domina", "skill_2")
 def domina_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """방벽 배열: 자신에게 내구도4 방벽 + 도발."""
-    caster.add_status(Barrier(barrier_hp=4, duration=-1, source_uid=caster.uid))
-    caster.add_status(Taunt(duration=-1, source_uid=caster.uid))
+    # caster.add_status(Barrier(barrier_hp=4, duration=-1, source_uid=caster.uid))
+    # caster.add_status(Taunt(duration=-1, source_uid=caster.uid))
+    caster.add_status(Barrier(barrier_hp=4, has_taunt=True, duration=-1, source_uid=caster.uid))
     return {"success": True, "skill": "방벽 배열"}
 
 # ── 로드호그 (신규) ───────────────────────
