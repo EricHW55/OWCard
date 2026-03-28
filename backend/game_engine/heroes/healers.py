@@ -88,7 +88,8 @@ def zenyatta_discord(caster: FieldCard, target: FieldCard, game: GameState) -> d
 @register_skill("zenyatta", "skill_2")
 def zenyatta_harmony(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    return {"success": True, "skill": "조화", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
+    # return {"success": True, "skill": "조화", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
+    return {"success": True, "skill": "조화", "healed": target.heal(game.get_skill_damage(caster, "skill_2", apply_attack_buff=False))}
 
 # ── 우양 ──────────────────────────────────
 @register_skill("wuyang", "skill_1")
@@ -104,7 +105,8 @@ def wuyang_wave(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("wuyang", "skill_2")
 def wuyang_heal(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    return {"success": True, "skill": "회복의 물결", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
+    # return {"success": True, "skill": "회복의 물결", "healed": target.heal(game.get_skill_damage(caster, "skill_2"))}
+    return {"success": True, "skill": "회복의 물결", "healed": target.heal(game.get_skill_damage(caster, "skill_2", apply_attack_buff=False))}
 
 # ── 미즈키 ────────────────────────────────
 @register_skill("mizuki", "skill_1")
@@ -136,7 +138,7 @@ def baptiste_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> 
     if not my.find_card(target.uid):
         return {"success": False, "message": "아군만 회복할 수 있습니다"}
 
-    heal = game.get_skill_damage(caster, "skill_1")
+    heal = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
     row = my.get_role_row_in_zone(target.role, target.zone)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
 
@@ -183,7 +185,7 @@ def mercy_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("mercy", "skill_1")
 def mercy_staff(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    return {"success": True, "skill": "카두세우스 지팡이", "healed": target.heal(game.get_skill_damage(caster, "skill_1"))}
+    return {"success": True, "skill": "카두세우스 지팡이", "healed": target.heal(game.get_skill_damage(caster, "skill_1", apply_attack_buff=False))}
 
 # ── 브리기테 ──────────────────────────────
 @register_passive("brigitte")
@@ -204,7 +206,7 @@ def brigitte_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("brigitte", "skill_1")
 def brigitte_repair(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    return {"success": True, "skill": "수리팩", "healed": target.heal(game.get_skill_damage(caster, "skill_1"))}
+    return {"success": True, "skill": "수리팩", "healed": target.heal(game.get_skill_damage(caster, "skill_1", apply_attack_buff=False))}
 
 # ── 일리아리 ──────────────────────────────
 @register_passive("illari")
@@ -257,7 +259,7 @@ def juno_torpedoes(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     if not my.find_card(target.uid):
         return {"success": False, "message": "아군만 회복할 수 있습니다"}
 
-    heal = game.get_skill_damage(caster, "skill_1")
+    heal = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
     row = my.get_role_row(target.role, include_side=True)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in row]
 
@@ -293,4 +295,4 @@ def jetpack_cat_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("jetpack_cat", "skill_1")
 def jetpack_cat_nyan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    return {"success": True, "skill": "생체 냥냥탄", "healed": target.heal(game.get_skill_damage(caster, "skill_1"))}
+    return {"success": True, "skill": "생체 냥냥탄", "healed": target.heal(game.get_skill_damage(caster, "skill_1", apply_attack_buff=False))}

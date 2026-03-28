@@ -59,6 +59,7 @@ const horizontalWallpapers = [
     '/wallpaper/Horizontal/8.jpg',
     '/wallpaper/Horizontal/9.jpg',
     '/wallpaper/Horizontal/10.jpg',
+    '/wallpaper/Horizontal/11.webp',
 ];
 
 const verticalWallpapers = [
@@ -66,6 +67,17 @@ const verticalWallpapers = [
     '/wallpaper/Vertical/2.jpg',
     '/wallpaper/Vertical/3.jpg',
     '/wallpaper/Vertical/4.jpg',
+    '/wallpaper/Vertical/5.png',
+    // '/wallpaper/Horizontal/1.jpg',
+    // '/wallpaper/Horizontal/2.webp',
+    // '/wallpaper/Horizontal/3.webp',
+    // '/wallpaper/Horizontal/4.webp',
+    // '/wallpaper/Horizontal/5.webp',
+    // '/wallpaper/Horizontal/6.webp',
+    // '/wallpaper/Horizontal/7.webp',
+    // '/wallpaper/Horizontal/8.jpg',
+    // '/wallpaper/Horizontal/9.jpg',
+    // '/wallpaper/Horizontal/10.jpg',
 ];
 
 const LobbyPage: React.FC = () => {

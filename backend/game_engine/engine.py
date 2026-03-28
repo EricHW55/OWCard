@@ -16,7 +16,7 @@ import random
 import uuid
 from enum import Enum
 from dataclasses import dataclass, field as dc_field
-from typing import Optional
+from typing import Any, Optional
 
 from game_engine.field import Field, FieldCard, Role, Zone
 from game_engine.skill_registry import get_skill, get_passive, get_hero_skills
@@ -83,10 +83,47 @@ class GameState:
     def __init__(self, engine: GameEngine):
         self._engine = engine
 
-    def get_skill_damage(self, caster: FieldCard, skill_key: str):
-        """DB에서 읽어온 스킬 데미지값."""
-        return caster.skill_damages.get(skill_key, 0)
+    # def get_skill_damage(self, caster: FieldCard, skill_key: str):
+    #     """DB에서 읽어온 스킬 데미지값."""
+    #     return caster.skill_damages.get(skill_key, 0)
 
+    def _get_attack_buff_value(self, caster: FieldCard) -> int:
+        return sum(
+            int(getattr(status, "value", 0) or 0)
+            for status in caster.statuses
+            if status.name == "attack_buff"
+        )
+
+    def _apply_attack_buff_to_damage(self, value: Any, attack_bonus: int) -> Any:
+        if attack_bonus == 0:
+            return value
+
+        if isinstance(value, dict):
+            patched = dict(value)
+            for k, v in value.items():
+                lowered = str(k).lower()
+                if "damage" in lowered and "heal" not in lowered:
+                    patched[k] = self._apply_attack_buff_to_damage(v, attack_bonus)
+            return patched
+        if isinstance(value, list):
+            return [self._apply_attack_buff_to_damage(v, attack_bonus) for v in value]
+        if isinstance(value, tuple):
+            return tuple(self._apply_attack_buff_to_damage(v, attack_bonus) for v in value)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return max(0, int(value + attack_bonus))
+        return value
+
+    def get_skill_damage(self, caster: FieldCard, skill_key: str, *, apply_attack_buff: bool = True):
+        """DB에서 읽어온 스킬 데미지값.
+
+        apply_attack_buff=True일 때는 attack_buff 상태값을 데미지 계산에 반영한다.
+        """
+        base_value = caster.skill_damages.get(skill_key, 0)
+        if not apply_attack_buff:
+            return base_value
+        attack_bonus = self._get_attack_buff_value(caster)
+        return self._apply_attack_buff_to_damage(base_value, attack_bonus)
+    
     def get_my_field(self, card: FieldCard) -> Field:
         """이 카드가 속한 플레이어의 필드."""
         for ps in self._engine.players.values():

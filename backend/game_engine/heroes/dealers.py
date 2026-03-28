@@ -234,7 +234,8 @@ def ashe_dynamite(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 def soldier76_biotic(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if caster.extra.get("used_biotic_last"): return {"success": False, "message": "연속 불가"}
     my = game.get_my_field(caster)
-    heal = game.get_skill_damage(caster, "skill_1")
+    # heal = game.get_skill_damage(caster, "skill_1")
+    heal = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in my.get_row(caster.zone)]
     caster.extra["used_biotic_last"] = True
     return {"success": True, "skill": "생체장", "healed": logs}

@@ -257,6 +257,6 @@ def roadhog_breather(caster: FieldCard, target: FieldCard, game: GameState) -> d
     threshold = caster.extra.get("heal_threshold", 15)
     if caster.current_hp > threshold:
         return {"success": False, "message": f"HP {threshold} 이하에서만 사용 가능"}
-    heal_amt = game.get_skill_damage(caster, "skill_2")
+    heal_amt = game.get_skill_damage(caster, "skill_2", apply_attack_buff=False)
     healed = caster.heal(heal_amt)
     return {"success": True, "skill": "숨돌리기", "healed": healed}
