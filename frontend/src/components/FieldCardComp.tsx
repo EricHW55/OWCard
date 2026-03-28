@@ -44,7 +44,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
     const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
     const isFrozen = card.statuses?.some((s) => s.name === 'frozen_state');
-    const isAirborne = card.statuses?.some((s) => s.name === 'airborne');
+    const isAirborne = card.statuses?.some(
+        (s) => s.name === 'airborne' || s.name === 'gravity_flux_airborne'
+    );
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
