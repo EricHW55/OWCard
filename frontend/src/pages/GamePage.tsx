@@ -222,6 +222,19 @@ function needsColumnSelector(card: any, skillKey?: string | null): boolean {
   return hero === 'sojourn' && skillKey === 'skill_2';
 }
 
+function normalizeErrorMessage(raw: unknown): string {
+  const message = String(raw || '').trim();
+  if (!message) return '요청을 처리할 수 없습니다.';
+
+  const lower = message.toLowerCase();
+  if (lower.startsWith('placement full')) return '이번 턴 배치는 이미 2장을 모두 사용했습니다.';
+  if (lower.includes('cannot place dealer') && lower.includes('side')) return '사이드 딜러 자리가 가득 차서 배치할 수 없습니다.';
+  if (lower.includes('cannot place') && lower.includes('main')) return '본대 자리가 가득 차서 배치할 수 없습니다.';
+  if (lower.includes('cannot place') && lower.includes('side')) return '사이드 자리가 가득 차서 배치할 수 없습니다.';
+
+  return message;
+}
+
 function buildColumnChoices(field: any): ColumnPreview[] {
   const main = Array.isArray(field?.main) ? field.main : [];
   const side = Array.isArray(field?.side) ? field.side : [];
@@ -544,6 +557,16 @@ const GamePage: React.FC = () => {
               || '영웅';
           const resolvedSkillName = result?.skill_name || result?.skill || null;
 
+          if (msg.action === 'place_card' && result?.type === 'card_placed' && result?.card && !result?.card?.is_spell) {
+            const zoneLabel = result?.zone === 'side' ? '사이드' : '본대';
+            showSystemNotice(result.card.name, `${zoneLabel} 배치`, 1200);
+          }
+
+          if (msg.action === 'resolve_passive_choice' && result?.type === 'card_placed' && result?.card && !result?.card?.is_spell) {
+            const zoneLabel = result?.zone === 'side' ? '사이드' : '본대';
+            showSystemNotice(result.card.name, `${zoneLabel} 추가 배치`, 1300);
+          }
+
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
             setPendingSpell(result.hero_key);
             setPendingSpellName(spellName);
@@ -689,9 +712,11 @@ const GamePage: React.FC = () => {
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
         ws.on('error', (msg: any) => {
-          const shortMessage = String(msg?.message || '요청을 처리할 수 없습니다.');
+          // const shortMessage = String(msg?.message || '요청을 처리할 수 없습니다.');
+          const shortMessage = normalizeErrorMessage(msg?.message);
           addLog(`오류: ${shortMessage}`);
-          showSystemNotice('행동 불가', shortMessage, 1800);
+          // showSystemNotice('행동 불가', shortMessage, 1800);
+          showSystemNotice('행동 불가', shortMessage, 2600);
         }),
       ];
     };
@@ -870,7 +895,7 @@ const GamePage: React.FC = () => {
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
       addLog(`${card.name} → ${zoneLabel} 추가 배치`);
-      showSystemNotice(card.name, `${zoneLabel} 추가 배치`, 1200);
+      // showSystemNotice(card.name, `${zoneLabel} 추가 배치`, 1200);
       setSelectedHandIdx(null);
       return;
     }
@@ -879,7 +904,9 @@ const GamePage: React.FC = () => {
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
 
     if (!card.is_spell) {
-      showSystemNotice(card.name, `${zoneLabel} 배치`, 1100);
+      // showSystemNotice(card.name, `${zoneLabel} 배치`, 1100);
+      // 배치 성공 안내는 서버 action_result(type=card_placed)에서만 표시.
+      // 실패 시 즉시 덮여 보이지 않거나 깜빡이는 문제를 방지한다.
     }
 
     setSelectedHandIdx(null);
