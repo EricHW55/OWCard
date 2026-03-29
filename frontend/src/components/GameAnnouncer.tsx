@@ -49,11 +49,18 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
     const animationStyle = { animationDuration: `${displayTime}ms` };
 
     return (
-        <div className="game-announcer-overlay">
+        // <div className="game-announcer-overlay">
+        <div
+            className="game-announcer-overlay"
+            onClick={handleSkip}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleSkip()}
+        >
             {data.type === 'phase' && (
-                // <div className="announcer-phase" style={animationStyle}>
-                <div className="announcer-phase" style={animationStyle} onClick={handleSkip}
-                     role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
+                // <div className="announcer-phase" style={animationStyle} onClick={handleSkip}
+                //      role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
+                <div className="announcer-phase" style={animationStyle}>
                     <div className="announcer-phase-line" />
                     <div className="announcer-phase-body">
                         <div className="announcer-phase-title">{data.title}</div>
@@ -66,8 +73,9 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
 
             {data.type === 'skill' && (
                 // <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
-                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}
-                     onClick={handleSkip} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
+                // <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}
+                //      onClick={handleSkip} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
+                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
                     <div className="skill-card-frame">
                         <div className="skill-card-top-trim" />
                         <div className="skill-card-side-trim left" />

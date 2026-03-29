@@ -6,7 +6,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    pointer-events: none;
+    /*pointer-events: none;*/
+    pointer-events: auto;
     z-index: 1200;
     padding: 20px;
 }
@@ -94,7 +95,8 @@
     content: '';
     position: absolute;
     inset: 0;
-    pointer-events: none;
+    /*pointer-events: none;*/
+    pointer-events: auto;
 }
 
 .skill-card-frame::before {
@@ -127,7 +129,8 @@
 .skill-card-inner-outline {
     position: absolute;
     z-index: 1;
-    pointer-events: none;
+    /*pointer-events: none;*/
+    pointer-events: auto;
 }
 
 .skill-card-top-trim {
