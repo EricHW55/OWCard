@@ -299,15 +299,28 @@ const GamePage: React.FC = () => {
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
   const [announcerData, setAnnouncerData] = useState<AnnouncerData | null>(null);
+  const announcerQueueRef = useRef<AnnouncerData[]>([]);
+
+  const enqueueAnnouncer = useCallback((next: AnnouncerData) => {
+    setAnnouncerData(prev => {
+      if (!prev) return next;
+      announcerQueueRef.current.push(next);
+      return prev;
+    });
+  }, []);
+
+  const closeAnnouncer = useCallback(() => {
+    setAnnouncerData(() => announcerQueueRef.current.shift() || null);
+  }, []);
 
   const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
-    setAnnouncerData({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
-  }, []);
+    enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
+  }, [enqueueAnnouncer]);
 
   const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 1300) => {
     if (!title) return;
-    setAnnouncerData({ type: 'phase', title, subtitle, duration });
-  }, []);
+    enqueueAnnouncer({ type: 'phase', title, subtitle, duration });
+  }, [enqueueAnnouncer]);
 
   const showSkillUse = useCallback(({
                                       skillName,
@@ -327,7 +340,7 @@ const GamePage: React.FC = () => {
     duration?: number;
   }) => {
     if (!skillName) return;
-    setAnnouncerData({
+    enqueueAnnouncer({
       type: 'skill',
       title: skillName,
       description,
@@ -337,7 +350,57 @@ const GamePage: React.FC = () => {
       isSpell,
       duration,
     });
-  }, []);
+  }, [enqueueAnnouncer]);
+
+  const showPassiveNoticeFromLog = useCallback((entry: any, owner: 'my' | 'opponent') => {
+    if (!entry) return;
+    const ownerState = owner === 'my' ? gsRef.current?.my_state : gsRef.current?.opponent_state;
+    const allCards = [...(ownerState?.field?.main || []), ...(ownerState?.field?.side || [])];
+    const sourceCard = allCards.find((c: any) => c.uid === entry?.source_uid);
+    const sourceName = sourceCard?.name || entry?.source_name || (owner === 'my' ? '아군' : '상대');
+    const sourceHeroKey = getHeroKey(sourceCard);
+
+    if (entry?.type === 'turn_start_passive' && entry?.result?.passive) {
+      showSkillUse({
+        skillName: entry.result.passive,
+        subtitle: `${sourceName} 패시브`,
+        description: entry?.result?.message || '',
+        heroKey: sourceHeroKey,
+        imageName: sourceName,
+        isSpell: false,
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (entry?.type === 'auto_turret') {
+      showSystemNotice('포탑 자동 공격', sourceName, 1400);
+      return;
+    }
+    if (entry?.type === 'auto_heal') {
+      showSystemNotice('자동 치유', sourceName, 1400);
+      return;
+    }
+  }, [showSkillUse, showSystemNotice]);
+
+  const showDeathPassiveNotice = useCallback((result: any, owner: 'my' | 'opponent') => {
+    let found = false;
+    const queue: any[] = [result];
+    while (queue.length > 0) {
+      const node = queue.shift();
+      if (!node || typeof node !== 'object') continue;
+      if (node.prevent_death || node.transform || node.enter_frozen) {
+        found = true;
+        break;
+      }
+      Object.values(node).forEach(v => {
+        if (v && typeof v === 'object') queue.push(v);
+      });
+    }
+    if (found) {
+      showSystemNotice(owner === 'my' ? '아군 사망 패시브 발동' : '상대 사망 패시브 발동', '전투 효과 적용', 1500);
+    }
+  }, [showSystemNotice]);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -524,6 +587,17 @@ const GamePage: React.FC = () => {
             addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
             showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
           }
+          if (result?.passive_triggered?.passive) {
+            showSkillUse({
+              skillName: result.passive_triggered.passive,
+              subtitle: `${actorName} 패시브`,
+              description: result?.passive_triggered?.message || '',
+              heroKey: result?.caster?.hero_key || '',
+              imageName: actorName,
+              isSpell: false,
+              duration: 3000,
+            });
+          }
 
           if (result?.passive_triggered?.needs_choice) {
             setLocalPendingPassive(result.passive_triggered.needs_choice);
@@ -540,6 +614,11 @@ const GamePage: React.FC = () => {
               showSystemNotice(result.card.name, '패시브 처리', 1300);
             }
           }
+
+          [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => {
+            showPassiveNoticeFromLog(entry, 'my');
+          });
+          showDeathPassiveNotice(result, 'my');
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard =
@@ -584,16 +663,36 @@ const GamePage: React.FC = () => {
           if (cue) {
             showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           }
+          const result = msg?.result || {};
+          if (result?.passive_triggered?.passive) {
+            showSkillUse({
+              skillName: result.passive_triggered.passive,
+              subtitle: '상대 패시브',
+              description: result?.passive_triggered?.message || '',
+              heroKey: result?.caster?.hero_key || '',
+              imageName: result?.caster_name || '상대',
+              isSpell: false,
+              duration: 3000,
+            });
+          }
+          [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => {
+            showPassiveNoticeFromLog(entry, 'opponent');
+          });
+          showDeathPassiveNotice(result, 'opponent');
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
           addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 결정'}`, 2000);
+          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 정'}`, 2000);
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
-        ws.on('error', (msg: any) => addLog(`오류: ${msg.message}`)),
+        ws.on('error', (msg: any) => {
+          const shortMessage = String(msg?.message || '요청을 처리할 수 없습니다.');
+          addLog(`오류: ${shortMessage}`);
+          showSystemNotice('행동 불가', shortMessage, 1800);
+        }),
       ];
     };
 
@@ -618,7 +717,7 @@ const GamePage: React.FC = () => {
       clearReconnectTimer();
       cleanupSocket();
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice]);
 
   const send = (data: Record<string, unknown>) => {
     if (wsRef.current?.connected) {
@@ -828,7 +927,7 @@ const GamePage: React.FC = () => {
 
   return (
       <div className="game-page" style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #111832 100%)', color: '#e8ecf8' }}>
-        <GameAnnouncer data={announcerData} onClose={() => setAnnouncerData(null)} />
+        <GameAnnouncer data={announcerData} onClose={closeAnnouncer} />
 
         <div className="game-topbar">
           <div className="game-topbar-left">
