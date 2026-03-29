@@ -31,6 +31,7 @@ interface DeckInfo {
 
 type MenuKey = 'play' | 'deck' | 'rules';
 type PlayMode = 'none' | 'quick' | 'private';
+type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 
 function getSession(): SessionInfo | null {
     const token = sessionStorage.getItem('access_token');
@@ -63,21 +64,13 @@ const horizontalWallpapers = [
 ];
 
 const verticalWallpapers = [
-    '/wallpaper/Vertical/1.jpg',
+    '/wallpaper/Vertical/1.png',
     '/wallpaper/Vertical/2.jpg',
     '/wallpaper/Vertical/3.jpg',
     '/wallpaper/Vertical/4.jpg',
-    '/wallpaper/Vertical/5.png',
-    // '/wallpaper/Horizontal/1.jpg',
-    // '/wallpaper/Horizontal/2.webp',
-    // '/wallpaper/Horizontal/3.webp',
-    // '/wallpaper/Horizontal/4.webp',
-    // '/wallpaper/Horizontal/5.webp',
-    // '/wallpaper/Horizontal/6.webp',
-    // '/wallpaper/Horizontal/7.webp',
-    // '/wallpaper/Horizontal/8.jpg',
-    // '/wallpaper/Horizontal/9.jpg',
-    // '/wallpaper/Horizontal/10.jpg',
+    '/wallpaper/Vertical/5.jpg',
+    '/wallpaper/Vertical/6.png',
+    '/wallpaper/Vertical/7.jpg',
 ];
 
 const LobbyPage: React.FC = () => {
@@ -100,10 +93,14 @@ const LobbyPage: React.FC = () => {
         typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false,
     );
     const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+    const [backgroundMotionAxis, setBackgroundMotionAxis] = useState<BackgroundMotionAxis>('none');
+    const [backgroundPanRange, setBackgroundPanRange] = useState(0);
+    const [backgroundPanDuration, setBackgroundPanDuration] = useState(26);
     const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
     const [playMode, setPlayMode] = useState<PlayMode>('none');
     const [showPlayModal, setShowPlayModal] = useState(false);
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
+    const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -189,6 +186,68 @@ const LobbyPage: React.FC = () => {
         const randomIndex = Math.floor(Math.random() * candidates.length);
         setBackgroundImage(candidates[randomIndex]);
     }, [isPortrait]);
+
+    const updateBackgroundMotion = useCallback((imageWidth: number, imageHeight: number) => {
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            setBackgroundMotionAxis('none');
+            setBackgroundPanRange(0);
+            setBackgroundPanDuration(26);
+            return;
+        }
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const imageAspect = imageWidth / imageHeight;
+        const viewportAspect = viewportWidth / viewportHeight;
+
+        if (imageAspect > viewportAspect) {
+            const renderedWidth = viewportHeight * imageAspect;
+            const overflowX = Math.max(0, renderedWidth - viewportWidth);
+            const panRange = Math.max(0, Math.floor(overflowX / 2));
+            setBackgroundMotionAxis(panRange > 0 ? 'horizontal' : 'none');
+            setBackgroundPanRange(panRange);
+            setBackgroundPanDuration(Math.min(44, Math.max(20, 18 + panRange / 22)));
+            return;
+        }
+
+        if (imageAspect < viewportAspect) {
+            const renderedHeight = viewportWidth / imageAspect;
+            const overflowY = Math.max(0, renderedHeight - viewportHeight);
+            const panRange = Math.max(0, Math.floor(overflowY / 2));
+            setBackgroundMotionAxis(panRange > 0 ? 'vertical' : 'none');
+            setBackgroundPanRange(panRange);
+            setBackgroundPanDuration(Math.min(44, Math.max(20, 18 + panRange / 22)));
+            return;
+        }
+
+        setBackgroundMotionAxis('none');
+        setBackgroundPanRange(0);
+        setBackgroundPanDuration(26);
+    }, []);
+
+    useEffect(() => {
+        if (!backgroundImage) {
+            backgroundNaturalSizeRef.current = null;
+            setBackgroundMotionAxis('none');
+            setBackgroundPanRange(0);
+            setBackgroundPanDuration(26);
+        }
+    }, [backgroundImage]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const naturalSize = backgroundNaturalSizeRef.current;
+            if (!naturalSize) return;
+            updateBackgroundMotion(naturalSize.width, naturalSize.height);
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
+        };
+    }, [updateBackgroundMotion]);
 
     useEffect(() => {
         if (!session) return;
@@ -386,12 +445,36 @@ const LobbyPage: React.FC = () => {
     };
 
     const isHost = room?.host.id === session?.player_id;
-    const bgVarStyle = { '--lobby-bg-image': backgroundImage ? `url('${backgroundImage}')` : 'none' } as React.CSSProperties;
+    const showMainMenu = !(activeMenu === 'play' && playMode === 'private');
+    const menuClassName = `lobby-menu ${isPortrait && showMainMenu ? 'main-menu-mode' : ''}`.trim();
+    const bgMotionStyle = {
+        '--lobby-bg-pan-range': `${backgroundPanRange}px`,
+        '--lobby-bg-pan-duration': `${backgroundPanDuration}s`,
+    } as React.CSSProperties;
+    const bgClassName = `lobby-background ${backgroundMotionAxis}`;
+
+    const handleBackgroundImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const img = e.currentTarget;
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+        backgroundNaturalSizeRef.current = { width: naturalWidth, height: naturalHeight };
+        updateBackgroundMotion(naturalWidth, naturalHeight);
+    };
 
     if (!session) {
         return (
-            <div className="lobby-auth-page" style={bgVarStyle}>
-                <div className="lobby-background" />
+            <div className="lobby-auth-page">
+                <div className={bgClassName} style={bgMotionStyle}>
+                    {backgroundImage && (
+                        <img
+                            src={backgroundImage}
+                            alt=""
+                            aria-hidden="true"
+                            className="lobby-background-image"
+                            onLoad={handleBackgroundImageLoad}
+                        />
+                    )}
+                </div>
                 <div className="lobby-auth-card">
                     <h2>배틀태그 입력</h2>
                     <p>배틀태그 입력시 바로 로비에 들어갑니다.</p>
@@ -414,12 +497,22 @@ const LobbyPage: React.FC = () => {
     }
 
     return (
-        <div className={`lobby-page ${isPortrait ? 'mobile' : 'desktop'}`} style={bgVarStyle}>
-            <div className="lobby-background" />
+        <div className={`lobby-page ${isPortrait ? 'mobile' : 'desktop'}`}>
+            <div className={bgClassName} style={bgMotionStyle}>
+                {backgroundImage && (
+                    <img
+                        src={backgroundImage}
+                        alt=""
+                        aria-hidden="true"
+                        className="lobby-background-image"
+                        onLoad={handleBackgroundImageLoad}
+                    />
+                )}
+            </div>
             <div className="lobby-dim" />
 
             <div className="lobby-shell">
-                <aside className="lobby-menu">
+                <aside className={menuClassName}>
                     {activeMenu === 'play' && playMode === 'private' ? (
                         <div className="private-back-wrap">
                             <button className="lobby-ghost-btn private-back-btn" onClick={handleBackToLobby}>
