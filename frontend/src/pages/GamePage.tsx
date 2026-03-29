@@ -397,23 +397,71 @@ const GamePage: React.FC = () => {
   }, [showSkillUse, showSystemNotice]);
 
   const showDeathPassiveNotice = useCallback((result: any, owner: 'my' | 'opponent') => {
-    let found = false;
+    // let found = false;
+    const gsNow = gsRef.current;
+    if (!gsNow || !result) return;
+
+    const ownerCards = owner === 'my'
+        ? [...(gsNow.my_state?.field?.main || []), ...(gsNow.my_state?.field?.side || [])]
+        : [...(gsNow.opponent_state?.field?.main || []), ...(gsNow.opponent_state?.field?.side || [])];
+    const allCards = [
+      ...(gsNow.my_state?.field?.main || []),
+      ...(gsNow.my_state?.field?.side || []),
+      ...(gsNow.opponent_state?.field?.main || []),
+      ...(gsNow.opponent_state?.field?.side || []),
+    ];
+    const seen = new Set<string>();
     const queue: any[] = [result];
+
     while (queue.length > 0) {
       const node = queue.shift();
       if (!node || typeof node !== 'object') continue;
-      if (node.prevent_death || node.transform || node.enter_frozen) {
-        found = true;
-        break;
+      // if (node.prevent_death || node.transform || node.enter_frozen) {
+      //   found = true;
+      //   break;
+      const isDeathPassive = !!(node?.death_prevented || node?.prevent_death || node?.transform || node?.enter_frozen);
+      if (isDeathPassive) {
+        const key = `${node?.by || ''}:${node?.target || node?.uid || ''}:${node?.transform || ''}:${node?.enter_frozen ? 1 : 0}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          const sourceUid = node?.target || node?.uid || node?.source_uid;
+          const sourceCard = ownerCards.find((c: any) => c.uid === sourceUid) || allCards.find((c: any) => c.uid === sourceUid);
+          const sourceName = sourceCard?.name || (owner === 'my' ? '아군' : '상대');
+
+          if (node?.by === 'mech_destruction' || node?.transform === 'hana_song') {
+            showSkillUse({
+              skillName: '긴급 탈출',
+              subtitle: `${sourceName} 패시브`,
+              description: '메카 파괴 시 송하나 형태로 전환합니다.',
+              heroKey: getHeroKey(sourceCard) || 'dva',
+              imageName: sourceCard?.name || sourceName,
+              isSpell: false,
+              duration: 2600,
+            });
+          } else if (node?.by === 'frozen_revive' || node?.enter_frozen) {
+            showSkillUse({
+              skillName: '급속 빙결',
+              subtitle: `${sourceName} 패시브`,
+              description: '치명 피해 시 빙결 상태가 되고 다음 턴 시작에 회복합니다.',
+              heroKey: getHeroKey(sourceCard) || 'mei',
+              imageName: sourceCard?.name || sourceName,
+              isSpell: false,
+              duration: 2600,
+            });
+          } else {
+            showSystemNotice(sourceName, '사망 패시브 발동', 1200);
+          }
+        }
       }
       Object.values(node).forEach(v => {
         if (v && typeof v === 'object') queue.push(v);
       });
     }
-    if (found) {
-      showSystemNotice(owner === 'my' ? '아군 사망 패시브 발동' : '상대 사망 패시브 발동', '전투 효과 적용', 1500);
-    }
-  }, [showSystemNotice]);
+  //   if (found) {
+  //     showSystemNotice(owner === 'my' ? '아군 사망 패시브 발동' : '상대 사망 패시브 발동', '전투 효과 적용', 1500);
+  //   }
+  // }, [showSystemNotice]);
+  }, [showSkillUse, showSystemNotice]);
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);

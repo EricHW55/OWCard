@@ -19,6 +19,7 @@ interface Props {
 }
 
 const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
+    const handleSkip = () => onClose();
     const [imgError, setImgError] = useState(false);
 
     useEffect(() => {
@@ -50,18 +51,23 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
     return (
         <div className="game-announcer-overlay">
             {data.type === 'phase' && (
-                <div className="announcer-phase" style={animationStyle}>
+                // <div className="announcer-phase" style={animationStyle}>
+                <div className="announcer-phase" style={animationStyle} onClick={handleSkip}
+                     role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
                     <div className="announcer-phase-line" />
                     <div className="announcer-phase-body">
                         <div className="announcer-phase-title">{data.title}</div>
                         {data.subtitle && <div className="announcer-phase-subtitle">{data.subtitle}</div>}
+                        <div className="announcer-skip-hint">클릭하여 건너뛰기</div>
                     </div>
                     <div className="announcer-phase-line" />
                 </div>
             )}
 
             {data.type === 'skill' && (
-                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
+                // <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
+                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}
+                     onClick={handleSkip} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
                     <div className="skill-card-frame">
                         <div className="skill-card-top-trim" />
                         <div className="skill-card-side-trim left" />
@@ -95,6 +101,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                             )}
                         </div>
 
+                        <div className="announcer-skip-hint skill">클릭하여 건너뛰기</div>
                         <div className="skill-card-bottom-trim" />
                     </div>
                 </div>
