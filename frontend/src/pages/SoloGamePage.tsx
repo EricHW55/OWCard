@@ -30,7 +30,7 @@ const SoloGamePage: React.FC = () => {
       topbarRight={<><button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button></>}
       topField={{
         field: vm.players.top.field,
-        isOpponent: vm.activeSide !== 'top',
+        isOpponent: true,
         allowOpponentPlacement: vm.activeSide === 'top',
         isMyTurn: vm.activeSide === 'top',
         phase: vm.phase,
@@ -42,7 +42,7 @@ const SoloGamePage: React.FC = () => {
       }}
       bottomField={{
         field: vm.players.bottom.field,
-        isOpponent: vm.activeSide === 'top',
+        isOpponent: false,
         isMyTurn: vm.activeSide === 'bottom',
         phase: vm.phase,
         selectedUid: vm.activeSide === 'bottom' ? vm.selectedFieldUid : null,

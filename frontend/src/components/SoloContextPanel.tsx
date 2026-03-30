@@ -39,10 +39,10 @@ const SoloContextPanel: React.FC<Props> = ({
         <div className="game-context-panel">
           <div className="game-context-head">
             <span className="game-toolbar-title">멀리건 선택</span>
-            <span className="game-context-subtext">선택 {selectedMulligan.length}</span>
+            <span className="game-context-subtext">선택 {selectedMulligan.length}/2</span>
           </div>
           <div className="game-context-actions">
-            <button style={BTN_SM} onClick={onConfirmMulligan}>멀리건 확정</button>
+            <button style={BTN_SM} onClick={onConfirmMulligan}>멀리건 실행</button>
           </div>
         </div>
       )}

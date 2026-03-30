@@ -95,6 +95,11 @@ function phaseLabel(phase: SoloPhase): string {
   return '종료';
 }
 
+function getPlacementCost(card: HandCard): number {
+  const raw = Number(card.cost ?? 1);
+  return Number.isFinite(raw) && raw > 0 ? raw : 1;
+}
+
 export function useSoloGameController() {
   const apiBase = getApiBase();
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
@@ -263,7 +268,9 @@ export function useSoloGameController() {
       return;
     }
 
-    if (activePlayer.placementUsed >= 2) {
+    const placementCost = getPlacementCost(card);
+
+    if ((activePlayer.placementUsed + placementCost) > 2) {
       enqueueAnnouncer({ type: 'phase', title: '배치 제한', subtitle: '턴당 2장까지만 배치 가능', duration: 1200 });
       return;
     }
@@ -283,7 +290,7 @@ export function useSoloGameController() {
           ...cur,
           hand: cur.hand.filter((_, idx) => idx !== selectedHandIdx),
           field: nextField,
-          placementUsed: cur.placementUsed + 1,
+          placementUsed: cur.placementUsed + placementCost,
         },
       };
     });
@@ -386,7 +393,11 @@ export function useSoloGameController() {
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (phase === 'mulligan') {
-      setSelectedMulligan((prev) => (prev.includes(index) ? prev.filter((v) => v !== index) : [...prev, index]));
+      setSelectedMulligan((prev) => (
+          prev.includes(index)
+              ? prev.filter((v) => v !== index)
+              : [...prev, index].slice(0, 2)
+      ));
       return;
     }
 
