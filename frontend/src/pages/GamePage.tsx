@@ -10,6 +10,12 @@ const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
   const navigate = useNavigate();
   const vm = useOnlineGameController(gameId);
+  const handleSurrender = () => {
+    const confirmed = window.confirm('정말로 항복하시겠습니까?');
+    if (!confirmed) return;
+    vm.surrenderGame();
+    navigate('/');
+  };
 
   if (!vm.session) {
     return (
@@ -59,6 +65,7 @@ const GamePage: React.FC = () => {
         <>
           <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{vm.isMyTurn ? '● 내 턴' : '○ 상대 턴'}</div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
+          <button onClick={handleSurrender} style={{ ...BTN_SM, background: '#4b1f2d' }}>항복</button>
           <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>
         </>
       }

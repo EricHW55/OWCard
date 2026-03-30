@@ -483,6 +483,10 @@ export function useOnlineGameController(gameId: string) {
     if (gs && gs.phase !== 'game_over') send({ action: 'leave_game' });
   }, [gs, send]);
 
+  const surrenderGame = useCallback(() => {
+    if (gs && gs.phase !== 'game_over') send({ action: 'surrender' });
+  }, [gs, send]);
+
   const my = gs?.my_state || null;
   const opp = gs?.opponent_state || null;
   const phase = gs?.phase || 'loading';
@@ -634,7 +638,7 @@ export function useOnlineGameController(gameId: string) {
     selectedHeroKey, selectedChargeLevel, canActUids, fieldSkills, showContextPanel,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
-    resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame,
+    resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,
   };
 }
