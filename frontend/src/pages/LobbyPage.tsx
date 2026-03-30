@@ -89,6 +89,10 @@ const LobbyPage: React.FC = () => {
     const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queueing, setQueueing] = useState(false);
+    const [viewportSize, setViewportSize] = useState(() => ({
+        width: typeof window !== 'undefined' ? window.innerWidth : 0,
+        height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    }));
     const [isPortrait, setIsPortrait] = useState(() =>
         typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false,
     );
@@ -165,6 +169,10 @@ const LobbyPage: React.FC = () => {
     useEffect(() => {
         const updateOrientation = () => {
             setIsPortrait(window.innerHeight > window.innerWidth);
+            setViewportSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
         };
 
         updateOrientation();
@@ -445,8 +453,10 @@ const LobbyPage: React.FC = () => {
     };
 
     const isHost = room?.host.id === session?.player_id;
+    const useCompactMenuLayout = isPortrait || viewportSize.width <= 1280;
     const showMainMenu = !(activeMenu === 'play' && playMode === 'private');
-    const menuClassName = `lobby-menu ${isPortrait && showMainMenu ? 'main-menu-mode' : ''}`.trim();
+    // const menuClassName = `lobby-menu ${isPortrait && showMainMenu ? 'main-menu-mode' : ''}`.trim();
+    const menuClassName = `lobby-menu ${useCompactMenuLayout && showMainMenu ? 'main-menu-mode' : ''}`.trim();
     const bgMotionStyle = {
         '--lobby-bg-pan-range': `${backgroundPanRange}px`,
         '--lobby-bg-pan-duration': `${backgroundPanDuration}s`,
@@ -497,7 +507,7 @@ const LobbyPage: React.FC = () => {
     }
 
     return (
-        <div className={`lobby-page ${isPortrait ? 'mobile' : 'desktop'}`}>
+        <div className={`lobby-page ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
             <div className={bgClassName} style={bgMotionStyle}>
                 {backgroundImage && (
                     <img
@@ -511,7 +521,7 @@ const LobbyPage: React.FC = () => {
             </div>
             <div className="lobby-dim" />
 
-            <div className="lobby-shell">
+            <div className={`lobby-shell ${useCompactMenuLayout ? 'compact' : ''}`}>
                 <aside className={menuClassName}>
                     {activeMenu === 'play' && playMode === 'private' ? (
                         <div className="private-back-wrap">
@@ -521,7 +531,7 @@ const LobbyPage: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            {isPortrait ? (
+                            {useCompactMenuLayout ? (
                                 <div className="mobile-menu-buttons">
                                     <button className="lobby-solid-btn" onClick={() => openMenu('play')}>플레이</button>
                                     <button className="lobby-solid-btn" onClick={() => openMenu('deck')}>덱 수정</button>
