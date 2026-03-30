@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameScreen from '../components/GameScreen';
-import SoloContextPanel from '../components/SoloContextPanel';
+import OnlineContextPanel from '../components/OnlineContextPanel';
 import useSoloGameController from '../controllers/useSoloGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
 import './GamePage.css';
@@ -37,7 +37,7 @@ const SoloGamePage: React.FC = () => {
         selectedUid: vm.activeSide === 'top' ? vm.selectedFieldUid : null,
         canActUids: vm.canActTop,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide !== 'top'),
-        placingCard: vm.phase === 'placement' && vm.activeSide === 'top' ? vm.selectedHandCard : null,
+        placingCard: vm.phase === 'placement' && vm.activeSide === 'top' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}
       bottomField={{
@@ -48,15 +48,47 @@ const SoloGamePage: React.FC = () => {
         selectedUid: vm.activeSide === 'bottom' ? vm.selectedFieldUid : null,
         canActUids: vm.canActBottom,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide === 'top'),
-        placingCard: vm.phase === 'placement' ? vm.selectedHandCard : null,
+        placingCard: vm.phase === 'placement' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}
       midlineDotActive={false}
-      contextPanel={<SoloContextPanel show={vm.showContextPanel} phase={vm.phase} selectedMulligan={vm.selectedMulligan} onConfirmMulligan={vm.confirmMulligan} selectedFieldName={vm.selectedMyFieldCard?.name} fieldSkills={vm.fieldSkills} actionMode={vm.actionMode} onPrepareSkill={vm.prepareSkill} onCancelSkillSelection={() => vm.setActionMode(null)} onEndPlacement={vm.endPlacement} />}
+      contextPanel={
+          <OnlineContextPanel
+              show={vm.showContextPanel}
+              phase={vm.phase}
+              mulliganDone={!!vm.activePlayer?.mulliganDone}
+              selectedMulligan={vm.selectedMulligan}
+              onRunMulligan={vm.runMulligan}
+              onSkipMulligan={vm.skipMulligan}
+              selectedFieldName={vm.selectedMyFieldCard?.name}
+              selectedHeroKey={vm.selectedHeroKey}
+              selectedChargeLevel={vm.selectedChargeLevel}
+              fieldSkills={vm.fieldSkills}
+              actionMode={vm.actionMode}
+              onPrepareSkill={vm.prepareSkill}
+              onCancelSkillSelection={() => vm.setActionMode(null)}
+              columnChoice={null}
+              enemyColumns={[]}
+              onSelectColumn={() => {}}
+              onCancelColumnChoice={() => {}}
+              pendingSpell={vm.pendingSpellCard?.hero_key || null}
+              pendingSpellName={vm.pendingSpellCard?.name || null}
+              onCancelPendingSpell={vm.cancelPendingSpell}
+              selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
+              onUseSelectedSpell={vm.useSelectedSpell}
+              onCancelSelectedHand={vm.cancelSelectedHand}
+              pendingPassive={null}
+              onResolveMercy={() => {}}
+              onSkipMercy={() => {}}
+              onSkipJetpackCat={() => {}}
+              pendingSpellChoice={null}
+              onResolveSpellChoice={() => {}}
+          />
+      }
       handCards={vm.activePlayer.hand}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}
-      bottomMeta={<>패: {vm.activePlayer.hand.length}장 · 덱: {vm.activePlayer.drawPile.length}장</>}
+      bottomMeta={<>패: {vm.activePlayer.hand.length}장 · 덱: {vm.activePlayer.drawPile.length}장 · 배치 {vm.activePlayer.placementUsed}/2</>}
       bottomActions={
           <>
               {vm.phase !== 'mulligan' && (

@@ -100,6 +100,15 @@ function getPlacementCost(card: HandCard): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 1;
 }
 
+function getSpellEffectAmount(card: HandCard, type: 'damage' | 'heal'): number {
+  const values: number[] = [];
+  Object.values(card.skill_damages || {}).forEach((entry: any) => {
+    const raw = entry?.[type];
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) values.push(raw);
+  });
+  return values.length ? Math.max(...values) : 3;
+}
+
 export function useSoloGameController() {
   const apiBase = getApiBase();
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
@@ -114,6 +123,7 @@ export function useSoloGameController() {
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [actionMode, setActionMode] = useState<string | null>(null);
+  const [pendingSpellCard, setPendingSpellCard] = useState<HandCard | null>(null);
 
   const enemySide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
   const activePlayer = players?.[activeSide] || null;
@@ -128,6 +138,9 @@ export function useSoloGameController() {
     if (!activePlayer || !selectedFieldUid) return null;
     return [...activePlayer.field.main, ...activePlayer.field.side].find((c) => c.uid === selectedFieldUid) || null;
   }, [activePlayer, selectedFieldUid]);
+
+  const selectedHeroKey = selectedMyFieldCard?.hero_key || '';
+  const selectedChargeLevel = 0;
 
   useEffect(() => {
     enqueueAnnouncer({
@@ -249,6 +262,35 @@ export function useSoloGameController() {
     setPhase('placement');
     setActiveSide('bottom');
   }, [players, activePlayer, phase, activeSide, selectedMulligan]);
+  const runMulligan = confirmMulligan;
+
+  const skipMulligan = useCallback(() => {
+    if (!players || !activePlayer || phase !== 'mulligan') return;
+
+    setPlayers((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [activeSide]: {
+          ...prev[activeSide],
+          mulliganDone: true,
+        },
+      };
+    });
+
+    setSelectedMulligan([]);
+    setSelectedHandIdx(null);
+    setSelectedFieldUid(null);
+
+    const nextSide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
+    if (!players[nextSide].mulliganDone) {
+      setActiveSide(nextSide);
+      return;
+    }
+
+    setPhase('placement');
+    setActiveSide('bottom');
+  }, [players, activePlayer, phase, activeSide]);
 
   useEffect(() => {
     if (!players || phase !== 'mulligan') return;
@@ -298,11 +340,55 @@ export function useSoloGameController() {
     enqueueAnnouncer({ type: 'phase', title: card.name, subtitle: `${zone === 'main' ? '본대' : '사이드'} 배치`, duration: 1000 });
     setSelectedHandIdx(null);
   }, [players, activePlayer, phase, selectedHandIdx, activeSide, enqueueAnnouncer]);
+  const handlePlace = placeCard;
+
+  const useSelectedSpell = useCallback(() => {
+    if (!players || !activePlayer || phase !== 'placement' || selectedHandIdx === null) return;
+    const card = activePlayer.hand[selectedHandIdx];
+    if (!card?.is_spell) return;
+
+    const placementCost = getPlacementCost(card);
+    if ((activePlayer.placementUsed + placementCost) > 2) {
+      enqueueAnnouncer({ type: 'phase', title: '배치 제한', subtitle: '턴당 2코스트까지만 사용 가능', duration: 1200 });
+      return;
+    }
+
+    setPlayers((prev) => {
+      if (!prev) return prev;
+      const cur = prev[activeSide];
+      return {
+        ...prev,
+        [activeSide]: {
+          ...cur,
+          hand: cur.hand.filter((_, idx) => idx !== selectedHandIdx),
+          placementUsed: cur.placementUsed + placementCost,
+          trash: [...cur.trash, card],
+        },
+      };
+    });
+
+    setPendingSpellCard(card);
+    setActionMode('spell');
+    setSelectedHandIdx(null);
+    setSelectedFieldUid(null);
+    enqueueAnnouncer({ type: 'phase', title: card.name, subtitle: '대상 카드를 선택하세요', duration: 1000 });
+  }, [players, activePlayer, phase, selectedHandIdx, activeSide, enqueueAnnouncer]);
+
+  const cancelPendingSpell = useCallback(() => {
+    setPendingSpellCard(null);
+    setActionMode(null);
+  }, []);
+
+  const cancelSelectedHand = useCallback(() => {
+    setSelectedHandIdx(null);
+  }, []);
 
   const endPlacement = useCallback(() => {
     if (phase !== 'placement') return;
     setPhase('action');
     setSelectedHandIdx(null);
+    setPendingSpellCard(null);
+    setActionMode(null);
   }, [phase]);
 
   const executeSkill = useCallback((skillKey: string, targetUid?: string) => {
@@ -379,6 +465,7 @@ export function useSoloGameController() {
     setSelectedFieldUid(null);
     setSelectedHandIdx(null);
     setActionMode(null);
+    setPendingSpellCard(null);
   }, [players, phase, activeSide]);
 
   const handleEndMainButton = useCallback(() => {
@@ -404,14 +491,57 @@ export function useSoloGameController() {
     if (selectedHandIdx === index) {
       setDetailCard(card);
       setSelectedHandIdx(null);
+      setPendingSpellCard(null);
+      if (actionMode === 'spell') setActionMode(null);
       return;
     }
 
     setSelectedHandIdx(index);
     setSelectedFieldUid(null);
-  }, [phase, selectedHandIdx]);
+    setPendingSpellCard(null);
+    if (actionMode === 'spell') setActionMode(null);
+  }, [phase, selectedHandIdx, actionMode]);
 
   const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
+    if (phase === 'placement' && actionMode === 'spell' && pendingSpellCard) {
+      const allMine = [...(activePlayer?.field.main || []), ...(activePlayer?.field.side || [])];
+      const isMyCard = allMine.some((c) => c.uid === card.uid);
+      const amount = getSpellEffectAmount(pendingSpellCard, isMyCard ? 'heal' : 'damage');
+
+      setPlayers((prev) => {
+        if (!prev) return prev;
+        const ownerSide: Side = isMyCard ? activeSide : enemySide;
+        const patch = (field: FieldState): FieldState => {
+          const apply = (c: FieldCard) => {
+            if (c.uid !== card.uid) return c;
+            if (isMyCard) return { ...c, current_hp: Math.min(c.max_hp, c.current_hp + amount) };
+            return { ...c, current_hp: c.current_hp - amount };
+          };
+          return {
+            main: field.main.map(apply).filter((c) => c.current_hp > 0),
+            side: field.side.map(apply).filter((c) => c.current_hp > 0),
+          };
+        };
+        return {
+          ...prev,
+          [ownerSide]: {
+            ...prev[ownerSide],
+            field: patch(prev[ownerSide].field),
+          },
+        };
+      });
+
+      enqueueAnnouncer({
+        type: 'phase',
+        title: pendingSpellCard.name,
+        subtitle: isMyCard ? `${card.name} 회복` : `${card.name} 공격`,
+        duration: 1100,
+      });
+      setPendingSpellCard(null);
+      setActionMode(null);
+      return;
+    }
+
     if (isOpponent && phase === 'action' && actionMode) {
       executeSkill(actionMode, card.uid);
       return;
@@ -431,7 +561,8 @@ export function useSoloGameController() {
     setSelectedFieldUid(card.uid);
     setSelectedHandIdx(null);
     setActionMode(null);
-  }, [selectedFieldUid, phase, actionMode, executeSkill]);
+    setPendingSpellCard(null);
+  }, [phase, actionMode, pendingSpellCard, activePlayer, activeSide, enemySide, selectedFieldUid, executeSkill, enqueueAnnouncer]);
 
   const canActTop = phase === 'action' && activeSide === 'top'
     ? [...(players?.top.field.main || []), ...(players?.top.field.side || [])].filter((c) => !c.acted_this_turn && !c.placed_this_turn).map((c) => c.uid)
@@ -442,10 +573,17 @@ export function useSoloGameController() {
     : [];
 
   const fieldSkills = selectedMyFieldCard && phase === 'action' && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn
-    ? Object.entries(selectedMyFieldCard.skill_meta || {}).filter(([key]) => key.startsWith('skill_')).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([key, meta]) => ({ key, name: (meta as any)?.name || key }))
+      ? Object.entries(selectedMyFieldCard.skill_meta || {})
+          .filter(([key]) => key.startsWith('skill_'))
+          .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+          .map(([key, meta]) => ({ key, name: (meta as any)?.name || key, onCooldown: false, cdLeft: 0 }))
     : [];
 
-  const showContextPanel = phase === 'mulligan' || fieldSkills.length > 0 || phase === 'placement' || (phase === 'action' && !!actionMode);
+  const showContextPanel = (phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone)
+      || fieldSkills.length > 0
+      || phase === 'placement'
+      || (phase === 'placement' && !!selectedHandCard?.is_spell && !pendingSpellCard)
+      || (phase === 'placement' && actionMode === 'spell' && !!pendingSpellCard);
 
   return {
     loading,
@@ -461,15 +599,24 @@ export function useSoloGameController() {
     selectedFieldUid,
     selectedHandCard,
     selectedMyFieldCard,
+    selectedHeroKey,
+    selectedChargeLevel,
     detailCard,
     setDetailCard,
     canActTop,
     canActBottom,
     fieldSkills,
     actionMode,
+    pendingSpellCard,
     showContextPanel,
     confirmMulligan,
+    runMulligan,
+    skipMulligan,
     placeCard,
+    handlePlace,
+    useSelectedSpell,
+    cancelSelectedHand,
+    cancelPendingSpell,
     endPlacement,
     executeSkill,
     endTurn,

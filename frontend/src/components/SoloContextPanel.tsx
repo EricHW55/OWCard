@@ -1,37 +1,47 @@
 import React from 'react';
 import { BTN_SM } from '../utils/ui';
+import type { OnlineContextPanelProps } from './OnlineContextPanel';
 
-type FieldSkill = {
-  key: string;
-  name: string;
-};
-
-interface Props {
-  show: boolean;
-  phase: 'mulligan' | 'placement' | 'action' | 'game_over';
-  selectedMulligan: number[];
-  onConfirmMulligan: () => void;
-  selectedFieldName?: string;
-  fieldSkills: FieldSkill[];
-  actionMode: string | null;
-  onPrepareSkill: (skillKey: string) => void;
-  onCancelSkillSelection: () => void;
-  onEndPlacement: () => void;
+type Props = Pick<
+    OnlineContextPanelProps,
+    | 'show'
+    | 'phase'
+    | 'selectedMulligan'
+    | 'onRunMulligan'
+    | 'onSkipMulligan'
+    | 'selectedFieldName'
+    | 'fieldSkills'
+    | 'actionMode'
+    | 'onPrepareSkill'
+    | 'onCancelSkillSelection'
+    | 'selectedHandSpellName'
+    | 'onUseSelectedSpell'
+    | 'onCancelSelectedHand'
+    | 'onCancelPendingSpell'
+> & {
+    show: boolean;
+    phase: 'mulligan' | 'placement' | 'action' | 'game_over';
+    onEndPlacement: () => void;
 }
 
 const SoloContextPanel: React.FC<Props> = ({
   show,
   phase,
   selectedMulligan,
-  onConfirmMulligan,
+  onRunMulligan,
+  onSkipMulligan,
   selectedFieldName,
   fieldSkills,
   actionMode,
   onPrepareSkill,
   onCancelSkillSelection,
   onEndPlacement,
-}) => {
-  if (!show) return null;
+  selectedHandSpellName,
+  onUseSelectedSpell,
+  onCancelSelectedHand,
+  onCancelPendingSpell,
+  }) => {
+    if (!show) return null;
 
   return (
     <div className="game-context-stack">
@@ -42,7 +52,8 @@ const SoloContextPanel: React.FC<Props> = ({
             <span className="game-context-subtext">선택 {selectedMulligan.length}/2</span>
           </div>
           <div className="game-context-actions">
-            <button style={BTN_SM} onClick={onConfirmMulligan}>멀리건 실행</button>
+            <button style={BTN_SM} onClick={onRunMulligan}>멀리건 실행</button>
+            <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
           </div>
         </div>
       )}
@@ -83,6 +94,31 @@ const SoloContextPanel: React.FC<Props> = ({
             <button style={BTN_SM} onClick={onEndPlacement}>배치 종료</button>
           </div>
         </div>
+      )}
+
+      {phase === 'placement' && selectedHandSpellName && actionMode !== 'spell' && (
+          <div className="game-context-panel">
+            <div className="game-context-head">
+              <span className="game-toolbar-title">{selectedHandSpellName}</span>
+              <span className="game-context-subtext">스킬 카드를 바로 사용합니다</span>
+            </div>
+            <div className="game-context-actions">
+              <button onClick={onUseSelectedSpell} style={BTN_SM}>✦ 스킬 카드 사용</button>
+              <button onClick={onCancelSelectedHand} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
+            </div>
+          </div>
+      )}
+
+      {phase === 'placement' && actionMode === 'spell' && (
+          <div className="game-context-panel">
+            <div className="game-context-head">
+              <span className="game-toolbar-title">스킬 카드 대상 선택</span>
+              <span className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</span>
+            </div>
+            <div className="game-context-actions">
+              <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
+            </div>
+          </div>
       )}
     </div>
   );

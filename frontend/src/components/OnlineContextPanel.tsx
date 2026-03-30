@@ -1,30 +1,30 @@
 import React from 'react';
 import { BTN_SM, roleClass, roleLabel } from '../utils/ui';
 
-type FieldSkill = {
+export type FieldSkill = {
   key: string;
   name: string;
   onCooldown: boolean;
   cdLeft: number;
 };
 
-type PendingPassive = any;
-type PendingSpellChoice = any;
-type PendingColumnChoice = {
+export type PendingPassive = any;
+export type PendingSpellChoice = any;
+export type PendingColumnChoice = {
   source: 'skill' | 'spell';
   heroKey?: string;
   skillKey?: string;
   skillName: string;
 } | null;
 
-type ColumnPreview = {
+export type ColumnPreview = {
   key: string;
   label: string;
   repUid: string;
   names: string[];
 };
 
-interface Props {
+export interface OnlineContextPanelProps {
   show: boolean;
   phase: string;
   mulliganDone: boolean;
@@ -62,7 +62,7 @@ interface Props {
   onResolveSpellChoice: (index: number, mode: 'trash' | 'draw') => void;
 }
 
-const OnlineContextPanel: React.FC<Props> = ({
+const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   show,
   phase,
   mulliganDone,
