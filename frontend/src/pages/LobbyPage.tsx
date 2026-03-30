@@ -641,6 +641,15 @@ const LobbyPage: React.FC = () => {
                                 {queueing ? '퀵매칭 취소' : '퀵매칭'}
                             </button>
                             <button className="lobby-ghost-btn" onClick={openPrivateLobby}>사설방</button>
+                            <button
+                                className="lobby-ghost-btn"
+                                onClick={() => {
+                                    setShowPlayModal(false);
+                                    navigate('/solo-game');
+                                }}
+                            >
+                                솔로 모드
+                            </button>
                         </div>
                     </div>
                 </div>

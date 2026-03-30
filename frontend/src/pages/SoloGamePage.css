@@ -1,0 +1,142 @@
+.solo-page {
+    min-height: 100dvh;
+    background: #070c18;
+    color: #e8ecf8;
+    display: flex;
+    flex-direction: column;
+}
+
+.solo-center {
+    display: grid;
+    place-items: center;
+    gap: 12px;
+}
+
+.solo-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #223157;
+    background: rgba(13, 18, 37, 0.96);
+}
+
+.solo-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.solo-board {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.solo-player-panel {
+    border: 1px solid #223157;
+    border-radius: 10px;
+    padding: 8px;
+    background: rgba(12, 19, 38, 0.9);
+}
+
+.solo-player-panel.active {
+    border-color: #ffaa22;
+    box-shadow: 0 0 0 1px rgba(255, 170, 34, 0.4);
+}
+
+.solo-player-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.solo-divider {
+    text-align: center;
+    color: #8a94b8;
+    font-weight: 800;
+    letter-spacing: 4px;
+    font-size: 12px;
+}
+
+.solo-hand-wrap {
+    border-top: 1px solid #223157;
+    padding: 10px;
+    background: #0c1226;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.solo-hand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.solo-hand-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.solo-hand-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.solo-empty {
+    min-height: 98px;
+    border: 1px dashed #2a3560;
+    border-radius: 8px;
+    padding: 14px;
+    color: #8a94b8;
+    font-size: 12px;
+}
+
+.solo-btn {
+    border: 1px solid #3a4a78;
+    background: #243055;
+    color: #e8ecf8;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.solo-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.solo-result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 10, 19, 0.72);
+    display: grid;
+    place-items: center;
+    z-index: 20;
+}
+
+.solo-result-card {
+    width: min(90vw, 280px);
+    border: 1px solid #3a4a78;
+    border-radius: 12px;
+    background: #111a33;
+    padding: 18px;
+    text-align: center;
+}

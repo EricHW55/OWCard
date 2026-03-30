@@ -13,6 +13,7 @@ interface Props {
     onCardClick: (card: FieldCard) => void;
     placingCard: HandCardType | null;
     onPlaceClick: (zone: 'main' | 'side') => void;
+    allowOpponentPlacement?: boolean;
 }
 
 const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ highlight, onClick }) => (
@@ -31,15 +32,15 @@ const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ hi
 const FieldSection: React.FC<Props> = ({
                                            field, isOpponent, isMyTurn, phase,
                                            selectedUid, canActUids, onCardClick,
-                                           placingCard, onPlaceClick,
+                                           placingCard, onPlaceClick, allowOpponentPlacement = false,
                                        }) => {
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
     const dealers = (field?.main || []).filter(c => c.role === 'dealer');
     const healers = (field?.main || []).filter(c => c.role === 'healer');
     const sideCards = field?.side || [];
 
-    // 배치 조건: 내 턴 + 배치 페이즈 + 내 필드 + 카드 선택됨
-    const canPlace = !!placingCard && !isOpponent && isMyTurn && phase === 'placement';
+    // 배치 조건: 내 턴 + 배치 페이즈 + 카드 선택됨
+    const canPlace = !!placingCard && isMyTurn && phase === 'placement' && (!isOpponent || allowOpponentPlacement);
     const placingRole = placingCard?.role;
 
     const renderCard = (card: FieldCard) => (
@@ -81,7 +82,6 @@ const FieldSection: React.FC<Props> = ({
             { role: 'healer', label: '힐러', cards: healers, max: 2 },
         ];
 
-    // 사이드도 같은 순서
     const sideTank = sideCards.find(c => c.role === 'tank');
     const sideDealer = sideCards.find(c => c.role === 'dealer');
     const sideHealer = sideCards.find(c => c.role === 'healer');
@@ -100,7 +100,6 @@ const FieldSection: React.FC<Props> = ({
 
     return (
         <div style={{ display: 'flex', gap: 3 }}>
-            {/* ── 본대 ────────────────────────── */}
             <div style={{
                 flex: 1, background: '#0f1628', borderRadius: 8, padding: '4px 8px',
                 border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2,
@@ -114,10 +113,9 @@ const FieldSection: React.FC<Props> = ({
             <span style={{ fontSize: 8, color: ROLE_COLOR[role], width: 24, flexShrink: 0, textAlign: 'right' }}>
               {label}
             </span>
-                        {/* 탱커 1칸은 딜러/힐러 2칸 폭 안에서 가운데 정렬 */}
                         <div style={{
                             display: 'flex', gap: 4,
-                            width: max === 1 ? 128 : 'auto',  /* 62*2 + 4gap = 128 */
+                            width: max === 1 ? 128 : 'auto',
                             justifyContent: max === 1 ? 'center' : 'flex-start',
                         }}>
                             {renderRow(cards, role, max)}
@@ -126,7 +124,6 @@ const FieldSection: React.FC<Props> = ({
                 ))}
             </div>
 
-            {/* ── 사이드 ───────────────────────── */}
             <div style={{
                 width: 78, background: '#0f1628', borderRadius: 8, padding: '4px 4px',
                 border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
