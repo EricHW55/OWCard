@@ -579,11 +579,10 @@ export function useSoloGameController() {
           .map(([key, meta]) => ({ key, name: (meta as any)?.name || key, onCooldown: false, cdLeft: 0 }))
     : [];
 
-  const showContextPanel = (phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone)
+  const showContextPanel =
+      (phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone)
       || fieldSkills.length > 0
       || phase === 'placement'
-      || (phase === 'placement' && !!selectedHandCard?.is_spell && !pendingSpellCard)
-      || (phase === 'placement' && actionMode === 'spell' && !!pendingSpellCard);
 
   return {
     loading,

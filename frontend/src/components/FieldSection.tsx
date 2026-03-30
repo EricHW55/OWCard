@@ -17,14 +17,15 @@ interface Props {
 }
 
 const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ highlight, onClick }) => (
-    <div onClick={onClick} style={{
-        width: 62, height: 86, borderRadius: 6,
-        border: `2px dashed ${highlight ? '#ff9b30' : '#1a2340'}`,
-        background: highlight ? 'rgba(255,155,48,0.08)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, color: '#3a4a78',
-        cursor: highlight ? 'pointer' : 'default', flexShrink: 0,
-    }}>
+    // <div onClick={onClick} style={{
+    //     width: 62, height: 86, borderRadius: 6,
+    //     border: `2px dashed ${highlight ? '#ff9b30' : '#1a2340'}`,
+    //     background: highlight ? 'rgba(255,155,48,0.08)' : 'transparent',
+    //     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    //     fontSize: 9, color: '#3a4a78',
+    //     cursor: highlight ? 'pointer' : 'default', flexShrink: 0,
+    // }}>
+    <div onClick={onClick} className={`field-empty-slot ${highlight ? 'highlight' : ''}`}>
         {highlight ? '배치' : ''}
     </div>
 );
@@ -99,49 +100,32 @@ const FieldSection: React.FC<Props> = ({
         ];
 
     return (
-        <div style={{ display: 'flex', gap: 3 }}>
-            <div style={{
-                flex: 1, background: '#0f1628', borderRadius: 8, padding: '4px 8px',
-                border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2,
-            }}>
-                <div style={{ fontSize: 8, color: '#2a3a5a', letterSpacing: 2, fontWeight: 700 }}>
-                    {isOpponent ? '상대 본대' : '나의 본대'}
-                </div>
+        <div className="field-section">
+            <div className="field-section-title">{isOpponent ? '상대 본대' : '나의 본대'}</div>
 
-                {mainRows.map(({ role, label, cards, max }) => (
-                    <div key={role} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span style={{ fontSize: 8, color: ROLE_COLOR[role], width: 24, flexShrink: 0, textAlign: 'right' }}>
-              {label}
-            </span>
-                        <div style={{
-                            display: 'flex', gap: 4,
-                            width: max === 1 ? 128 : 'auto',
-                            justifyContent: max === 1 ? 'center' : 'flex-start',
-                        }}>
-                            {renderRow(cards, role, max)}
+            {mainRows.map(({ role, label, cards, max }, idx) => {
+                const sideDef = sideRowDefs[idx];
+                const canPlaceSide = canPlace && placingRole === sideDef.role;
+                return (
+                    <div key={role} className="field-lane-row">
+                        <span className="field-role-label" style={{ color: ROLE_COLOR[role] }}>{label}</span>
+                        <div className="field-lane-track">
+                            <div className={`field-main-slot-wrap ${max === 1 ? 'single' : ''}`}>
+                                {renderRow(cards, role, max)}
+                            </div>
+                            <div className="field-side-slot-wrap">
+                                {sideDef.card ? renderCard(sideDef.card) : (
+                                    <EmptySlot
+                                        key={`side-${role}`}
+                                        highlight={canPlaceSide}
+                                        onClick={canPlaceSide ? () => onPlaceClick('side') : undefined}
+                                    />
+                                )}
+                            </div>
                         </div>
                     </div>
-                ))}
-            </div>
-
-            <div style={{
-                width: 78, background: '#0f1628', borderRadius: 8, padding: '4px 4px',
-                border: '1px solid #1a2340', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
-            }}>
-                <div style={{ fontSize: 8, color: '#2a3a5a', letterSpacing: 1, fontWeight: 700 }}>사이드</div>
-
-                {sideRowDefs.map(({ role, card }) => {
-                    if (card) return renderCard(card);
-                    const canPlaceHere = canPlace && placingRole === role;
-                    return (
-                        <EmptySlot
-                            key={`side-${role}`}
-                            highlight={canPlaceHere}
-                            onClick={canPlaceHere ? () => onPlaceClick('side') : undefined}
-                        />
-                    );
-                })}
-            </div>
+                );
+            })}
         </div>
     );
 };
