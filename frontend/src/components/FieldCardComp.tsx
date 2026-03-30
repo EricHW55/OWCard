@@ -85,9 +85,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
         <div
             onClick={onClick}
             style={{
-                width: 62,
-                height: 92,
-                borderRadius: 6,
+                width: 'var(--field-card-width)',
+                height: 'var(--field-card-height)',
+                borderRadius: 'var(--field-card-radius)',
                 position: 'relative',
                 border: `2px solid ${borderColor}`,
                 background: selected
@@ -99,7 +99,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '3px 2px',
+                padding: 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
                 cursor: 'pointer',
                 flexShrink: 0,
                 opacity: isHidden ? 0.45 : 1,
@@ -117,7 +117,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                         position: 'absolute',
                         inset: -3,
                         border: '2px solid #22cc8888',
-                        borderRadius: 8,
+                        borderRadius: 'calc(var(--field-card-radius) + 2px)',
                         pointerEvents: 'none',
                     }}
                 />
@@ -128,7 +128,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                     style={{
                         position: 'absolute',
                         inset: -2,
-                        borderRadius: 8,
+                        borderRadius: 'calc(var(--field-card-radius) + 2px)',
                         pointerEvents: 'none',
                         border: '1px solid #66ddff66',
                         animation: 'pulse 1.5s ease-in-out infinite',
@@ -144,7 +144,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
 
             <div
                 style={{
-                    fontSize: 8,
+                    fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.125), 11px)',
                     fontWeight: 700,
                     color,
                     textAlign: 'center',
@@ -157,9 +157,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
 
             <div
                 style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
+                    width: 'calc(var(--field-card-width) * 0.45)',
+                    height: 'calc(var(--field-card-width) * 0.45)',
+                    borderRadius: 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -187,7 +187,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 style={{
                     display: 'flex',
                     gap: 2,
-                    fontSize: 7,
+                    fontSize: 'clamp(7px, calc(var(--field-card-width) * 0.11), 10px)',
                     fontWeight: 700,
                     flexWrap: 'wrap',
                     justifyContent: 'center',
@@ -202,7 +202,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
             <div
                 style={{
                     width: '90%',
-                    height: 3,
+                    height: 'clamp(3px, calc(var(--field-card-width) * 0.05), 5px)',
                     background: '#0a0e1a',
                     borderRadius: 2,
                     overflow: 'hidden',

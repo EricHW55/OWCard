@@ -113,6 +113,7 @@ const FieldSection: React.FC<Props> = ({
                             <div className={`field-main-slot-wrap ${max === 1 ? 'single' : ''}`}>
                                 {renderRow(cards, role, max)}
                             </div>
+                            <div className="field-main-side-divider" aria-hidden />
                             <div className="field-side-slot-wrap">
                                 {sideDef.card ? renderCard(sideDef.card) : (
                                     <EmptySlot

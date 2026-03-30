@@ -1,4 +1,8 @@
 .game-page {
+    --field-card-width: clamp(62px, 8vmin, 86px);
+    --field-card-height: calc(var(--field-card-width) * 1.48);
+    --field-card-radius: clamp(6px, calc(var(--field-card-width) * 0.11), 10px);
+    --field-lane-gap: clamp(4px, 0.7vmin, 8px);
     height: 100dvh;
     min-height: 100dvh;
     display: flex;
@@ -441,36 +445,46 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 4px;
+    gap: var(--field-lane-gap);
 }
 
 .field-main-slot-wrap {
-    width: 128px;
+    width: calc(var(--field-card-width) * 2 + var(--field-lane-gap));
     display: flex;
-    gap: 4px;
+    gap: var(--field-lane-gap);
     justify-content: flex-start;
+    padding-right: 2px;
 }
 
 .field-main-slot-wrap.single {
     justify-content: center;
 }
 
+.field-main-side-divider {
+    width: 1px;
+    height: calc(var(--field-card-height) * 0.88);
+    background: linear-gradient(180deg, transparent, #2b3e6b, transparent);
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
 .field-side-slot-wrap {
-    width: 62px;
+    width: var(--field-card-width);
     display: flex;
     justify-content: center;
+    padding-left: 2px;
 }
 
 .field-empty-slot {
-    width: 62px;
-    height: 86px;
-    border-radius: 6px;
+    width: var(--field-card-width);
+    height: var(--field-card-height);
+    border-radius: var(--field-card-radius);
     border: 2px dashed #1a2340;
     background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
+    font-size: clamp(9px, calc(var(--field-card-width) * 0.13), 12px);
     color: #3a4a78;
     cursor: default;
     flex-shrink: 0;
@@ -578,12 +592,12 @@
     }
 
     .field-main-slot-wrap {
-        width: 124px;
-        gap: 3px;
+        width: calc(var(--field-card-width) * 2 + var(--field-lane-gap));
+        gap: var(--field-lane-gap);
     }
 
     .field-lane-track {
-        gap: 3px;
+        gap: var(--field-lane-gap);
     }
 }
 
