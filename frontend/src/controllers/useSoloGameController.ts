@@ -108,6 +108,7 @@ export function useSoloGameController() {
   const [selectedFieldUid, setSelectedFieldUid] = useState<string | null>(null);
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
+  const [actionMode, setActionMode] = useState<string | null>(null);
 
   const enemySide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
   const activePlayer = players?.[activeSide] || null;
@@ -297,7 +298,7 @@ export function useSoloGameController() {
     setSelectedHandIdx(null);
   }, [phase]);
 
-  const useSkill = useCallback((skillKey: string) => {
+  const executeSkill = useCallback((skillKey: string, targetUid?: string) => {
     if (!players || !activePlayer || !enemyPlayer || !selectedMyFieldCard || phase !== 'action') return;
     if (selectedMyFieldCard.acted_this_turn || selectedMyFieldCard.placed_this_turn) return;
 
@@ -307,7 +308,7 @@ export function useSoloGameController() {
       return;
     }
 
-    const target = targets[0];
+    const target = targets.find((c) => c.uid === targetUid) || targets[0];
     const skillName = selectedMyFieldCard.skill_meta?.[skillKey]?.name || skillKey;
     const damage = Math.max(1, selectedMyFieldCard.attack || 1);
 
@@ -342,7 +343,13 @@ export function useSoloGameController() {
       imageName: selectedMyFieldCard.name,
       duration: 1700,
     });
+    setActionMode(null);
   }, [players, activePlayer, enemyPlayer, selectedMyFieldCard, phase, activeSide, enemySide, enqueueAnnouncer]);
+
+  const prepareSkill = useCallback((skillKey: string) => {
+    if (phase !== 'action') return;
+    setActionMode(skillKey);
+  }, [phase]);
 
   const endTurn = useCallback(() => {
     if (!players || phase === 'mulligan' || phase === 'game_over') return;
@@ -364,7 +371,18 @@ export function useSoloGameController() {
     setPhase('placement');
     setSelectedFieldUid(null);
     setSelectedHandIdx(null);
+    setActionMode(null);
   }, [players, phase, activeSide]);
+
+  const handleEndMainButton = useCallback(() => {
+    if (phase === 'placement') {
+      endPlacement();
+      return;
+    }
+    if (phase === 'action') {
+      endTurn();
+    }
+  }, [phase, endPlacement, endTurn]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (phase === 'mulligan') {
@@ -383,6 +401,11 @@ export function useSoloGameController() {
   }, [phase, selectedHandIdx]);
 
   const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
+    if (isOpponent && phase === 'action' && actionMode) {
+      executeSkill(actionMode, card.uid);
+      return;
+    }
+
     if (isOpponent) {
       setDetailCard(card);
       return;
@@ -396,7 +419,8 @@ export function useSoloGameController() {
 
     setSelectedFieldUid(card.uid);
     setSelectedHandIdx(null);
-  }, [selectedFieldUid]);
+    setActionMode(null);
+  }, [selectedFieldUid, phase, actionMode, executeSkill]);
 
   const canActTop = phase === 'action' && activeSide === 'top'
     ? [...(players?.top.field.main || []), ...(players?.top.field.side || [])].filter((c) => !c.acted_this_turn && !c.placed_this_turn).map((c) => c.uid)
@@ -410,7 +434,7 @@ export function useSoloGameController() {
     ? Object.entries(selectedMyFieldCard.skill_meta || {}).filter(([key]) => key.startsWith('skill_')).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([key, meta]) => ({ key, name: (meta as any)?.name || key }))
     : [];
 
-  const showContextPanel = phase === 'mulligan' || fieldSkills.length > 0 || phase === 'placement';
+  const showContextPanel = phase === 'mulligan' || fieldSkills.length > 0 || phase === 'placement' || (phase === 'action' && !!actionMode);
 
   return {
     loading,
@@ -431,12 +455,16 @@ export function useSoloGameController() {
     canActTop,
     canActBottom,
     fieldSkills,
+    actionMode,
     showContextPanel,
     confirmMulligan,
     placeCard,
     endPlacement,
-    useSkill,
+    executeSkill,
     endTurn,
+    handleEndMainButton,
+    prepareSkill,
+    setActionMode,
     handleHandClick,
     handleFieldClick,
   };

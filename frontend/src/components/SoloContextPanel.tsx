@@ -13,7 +13,9 @@ interface Props {
   onConfirmMulligan: () => void;
   selectedFieldName?: string;
   fieldSkills: FieldSkill[];
-  onUseSkill: (skillKey: string) => void;
+  actionMode: string | null;
+  onPrepareSkill: (skillKey: string) => void;
+  onCancelSkillSelection: () => void;
   onEndPlacement: () => void;
 }
 
@@ -24,7 +26,9 @@ const SoloContextPanel: React.FC<Props> = ({
   onConfirmMulligan,
   selectedFieldName,
   fieldSkills,
-  onUseSkill,
+  actionMode,
+  onPrepareSkill,
+  onCancelSkillSelection,
   onEndPlacement,
 }) => {
   if (!show) return null;
@@ -51,11 +55,21 @@ const SoloContextPanel: React.FC<Props> = ({
           </div>
           <div className="game-context-actions game-context-actions-wrap">
             {fieldSkills.map((skill) => (
-              <button key={skill.key} style={BTN_SM} onClick={() => onUseSkill(skill.key)}>
+                <button
+                    key={skill.key}
+                    style={{
+                      ...BTN_SM,
+                      background: actionMode === skill.key ? '#ff9b3040' : BTN_SM.background,
+                      border: actionMode === skill.key ? '1px solid #ff9b30' : BTN_SM.border,
+                    }}
+                    onClick={() => onPrepareSkill(skill.key)}
+                >
                 ✦ {skill.name}
               </button>
             ))}
+            <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onCancelSkillSelection}>취소</button>
           </div>
+          {actionMode && <div className="game-context-subtext">→ 대상 카드를 클릭하세요</div>}
         </div>
       )}
 

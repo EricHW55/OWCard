@@ -3,16 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import GameScreen from '../components/GameScreen';
 import SoloContextPanel from '../components/SoloContextPanel';
 import useSoloGameController from '../controllers/useSoloGameController';
-import { BTN_SM } from '../utils/ui';
+import { BTN_SM, phaseLabel } from '../utils/ui';
 import './GamePage.css';
 import './SoloGamePage.css';
-
-function soloPhaseLabel(phase: 'mulligan' | 'placement' | 'action' | 'game_over') {
-  if (phase === 'mulligan') return '멀리건';
-  if (phase === 'placement') return '배치';
-  if (phase === 'action') return '행동';
-  return '종료';
-}
 
 const SoloGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,39 +25,47 @@ const SoloGamePage: React.FC = () => {
     <GameScreen
       announcerData={vm.announcerData}
       onCloseAnnouncer={vm.closeAnnouncer}
-      topbarLeft={<><span className="game-round-pill">Solo</span><span className="game-phase-pill">{soloPhaseLabel(vm.phase)}</span></>}
+      topbarLeft={<><span className="game-round-pill">Solo</span><span className="game-phase-pill">{phaseLabel(vm.phase)}</span></>}
       topbarCenter={<>현재 턴: {vm.activeSide === 'top' ? '위쪽 플레이어' : '아래쪽 플레이어'}</>}
-      topbarRight={<><button onClick={vm.endTurn} disabled={vm.phase === 'mulligan'} style={BTN_SM}>턴 종료</button><button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button></>}
+      topbarRight={<><button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button></>}
       topField={{
         field: vm.players.top.field,
-        isOpponent: true,
+        isOpponent: vm.activeSide !== 'top',
         allowOpponentPlacement: vm.activeSide === 'top',
         isMyTurn: vm.activeSide === 'top',
         phase: vm.phase,
         selectedUid: vm.activeSide === 'top' ? vm.selectedFieldUid : null,
         canActUids: vm.canActTop,
-        onCardClick: (card) => vm.handleFieldClick(card, true),
+        onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide !== 'top'),
         placingCard: vm.phase === 'placement' && vm.activeSide === 'top' ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}
       bottomField={{
         field: vm.players.bottom.field,
-        isOpponent: false,
+        isOpponent: vm.activeSide === 'top',
         isMyTurn: vm.activeSide === 'bottom',
         phase: vm.phase,
         selectedUid: vm.activeSide === 'bottom' ? vm.selectedFieldUid : null,
         canActUids: vm.canActBottom,
-        onCardClick: (card) => vm.handleFieldClick(card, false),
+        onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide === 'top'),
         placingCard: vm.phase === 'placement' ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}
       midlineDotActive={false}
-      contextPanel={<SoloContextPanel show={vm.showContextPanel} phase={vm.phase} selectedMulligan={vm.selectedMulligan} onConfirmMulligan={vm.confirmMulligan} selectedFieldName={vm.selectedMyFieldCard?.name} fieldSkills={vm.fieldSkills} onUseSkill={vm.useSkill} onEndPlacement={vm.endPlacement} />}
+      contextPanel={<SoloContextPanel show={vm.showContextPanel} phase={vm.phase} selectedMulligan={vm.selectedMulligan} onConfirmMulligan={vm.confirmMulligan} selectedFieldName={vm.selectedMyFieldCard?.name} fieldSkills={vm.fieldSkills} actionMode={vm.actionMode} onPrepareSkill={vm.prepareSkill} onCancelSkillSelection={() => vm.setActionMode(null)} onEndPlacement={vm.endPlacement} />}
       handCards={vm.activePlayer.hand}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}
       bottomMeta={<>패: {vm.activePlayer.hand.length}장 · 덱: {vm.activePlayer.drawPile.length}장</>}
-      bottomActions={<><button onClick={vm.endPlacement} disabled={vm.phase !== 'placement'} style={BTN_SM}>배치 종료</button><button onClick={vm.endTurn} disabled={vm.phase === 'mulligan'} style={BTN_SM}>턴 종료</button></>}
+      bottomActions={
+          <>
+              {vm.phase !== 'mulligan' && (
+                  <button className="game-endturn" onClick={vm.handleEndMainButton}>
+                      {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}
+                  </button>
+              )}
+          </>
+      }
       detailCard={vm.detailCard}
       onCloseDetail={() => vm.setDetailCard(null)}
     />
