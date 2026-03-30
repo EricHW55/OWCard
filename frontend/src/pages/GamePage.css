@@ -1,8 +1,8 @@
 .game-page {
-    --field-card-width: clamp(62px, 8vmin, 86px);
+    --field-card-width: clamp(58px, min(8.2vmin, 7.6vh), 90px);
     --field-card-height: calc(var(--field-card-width) * 1.48);
     --field-card-radius: clamp(6px, calc(var(--field-card-width) * 0.11), 10px);
-    --field-lane-gap: clamp(4px, 0.7vmin, 8px);
+    --field-lane-gap: clamp(2px, calc(var(--field-card-width) * 0.05), 5px);
     height: 100dvh;
     min-height: 100dvh;
     display: flex;
@@ -412,9 +412,11 @@
     background: #0f1628;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
-    padding: 3px 6px;
-    gap: 2px;
+    --field-row-gap: clamp(2px, calc(var(--field-card-width) * 0.045), 5px);
+    --field-edge-gap: clamp(0px, calc(var(--field-card-width) * 0.02), 2px);
+    justify-content: flex-start;
+    padding: var(--field-edge-gap) 6px;
+    gap: 0;
 }
 
 .field-section-title {
@@ -422,14 +424,30 @@
     color: #2a3a5a;
     letter-spacing: 1px;
     font-weight: 700;
+    margin-bottom: 0px;
+    /*margin-bottom: calc(var(--field-row-gap) * 0.8);*/
+}
+
+.field-lanes {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--field-row-gap);
+    padding-block: var(--field-edge-gap);
 }
 
 .field-lane-row {
     display: flex;
     align-items: center;
     gap: 4px;
-    flex: 1;
+    flex: 0 0 auto;
     min-height: 0;
+}
+
+.field-lane-row + .field-lane-row {
+    margin-top: var(--field-row-gap);
 }
 
 .field-role-label {

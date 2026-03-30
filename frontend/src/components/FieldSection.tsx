@@ -102,31 +102,32 @@ const FieldSection: React.FC<Props> = ({
     return (
         <div className="field-section">
             <div className="field-section-title">{isOpponent ? '상대 본대' : '나의 본대'}</div>
-
-            {mainRows.map(({ role, label, cards, max }, idx) => {
-                const sideDef = sideRowDefs[idx];
-                const canPlaceSide = canPlace && placingRole === sideDef.role;
-                return (
-                    <div key={role} className="field-lane-row">
-                        <span className="field-role-label" style={{ color: ROLE_COLOR[role] }}>{label}</span>
-                        <div className="field-lane-track">
-                            <div className={`field-main-slot-wrap ${max === 1 ? 'single' : ''}`}>
-                                {renderRow(cards, role, max)}
-                            </div>
-                            <div className="field-main-side-divider" aria-hidden />
-                            <div className="field-side-slot-wrap">
-                                {sideDef.card ? renderCard(sideDef.card) : (
-                                    <EmptySlot
-                                        key={`side-${role}`}
-                                        highlight={canPlaceSide}
-                                        onClick={canPlaceSide ? () => onPlaceClick('side') : undefined}
-                                    />
-                                )}
+            <div className="field-lanes">
+                {mainRows.map(({ role, label, cards, max }, idx) => {
+                    const sideDef = sideRowDefs[idx];
+                    const canPlaceSide = canPlace && placingRole === sideDef.role;
+                    return (
+                        <div key={role} className="field-lane-row">
+                            <span className="field-role-label" style={{ color: ROLE_COLOR[role] }}>{label}</span>
+                            <div className="field-lane-track">
+                                <div className={`field-main-slot-wrap ${max === 1 ? 'single' : ''}`}>
+                                    {renderRow(cards, role, max)}
+                                </div>
+                                <div className="field-main-side-divider" aria-hidden />
+                                <div className="field-side-slot-wrap">
+                                    {sideDef.card ? renderCard(sideDef.card) : (
+                                        <EmptySlot
+                                            key={`side-${role}`}
+                                            highlight={canPlaceSide}
+                                            onClick={canPlaceSide ? () => onPlaceClick('side') : undefined}
+                                        />
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
         </div>
     );
 };
