@@ -4,6 +4,12 @@ export type Role = 'tank' | 'dealer' | 'healer';
 export type Zone = 'main' | 'side';
 export type Phase = 'waiting' | 'mulligan' | 'placement' | 'action' | 'game_over';
 
+export type SkillMetaInfo = {
+  name: string;
+  cooldown?: number;
+  description?: string;
+};
+
 export interface FieldCard {
   hero_key?: string;
   uid: string;
@@ -20,7 +26,7 @@ export interface FieldCard {
   statuses: StatusEffect[];
   skill_cooldowns: Record<string, number>;
   skill_damages: Record<string, any>;
-  skill_meta: Record<string, { name: string; cooldown?: number }>;
+  skill_meta: Record<string, SkillMetaInfo>;
   placed_this_turn: boolean;
   acted_this_turn: boolean;
   extra: Record<string, any>;
@@ -49,7 +55,7 @@ export interface HandCard {
   base_defense: number;
   base_attack_range: number;
   skill_damages: Record<string, any>;
-  skill_meta: Record<string, { name: string; cooldown?: number }>;
+  skill_meta: Record<string, SkillMetaInfo>;
   description: string;
   is_spell?: boolean;
   extra?: Record<string, any>;
