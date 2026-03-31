@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     Barrier, Exposed, ParticleBarrier, AttackBuff, ExtraHP,
-    NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked,
+    NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked, Airborne
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -108,15 +108,30 @@ def zarya_particle_cannon(caster: FieldCard, target: FieldCard, game: GameState)
     return {"success": True, "skill": "입자포", "base": base, "bonus": bonus, "damage_log": result}
 
 # ── 레킹볼 ────────────────────────────────
-@register_passive("wrecking_ball")
-def wrecking_ball_passive(card: FieldCard, game: GameState) -> dict:
-    return {"passive": "갈고리"}
-
 @register_skill("wrecking_ball", "skill_1")
-def wrecking_ball_piledriver(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
+def wrecking_ball_hook(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    from game_engine.field import Zone
+
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    my_field = game.get_my_field(caster)
+    to_zone = Zone.SIDE if caster.zone == Zone.MAIN else Zone.MAIN
+    moved = my_field.move_card(caster, to_zone)
+    if not moved:
+        return {"success": False, "message": "이동할 수 없는 위치입니다"}
+    
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
-    return {"success": True, "skill": "파일드라이버", "damage_log": result}
+    
+    return {"success": True, "skill": "갈고리", "moved_to": caster.zone.value, "damage_log": result}
+    
+@register_skill("wrecking_ball", "skill_2")
+def wrecking_ball_piledriver(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
+    target.add_status(Airborne(duration=2, source_uid=caster.uid))
+    return {"success": True, "skill": "파일드라이버", "damage_log": result, "airborne": True}
 
 # ── 정커퀸 ────────────────────────────────
 @register_skill("junkerqueen", "skill_1")
