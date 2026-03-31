@@ -119,6 +119,23 @@ function needsColumnSelector(card: any, skillKey?: string | null): boolean {
   return hero === 'sojourn' && skillKey === 'skill_2';
 }
 
+function getHeroSkillBlockReason(card: any, skillKey: string): string | null {
+  const hero = getHeroKey(card);
+  const statuses = card?.statuses || [];
+  const hasStatus = (name: string) => statuses.some((s: any) => s?.name === name);
+  const extra = card?.extra || {};
+
+  if (hero === 'bastion' && skillKey === 'skill_1' && extra?.last_mode === 'assault') return '설정: 강습은 연속 사용 불가 (수색 먼저)';
+  if (hero === 'venture' && skillKey === 'skill_1' && extra?.used_burrow_last) return '잠복은 연속 사용 불가';
+  if (hero === 'venture' && skillKey === 'skill_2' && hasStatus('burrowed')) return '잠복 상태에서는 스마트 굴착기 사용 불가';
+  if (hero === 'freja' && skillKey === 'skill_2' && !hasStatus('airborne')) return '정조준은 에어본 상태에서만 사용 가능';
+  if (hero === 'ramattra' && skillKey === 'skill_3' && extra?.form !== 'nemesis') return '막기는 네메시스 폼에서만 사용 가능';
+  if (hero === 'roadhog' && skillKey === 'skill_2' && Number(card?.current_hp || 0) > Number(extra?.heal_threshold ?? 15)) {
+    return `숨돌리기는 체력 ${extra?.heal_threshold ?? 15} 이하에서만 사용 가능`;
+  }
+  return null;
+}
+
 function buildColumnChoices(field: any): ColumnPreview[] {
   const main = Array.isArray(field?.main) ? field.main : [];
   const side = Array.isArray(field?.side) ? field.side : [];
@@ -584,6 +601,12 @@ export function useOnlineGameController(gameId: string) {
     if (!selectedMyFieldCard) return;
     const caster = selectedMyFieldCard;
     const rawSkillName = getSkillNameFromCard(caster, skillKey);
+    const blockReason = getHeroSkillBlockReason(caster, skillKey);
+    if (blockReason) {
+      addLog(`${caster.name} — ${rawSkillName} 불가 (${blockReason})`);
+      showSystemNotice('행동 불가', blockReason, 1800);
+      return;
+    }
     if (isTargetlessSkill(caster, skillKey)) {
       setActionMode(null); setColumnChoice(null);
       send({ action: 'use_skill', caster_uid: caster.uid, skill_key: skillKey });

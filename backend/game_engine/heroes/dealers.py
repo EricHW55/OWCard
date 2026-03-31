@@ -185,7 +185,8 @@ def echo_beam(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
-    idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    # idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    idx = game.get_shotgun_slot_index(caster, target, tbl)
     dmg = tbl[idx]
     result = target.take_damage(dmg)
     return {"success": True, "skill": "난사", "slot_index": idx, "damage_log": result}
@@ -195,7 +196,8 @@ def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def reaper_hellfire(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     tbl = game.get_skill_damage(caster, "skill_1")
-    idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    # idx = game.get_actual_slot_index(target, tbl, side_as_front=True)
+    idx = game.get_shotgun_slot_index(caster, target, tbl)
     dmg = tbl[idx]
     result = target.take_damage(dmg)
     return {"success": True, "skill": "헬파이어 샷건", "slot_index": idx, "damage_log": result}

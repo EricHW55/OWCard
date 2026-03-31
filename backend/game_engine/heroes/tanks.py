@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     Barrier, Exposed, ParticleBarrier, AttackBuff, ExtraHP,
-    DamageReduction, Knockback, Taunt, Pulled, Hooked,
+    NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -81,7 +81,7 @@ def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) ->
         return {"success": False, "message": "대상 필요"}
 
     dmg_table = game.get_skill_damage(caster, "skill_2")
-    idx = game.get_actual_slot_index(target, dmg_table, side_as_front=True)
+    idx = game.get_shotgun_slot_index(caster, target, dmg_table)
     dmg = dmg_table[idx]
     result = target.take_damage(dmg)
 
@@ -174,7 +174,8 @@ def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 @register_skill("doomfist", "skill_2")
 def doomfist_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     # 강화 펀치는 1회만 저장(중복 파워블락으로 중첩되지 않음)
-    caster.add_status(DamageReduction(percent=50, duration=2, source_uid=caster.uid))
+    caster.remove_status("next_turn_start_damage_reduction")
+    caster.add_status(NextTurnStartDamageReduction(percent=50, source_uid=caster.uid))
     caster.extra["empowered_punch"] = True
     return {"success": True, "skill": "파워블락"}
 
@@ -214,7 +215,8 @@ def ramattra_form(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 @register_skill("ramattra", "skill_3")
 def ramattra_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if caster.extra.get("form") != "nemesis": return {"success": False, "message": "네메시스만"}
-    caster.add_status(DamageReduction(percent=50, duration=1, source_uid=caster.uid))
+    caster.remove_status("next_turn_start_damage_reduction")
+    caster.add_status(NextTurnStartDamageReduction(percent=50, source_uid=caster.uid))
     return {"success": True, "skill": "막기"}
 
 # ── 도미나 (신규) ─────────────────────────

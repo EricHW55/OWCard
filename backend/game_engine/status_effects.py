@@ -317,6 +317,18 @@ class DamageReduction(StatusEffect):
 
 
 @dataclass
+class NextTurnStartDamageReduction(DamageReduction):
+    """다음 자신의 턴 시작 시 해제되는 피해 감소."""
+    name: str = "next_turn_start_damage_reduction"
+    duration: int = -1
+    tags: list[str] = field(default_factory=lambda: ["buff"])
+
+    def on_turn_start(self, card):
+        self.duration = 0
+        return {}
+
+
+@dataclass
 class HealBlock(StatusEffect):
     """힐 차단 (생체 수류탄)."""
     name: str = "heal_block"

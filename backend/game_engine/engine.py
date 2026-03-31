@@ -199,6 +199,28 @@ class GameState:
             Role.HEALER: 2,
         }
         return min(role_index.get(target.role, len(damage_table) - 1), len(damage_table) - 1)
+    
+    def get_shotgun_slot_index(self, _attacker: FieldCard, target: FieldCard, damage_table) -> int:
+        """산탄형 공격 인덱스 계산.
+        - 기본은 역할 기반 거리.
+        - Hooked면 풀딜(탱커 인덱스).
+        - Pulled/Airborne/사이드는 각각 1단계 더 가까운 딜.
+        """
+        idx = self.get_actual_slot_index(target, damage_table, side_as_front=False)
+
+        if target.has_status("hooked"):
+            return 0
+
+        step_bonus = 0
+        if target.has_status("pulled"):
+            step_bonus += 1
+        if target.has_status("airborne") or target.has_status("gravity_flux_airborne"):
+            step_bonus += 1
+        if target.zone == Zone.SIDE:
+            step_bonus += 1
+
+        idx = max(0, idx - step_bonus)
+        return min(idx, len(damage_table) - 1)
 
 
 # ═══════════════════════════════════════════════════════
