@@ -961,16 +961,16 @@ class GameEngine:
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)
-        # 프론트 announcer/killfeed에서 안정적으로 시전자 이미지를 매핑할 수 있도록
-        # 스킬 사용 결과에 시전자 메타데이터를 항상 포함한다.
-        result.setdefault("caster_uid", caster.uid)
-        result.setdefault("caster_name", caster.name)
-        result.setdefault("caster_hero_key", caster.hero_key)
-        result.setdefault("skill_key", skill_key)
         if not skill_fn:
             return {"error": "Skill function not found"}
 
         result = skill_fn(caster, target, self.state)
+        # 프론트 announcer/killfeed에서 안정적으로 시전자 이미지를 매핑할 수 있도록
+        # 스킬 사용 결과에 시전자 메타데이터를 항상 포함한다.
+        result.setdefault("caster_uid", caster.uid)
+        result.setdefault("caster_name", caster.name)
+        result.setdefault("caster_hero_key", caster.extra.get("_hero_key", ""))
+        result.setdefault("skill_key", skill_key)
         if result.get("skill") and not result.get("skill_name"):
             result["skill_name"] = result["skill"]
 
