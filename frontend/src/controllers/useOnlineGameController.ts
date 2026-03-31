@@ -77,7 +77,7 @@ function getSkillDescriptionFromCard(card: any, skillRef?: string | null) {
   return firstSkill?.[1]?.description || card?.description || '';
 }
 
-function buildOpponentSkillCue(msg: any, opponentState?: any) {
+function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: string) {
   const result = msg?.result || {};
   const action = msg?.action;
   const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect']);
@@ -102,7 +102,9 @@ function buildOpponentSkillCue(msg: any, opponentState?: any) {
   const oppField = opponentState ? [...(opponentState?.field?.main || []), ...(opponentState?.field?.side || [])] : [];
   const actorCard = oppField.find((c: any) => c.uid === msg?.caster_uid) || oppField.find((c: any) => c.name === actorName) || result?.caster || null;
   const spellCard = result?.card || { hero_key: result?.hero_key || msg?.hero_key, name: skillName, is_spell: true, description: result?.description };
-  const heroKey = (isSpell ? (result?.hero_key || msg?.hero_key || spellCard?.hero_key) : getHeroKey(actorCard)) || result?.caster?.hero_key || result?.card?.hero_key || undefined;
+  const heroKey = isSpell
+    ? (result?.hero_key || msg?.hero_key || spellCard?.hero_key || undefined)
+    : (getHeroKey(actorCard) || fallbackHeroKey || getHeroKey(result?.caster) || undefined);
   const description = isSpell
     ? getSkillDescriptionFromCard(spellCard, result?.skill_key || result?.skill || skillName)
     : getSkillDescriptionFromCard(actorCard, msg?.skill_key || result?.skill_key || result?.skill_name || result?.skill || skillName);
@@ -524,7 +526,15 @@ export function useOnlineGameController(gameId: string) {
             showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
           }
           if (result?.passive_triggered?.passive) {
-            showSkillUse({ skillName: result.passive_triggered.passive, subtitle: `${actorName} 패시브`, description: result?.passive_triggered?.message || '', heroKey: result?.caster?.hero_key || '', imageName: actorName, isSpell: false, duration: 3000 });
+            showSkillUse({
+              skillName: result.passive_triggered.passive,
+              subtitle: `${actorName} 패시브`,
+              description: result?.passive_triggered?.message || '',
+              heroKey: getHeroKey(myCasterCard),
+              imageName: actorName,
+              isSpell: false,
+              duration: 3000,
+            });
           }
           if (result?.passive_triggered?.needs_choice) {
             setLocalPendingPassive(result.passive_triggered.needs_choice);
@@ -558,11 +568,12 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('opponent_action', (msg: any) => {
           addLog(`상대: ${msg.action}`);
-          const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state);
-          if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const result = msg?.result || {};
           const oppState = gsRef.current?.opponent_state as any;
           const opponentCasterCard = findFieldCardByUid(oppState, msg?.caster_uid) || result?.caster || null;
+          const opponentCasterHeroKey = getHeroKey(opponentCasterCard);
+          const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state, opponentCasterHeroKey);
+          if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
           const fatalUids = Array.from(collectFatalUids(result));
           const isSpellKill = cue?.isSpell || msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_');
@@ -578,7 +589,17 @@ export function useOnlineGameController(gameId: string) {
             createdAt: Date.now(),
             fatalUids,
           };
-          if (result?.passive_triggered?.passive) showSkillUse({ skillName: result.passive_triggered.passive, subtitle: '상대 패시브', description: result?.passive_triggered?.message || '', heroKey: result?.caster?.hero_key || '', imageName: result?.caster_name || '상대', isSpell: false, duration: 3000 });
+          if (result?.passive_triggered?.passive) {
+            showSkillUse({
+              skillName: result.passive_triggered.passive,
+              subtitle: '상대 패시브',
+              description: result?.passive_triggered?.message || '',
+              heroKey: opponentCasterHeroKey,
+              imageName: result?.caster_name || opponentCasterCard?.name || '상대',
+              isSpell: false,
+              duration: 3000,
+            });
+          }
           [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => showPassiveNoticeFromLog(entry, 'opponent'));
           showDeathPassiveNotice(result, 'opponent');
         }),
