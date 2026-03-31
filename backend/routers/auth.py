@@ -13,7 +13,7 @@ from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE
 from database import get_db
 from models.deck import Deck
 from models.player import Player
-from services.starter_deck import create_random_starter_deck
+from services.starter_deck import create_fixed_starter_decks
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -79,7 +79,8 @@ async def ensure_default_deck(db: AsyncSession, player: Player) -> int:
 
     # 덱이 하나도 없으면 스타터 덱 생성
     if not first_deck:
-        first_deck = await create_random_starter_deck(db, player.id)
+        starter_decks = await create_fixed_starter_decks(db, player.id)
+        first_deck = starter_decks[0]
         await db.flush()
 
     player.selected_deck_id = first_deck.id
@@ -103,8 +104,8 @@ async def register(req: RegisterReq, db: AsyncSession = Depends(get_db)):
     db.add(p)
     await db.flush()
 
-    deck = await create_random_starter_deck(db, p.id)
-    p.selected_deck_id = deck.id
+    starter_decks = await create_fixed_starter_decks(db, p.id)
+    p.selected_deck_id = starter_decks[0].id
 
     await db.commit()
     await db.refresh(p)
@@ -166,8 +167,8 @@ async def guest_login(req: GuestReq, db: AsyncSession = Depends(get_db)):
         db.add(p)
         await db.flush()
 
-        deck = await create_random_starter_deck(db, p.id)
-        p.selected_deck_id = deck.id
+        starter_decks = await create_fixed_starter_decks(db, p.id)
+        p.selected_deck_id = starter_decks[0].id
 
         await db.commit()
         await db.refresh(p)

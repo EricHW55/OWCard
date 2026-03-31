@@ -294,7 +294,14 @@ const DeckBuilderPage: React.FC = () => {
                             className="deck-input"
                             value={selectedDeckId ?? ''}
                             onChange={e => {
-                                const f = myDecks.find(d => d.id === Number(e.target.value));
+                                const nextValue = e.target.value;
+                                if (nextValue === '') {
+                                    setSelectedDeckId(null);
+                                    setDeckName(`새 덱 ${myDecks.length + 1}`);
+                                    setEntries({});
+                                    return;
+                                }
+                                const f = myDecks.find(d => d.id === Number(nextValue));
                                 if (f) selectDeck(f);
                             }}
                         >
