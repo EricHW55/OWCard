@@ -398,8 +398,8 @@ class Burn(StatusEffect):
     tags: list[str] = field(default_factory=lambda: ["debuff", "dot"])
 
     def on_turn_end(self, card):
-        card.take_raw_damage(self.damage_per_turn)
-        return {"burn_damage": self.damage_per_turn}
+        damage_log = card.take_damage(self.damage_per_turn, source_uid=self.source_uid, damage_kind="status_dot")
+        return {"burn_damage": self.damage_per_turn, "damage_log": damage_log}
 
 
 @dataclass
@@ -413,9 +413,9 @@ class StickyBomb(StatusEffect):
     def on_turn_end(self, card):
         # 상대 턴 종료 시점에 2턴 뒤 폭발 느낌
         if self.duration <= 1:
-            card.take_raw_damage(self.explode_damage)
+            damage_log = card.take_damage(self.explode_damage, source_uid=self.source_uid, damage_kind="status_explode")
             self.duration = 0
-            return {"exploded": True, "damage": self.explode_damage}
+            return {"exploded": True, "damage": self.explode_damage, "damage_log": damage_log}
         return {}
 
 
@@ -531,6 +531,11 @@ class Reflect(StatusEffect):
             card.remove_status(self.name)
             return {"damage": 0, "reflect": damage}
         return {"damage": damage}
+    
+    def on_death(self, card):
+        # 지속/상태 효과로 인한 치명 피해에도 1회 생존 보장
+        card.remove_status(self.name)
+        return {"prevent_death": True, "set_hp": 1}
 
 
 @dataclass

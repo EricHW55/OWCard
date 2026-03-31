@@ -80,6 +80,7 @@ function getSkillDescriptionFromCard(card: any, skillRef?: string | null) {
 function buildOpponentSkillCue(msg: any, opponentState?: any) {
   const result = msg?.result || {};
   const action = msg?.action;
+  if (result?.hidden) return null;
   const hasSkillSignal = action === 'use_skill' || action === 'execute_spell' || !!msg?.skill_name || !!result?.skill_name || !!result?.skill || result?.type === 'spell_played';
   if (!hasSkillSignal) return null;
 
