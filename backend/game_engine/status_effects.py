@@ -151,6 +151,7 @@ class ParticleBarrier(StatusEffect):
     name: str = "particle_barrier"
     was_hit: bool = False
     source_uid: str = ""
+    visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["barrier", "buff"])
 
     def on_take_damage(self, card, damage, **kwargs):
@@ -512,6 +513,8 @@ class Immortality(StatusEffect):
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_death(self, card):
+         # 최초 발동 후에는 상대에게도 상태를 공개한다.
+        self.visible_to_opponent = True
         return {"prevent_death": True, "set_hp": 1}
 
 

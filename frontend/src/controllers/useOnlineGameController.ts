@@ -323,9 +323,9 @@ export function useOnlineGameController(gameId: string) {
     while (queue.length > 0) {
       const node = queue.shift();
       if (!node || typeof node !== 'object') continue;
-      const isDeathPassive = !!(node?.death_prevented || node?.prevent_death || node?.transform || node?.enter_frozen);
+      const isDeathPassive = !!(node?.death_prevented || node?.prevent_death || node?.transform || node?.enter_frozen || node?.reflect_by === 'reflect');
       if (isDeathPassive) {
-        const key = `${node?.by || ''}:${node?.target || node?.uid || ''}:${node?.transform || ''}:${node?.enter_frozen ? 1 : 0}`;
+        const key = `${node?.by || ''}:${node?.reflect_by || ''}:${node?.target || node?.uid || ''}:${node?.transform || ''}:${node?.enter_frozen ? 1 : 0}`;
         if (!seen.has(key)) {
           seen.add(key);
           const sourceUid = node?.target || node?.uid || node?.source_uid;
@@ -336,6 +336,10 @@ export function useOnlineGameController(gameId: string) {
             showSkillUse({ skillName: '긴급 탈출', subtitle: `${sourceName} 패시브`, description: '메카 파괴 시 송하나 형태로 전환합니다.', heroKey: getHeroKey(sourceCard) || 'dva', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
           } else if (node?.by === 'frozen_revive' || node?.enter_frozen) {
             showSkillUse({ skillName: '급속 빙결', subtitle: `${sourceName} 패시브`, description: '치명 피해 시 빙결 상태가 되고 다음 턴 시작에 회복합니다.', heroKey: getHeroKey(sourceCard) || 'mei', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
+          } else if (node?.by === 'immortality') {
+            showSkillUse({ skillName: '불사장치', subtitle: `${sourceName} 발동`, description: '치명 피해를 무효화하고 체력을 1 남깁니다.', heroKey: 'spell_immortality_field', imageName: '불사장치', isSpell: true, duration: 2600 });
+          } else if (node?.reflect_by === 'reflect') {
+            showSkillUse({ skillName: '튕겨내기', subtitle: `${sourceName} 발동`, description: '치명 피해를 반사하여 공격자를 저지합니다.', heroKey: 'spell_deflect', imageName: '튕겨내기', isSpell: true, duration: 2600 });
           } else {
             showSystemNotice(sourceName, '사망 패시브 발동', 1200);
           }
