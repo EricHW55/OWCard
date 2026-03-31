@@ -911,6 +911,11 @@ class GameEngine:
             shown_range = range_override if range_override is not None else caster.attack_range
             if target.uid not in {c.uid for c in valid_targets}:
                 return {"error": f"사거리 밖의 대상입니다 (사거리: {shown_range})"}
+        elif target and not is_enemy_target:
+            # 힐러는 자기 자신을 직접 타겟팅해서 스킬을 사용할 수 없다.
+            caster_role = getattr(caster.role, "value", caster.role)
+            if caster.uid == target.uid and str(caster_role).lower() == "healer":
+                return {"error": "힐러는 자기 자신을 대상으로 스킬을 사용할 수 없습니다"}
 
         # 스킬 함수 실행
         skill_fn = caster.skills.get(skill_key)

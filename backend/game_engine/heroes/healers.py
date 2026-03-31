@@ -190,14 +190,14 @@ def mercy_staff(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 브리기테 ──────────────────────────────
 @register_passive("brigitte")
 def brigitte_passive(card: FieldCard, game: GameState) -> dict:
-    """격려: 배치 시 + 매턴 시작 시 다른 아군 모두 2힐."""
+    """격려: 배치 시 + 매턴 시작 시 아군 모두 2힐."""
     heal_amount = int(card.extra.get("inspire_heal", 2) or 2)
     card.extra["inspire_heal"] = heal_amount
     my = game.get_my_field(card)
     logs = []
     for a in my.all_cards():
-        if a.uid == card.uid:
-            continue
+        # if a.uid == card.uid:
+        #     continue
         healed = a.heal(heal_amount)
         logs.append({"uid": a.uid, "healed": healed})
     return {

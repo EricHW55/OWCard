@@ -144,32 +144,49 @@ def junkerqueen_shout(caster: FieldCard, target: FieldCard, game: GameState) -> 
 # ── 둠피스트 ──────────────────────────────
 @register_skill("doomfist", "skill_1")
 def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if not target: return {"success": False, "message": "대상 필요"}
-    empowered = caster.extra.pop("empowered_punch", False)
-    if empowered:
-        dmg = game.get_skill_damage(caster, "skill_1_empowered")
-        result = target.take_damage(dmg)
-        # 뒤 카드도 같은 데미지
-        enemy = game.get_enemy_field(caster)
-        td = enemy.get_distance(target)
-        for layer in enemy._main_layers():
-            for c in layer:
-                if enemy.get_distance(c) == td + 1:
-                    c.take_damage(dmg)
-        return {"success": True, "skill": "강화 로켓 펀치", "damage_log": result}
-    else:
-        dmgs = game.get_skill_damage(caster, "skill_1")
-        main_d = dmgs[0] if isinstance(dmgs, list) else dmgs
-        behind_d = dmgs[1] if isinstance(dmgs, list) and len(dmgs) > 1 else 0
-        result = target.take_damage(main_d)
-        if behind_d > 0:
-            enemy = game.get_enemy_field(caster)
-            td = enemy.get_distance(target)
-            for layer in enemy._main_layers():
-                for c in layer:
-                    if enemy.get_distance(c) == td + 1:
-                        c.take_damage(behind_d)
-        return {"success": True, "skill": "로켓 펀치", "damage_log": result}
+    # if not target: return {"success": False, "message": "대상 필요"}
+    # empowered = caster.extra.pop("empowered_punch", False)
+    # if empowered:
+    #     dmg = game.get_skill_damage(caster, "skill_1_empowered")
+    #     result = target.take_damage(dmg)
+    #     # 뒤 카드도 같은 데미지
+    #     enemy = game.get_enemy_field(caster)
+    #     td = enemy.get_distance(target)
+    #     for layer in enemy._main_layers():
+    #         for c in layer:
+    #             if enemy.get_distance(c) == td + 1:
+    #                 c.take_damage(dmg)
+    #     return {"success": True, "skill": "강화 로켓 펀치", "damage_log": result}
+    # else:
+    #     dmgs = game.get_skill_damage(caster, "skill_1")
+    #     main_d = dmgs[0] if isinstance(dmgs, list) else dmgs
+    #     behind_d = dmgs[1] if isinstance(dmgs, list) and len(dmgs) > 1 else 0
+    #     result = target.take_damage(main_d)
+    #     if behind_d > 0:
+    #         enemy = game.get_enemy_field(caster)
+    #         td = enemy.get_distance(target)
+    #         for layer in enemy._main_layers():
+    #             for c in layer:
+    #                 if enemy.get_distance(c) == td + 1:
+    #                     c.take_damage(behind_d)
+    #     return {"success": True, "skill": "로켓 펀치", "damage_log": result}
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    # 파워블락 여부와 관계없이 고정된 강화 펀치 데미지 테이블을 사용한다.
+    # (중첩 상태에서 타격 범위/피해량이 의도치 않게 확장되는 현상 방지)
+    caster.extra.pop("empowered_punch", None)
+    dmg = game.get_skill_damage(caster, "skill_1_empowered")
+    result = target.take_damage(dmg)
+
+    enemy = game.get_enemy_field(caster)
+    td = enemy.get_distance(target)
+    for layer in enemy._main_layers():
+        for c in layer:
+            if enemy.get_distance(c) == td + 1:
+                c.take_damage(dmg)
+
+    return {"success": True, "skill": "강화 로켓 펀치", "damage_log": result}
 
 @register_skill("doomfist", "skill_2")
 def doomfist_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
