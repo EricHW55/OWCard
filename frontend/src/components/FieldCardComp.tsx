@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 import { getHeroImageSrc } from '../utils/heroImage';
@@ -70,6 +70,8 @@ function getMainDamage(card: FieldCard): string {
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) => {
     const [imgError, setImgError] = useState(false);
+    const [showZaryaBarrierBurst, setShowZaryaBarrierBurst] = useState(false);
+    const prevParticleBarrierRef = useRef<{ active: boolean; wasHit: boolean }>({ active: false, wasHit: false });
 
     useEffect(() => {
         setImgError(false);
@@ -83,6 +85,10 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const barrierStatus = card.statuses?.find((s) => s.name === 'barrier');
     const barrierHp = (barrierStatus as any)?.barrier_hp ?? 0;
     const hasBarrier = barrierHp > 0;
+
+    const particleBarrierStatus = card.statuses?.find((s) => s.name === 'particle_barrier');
+    const isParticleBarrierActive = !!particleBarrierStatus;
+    const particleBarrierWasHit = Boolean((particleBarrierStatus as any)?.was_hit);
 
     const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
@@ -114,6 +120,24 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const zaryaCharge = card.statuses?.some(
         (s) => s.name === 'particle_barrier' && Boolean((s as any).was_hit)
     ) ? 1 : 0;
+
+    useEffect(() => {
+        if (heroKey !== 'zarya') {
+            prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
+            return;
+        }
+
+        const prev = prevParticleBarrierRef.current;
+        const barrierJustBrokenByHit = prev.active && !isParticleBarrierActive && prev.wasHit;
+        if (barrierJustBrokenByHit) {
+            setShowZaryaBarrierBurst(true);
+            const timer = window.setTimeout(() => setShowZaryaBarrierBurst(false), 720);
+            prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
+            return () => window.clearTimeout(timer);
+        }
+
+        prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
+    }, [heroKey, isParticleBarrierActive, particleBarrierWasHit, card.uid]);
 
     let chargeLevel = 0;
     let chargeMax = 1;
@@ -279,6 +303,35 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 </>
             )}
 
+            {showZaryaBarrierBurst && (
+                <>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: '-16%',
+                            borderRadius: '50%',
+                            pointerEvents: 'none',
+                            zIndex: 3,
+                            background: 'radial-gradient(circle, rgba(233,190,255,0.18) 0%, rgba(187,100,255,0.52) 52%, rgba(150,72,255,0.25) 74%, transparent 100%)',
+                            filter: 'blur(0.2px) saturate(1.16)',
+                            animation: 'zaryaBarrierBurst 0.72s ease-out forwards',
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: '-20%',
+                            borderRadius: '50%',
+                            border: '2px solid rgba(213,133,255,0.68)',
+                            boxShadow: '0 0 12px rgba(193,98,255,0.6), inset 0 0 10px rgba(249,214,255,0.34)',
+                            pointerEvents: 'none',
+                            zIndex: 4,
+                            animation: 'zaryaBarrierRing 0.72s ease-out forwards',
+                        }}
+                    />
+                </>
+            )}
+
             <div
                 style={{
                     fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.125), 11px)',
@@ -415,6 +468,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                     0% { transform: rotate(0deg) scale(0.95); opacity: .45; }
                     50% { opacity: .9; }
                     100% { transform: rotate(360deg) scale(1.08); opacity: .42; }
+                }
+                @keyframes zaryaBarrierBurst {
+                    0% { opacity: .16; transform: scale(.72); }
+                    35% { opacity: .88; transform: scale(1.04); }
+                    100% { opacity: 0; transform: scale(1.35); }
+                }
+                @keyframes zaryaBarrierRing {
+                    0% { opacity: .2; transform: scale(.78); }
+                    34% { opacity: .95; transform: scale(1.03); }
+                    100% { opacity: 0; transform: scale(1.28); }
+                }
             `}</style>
         </div>
     );
