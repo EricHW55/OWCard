@@ -1,3 +1,7 @@
+:root {
+    --deck-builder-visible-vh: 100dvh;
+}
+
 .deck-builder-page {
     min-height: 100vh;
     min-height: 100dvh;
@@ -5,7 +9,7 @@
     background: linear-gradient(180deg, #0a0e1a 0%, #111832 100%);
     color: #e8ecf8;
     padding: 8px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
 }
 .deck-builder-shell {
@@ -238,7 +242,11 @@
 
 /* ── 데스크탑 ─────────────────────── */
 @media (min-width: 768px) {
-    .deck-builder-page { padding: 16px; }
+    /*.deck-builder-page { padding: 16px; }*/
+    .deck-builder-page {
+        padding: 16px;
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
     .deck-builder-shell { gap: 10px; }
     .deck-builder-header { padding: 16px 20px; }
     .deck-builder-grid {
