@@ -78,6 +78,25 @@ const DeckBuilderPage: React.FC = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const updateVisibleViewportHeight = () => {
+            const visualHeight = window.visualViewport?.height ?? window.innerHeight;
+            document.documentElement.style.setProperty('--deck-builder-visible-vh', `${visualHeight}px`);
+        };
+
+        updateVisibleViewportHeight();
+        window.addEventListener('resize', updateVisibleViewportHeight);
+        window.visualViewport?.addEventListener('resize', updateVisibleViewportHeight);
+        window.visualViewport?.addEventListener('scroll', updateVisibleViewportHeight);
+
+        return () => {
+            window.removeEventListener('resize', updateVisibleViewportHeight);
+            window.visualViewport?.removeEventListener('resize', updateVisibleViewportHeight);
+            window.visualViewport?.removeEventListener('scroll', updateVisibleViewportHeight);
+            document.documentElement.style.removeProperty('--deck-builder-visible-vh');
+        };
+    }, []);
+
     const clearLongPressTimer = () => {
         if (longPressTimerRef.current !== null) {
             window.clearTimeout(longPressTimerRef.current);

@@ -1,8 +1,11 @@
 .deck-builder-page {
-    min-height: 100vh; min-height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: var(--deck-builder-visible-vh, 100dvh);
     background: linear-gradient(180deg, #0a0e1a 0%, #111832 100%);
     color: #e8ecf8;
     padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
 }
 .deck-builder-shell {
@@ -226,8 +229,8 @@
     overscroll-behavior: contain;
     touch-action: pan-y;
 }
-.card-list-scroll { max-height: 38vh; }
-.deck-list-scroll { max-height: 25vh; }
+.card-list-scroll { max-height: calc(var(--deck-builder-visible-vh, 100dvh) * 0.38); }
+.deck-list-scroll { max-height: calc(var(--deck-builder-visible-vh, 100dvh) * 0.25); }
 
 .scroll-area::-webkit-scrollbar { width: 5px; }
 .scroll-area::-webkit-scrollbar-track { background: #0d1225; border-radius: 99px; }
@@ -248,4 +251,6 @@
     .deck-icon-grid { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
     .card-list-scroll { max-height: 62vh; }
     .deck-list-scroll { max-height: 62vh; }
+    .card-list-scroll { max-height: calc(var(--deck-builder-visible-vh, 100dvh) * 0.62); }
+    .deck-list-scroll { max-height: calc(var(--deck-builder-visible-vh, 100dvh) * 0.62); }
 }
