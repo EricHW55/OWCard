@@ -42,6 +42,7 @@ export interface StatusEffect {
   barrier_max_hp?: number;
   extra_hp?: number;
   value?: number;
+  was_hit?: boolean;
 }
 
 export interface HandCard {

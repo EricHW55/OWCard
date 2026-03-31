@@ -165,6 +165,11 @@ class ParticleBarrier(StatusEffect):
             # 공격 안 받으면 1턴 유지 후 파괴
             pass
         return {}
+    
+    def to_dict(self):
+        d = super().to_dict()
+        d["was_hit"] = self.was_hit
+        return d
 
 
 # ── 이동/위치 계열 ────────────────────────────────────

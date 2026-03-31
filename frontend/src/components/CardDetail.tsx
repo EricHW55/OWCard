@@ -304,6 +304,10 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                             {statuses.map((s, i) => {
                                 const isDebuff = s.tags?.includes('debuff');
+                                const displayName =
+                                    s.name === 'next_turn_start_damage_reduction'
+                                        ? 'damage_reduction'
+                                        : s.name;
                                 let extra = '';
                                 if (s.name === 'barrier' && (s as any).barrier_hp !== undefined) {
                                     extra = ` [${(s as any).barrier_hp}hp]`;
@@ -325,7 +329,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                                             border: `1px solid ${isDebuff ? '#ff335544' : '#22dd7744'}`,
                                         }}
                                     >
-                                        {s.name}
+                                        {displayName}
                                         {extra}{' '}
                                         {s.duration > 0 ? `(${s.duration}턴)` : s.duration === -1 ? '(영구)' : ''}
                                     </span>

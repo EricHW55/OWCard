@@ -56,9 +56,39 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const hasSilence = card.statuses?.some(
         (s) => s.name === 'skill_silence' || s.name === 'sleep'
     );
-    const hasShield = card.statuses?.some((s) => s.name === 'damage_reduction');
+    const hasShield = card.statuses?.some(
+        (s) => s.name === 'damage_reduction' || s.name === 'next_turn_start_damage_reduction'
+    );
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
+
+    const heroKey = String(card.hero_key || card.extra?._hero_key || '').toLowerCase();
+    const sojournCharge = Math.max(0, Math.min(3, Number(card.extra?.charge_level ?? 0) || 0));
+    const symmetraCharge = Math.max(0, Math.min(3, Number(card.extra?.photon_charge ?? 0) || 0));
+    const zaryaCharge = card.statuses?.some(
+        (s) => s.name === 'particle_barrier' && Boolean((s as any).was_hit)
+    ) ? 1 : 0;
+
+    let chargeLevel = 0;
+    let chargeMax = 1;
+    let chargeAuraColor = '';
+    if (heroKey === 'sojourn') {
+        chargeLevel = sojournCharge;
+        chargeMax = 3;
+        chargeAuraColor = '#40a9ff';
+    } else if (heroKey === 'symmetra') {
+        chargeLevel = symmetraCharge;
+        chargeMax = 3;
+        chargeAuraColor = '#3d7bff';
+    } else if (heroKey === 'zarya') {
+        chargeLevel = zaryaCharge;
+        chargeMax = 1;
+        chargeAuraColor = '#ff4d6d';
+    }
+    const chargeIntensity = chargeMax > 0 ? chargeLevel / chargeMax : 0;
+    const chargeAura = chargeIntensity > 0
+        ? `0 0 ${8 + chargeIntensity * 12}px ${chargeAuraColor}${Math.round(60 + chargeIntensity * 120).toString(16).padStart(2, '0')}`
+        : '';
 
     let borderColor = color;
     let shadow = 'none';
@@ -80,6 +110,10 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
     else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
     else if (isExposed) moveBadge = { text: '노출', cls: 'exposed' };
+
+    const finalShadow = [chargeAura, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
+        .filter(Boolean)
+        .join(', ');
 
     return (
         <div
@@ -103,9 +137,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 cursor: 'pointer',
                 flexShrink: 0,
                 opacity: isHidden ? 0.45 : 1,
-                boxShadow: isAirborne
-                    ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)'
-                    : shadow,
+                boxShadow: finalShadow || 'none',
                 transform: isAirborne ? 'translateY(-4px)' : undefined,
                 filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
                 transition: 'all 0.25s',
@@ -139,6 +171,26 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
             {moveBadge && (
                 <div className={`field-move-badge ${moveBadge.cls}`}>
                     {moveBadge.text}
+                </div>
+            )}
+
+            {chargeLevel > 0 && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        padding: '1px 5px',
+                        borderRadius: 999,
+                        fontSize: 9,
+                        fontWeight: 800,
+                        lineHeight: 1.2,
+                        background: `${chargeAuraColor}22`,
+                        border: `1px solid ${chargeAuraColor}88`,
+                        color: chargeAuraColor,
+                    }}
+                >
+                    CHG {chargeLevel}
                 </div>
             )}
 
