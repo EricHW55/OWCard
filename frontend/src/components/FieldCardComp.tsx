@@ -70,7 +70,7 @@ function getMainDamage(card: FieldCard): string {
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) => {
     const [imgError, setImgError] = useState(false);
-    const [showZaryaBarrierBurst, setShowZaryaBarrierBurst] = useState(false);
+    const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
     const prevParticleBarrierRef = useRef<{ breakSeq: number }>({ breakSeq: 0 });
 
     useEffect(() => {
@@ -121,22 +121,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     })();
 
     useEffect(() => {
-        if (heroKey !== 'zarya') {
-            prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
-            return;
-        }
-
         const prev = prevParticleBarrierRef.current;
         const barrierJustBroken = particleBarrierBreakSeq > prev.breakSeq;
         if (barrierJustBroken) {
-            setShowZaryaBarrierBurst(true);
-            const timer = window.setTimeout(() => setShowZaryaBarrierBurst(false), 720);
+            setShowParticleBarrierBurst(true);
+            const timer = window.setTimeout(() => setShowParticleBarrierBurst(false), 720);
             prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
             return () => window.clearTimeout(timer);
         }
 
         prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
-    }, [heroKey, particleBarrierBreakSeq, card.uid]);
+    }, [particleBarrierBreakSeq, card.uid]);
 
     let chargeLevel = 0;
     let chargeMax = 1;
@@ -302,7 +297,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 </>
             )}
 
-            {showZaryaBarrierBurst && (
+            {showParticleBarrierBurst && (
                 <>
                     <div
                         style={{

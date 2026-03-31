@@ -151,7 +151,7 @@ class ParticleBarrier(StatusEffect):
     name: str = "particle_barrier"
     was_hit: bool = False
     source_uid: str = ""
-    visible_to_opponent: bool = True
+    visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["barrier", "buff"])
 
     def on_take_damage(self, card, damage, **kwargs):
