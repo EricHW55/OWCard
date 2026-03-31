@@ -273,7 +273,7 @@ export function useOnlineGameController(gameId: string) {
           team: context.victimTeam,
         },
         createdAt: createdAt + idx,
-        duration: 1500,
+        duration: 3000,
       }));
       return [...items, ...prevFeed].slice(0, 6);
     });

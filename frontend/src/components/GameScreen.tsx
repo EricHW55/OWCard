@@ -36,7 +36,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const activeIds = new Set(killFeed.map((entry) => entry.id));
     killFeed.forEach((entry) => {
       if (killTimerRef.current[entry.id]) return;
-      const duration = entry.duration ?? 1500;
+      const duration = entry.duration ?? 3000;
       killTimerRef.current[entry.id] = window.setTimeout(() => {
         onDismissKillFeedItem(entry.id);
         delete killTimerRef.current[entry.id];

@@ -126,8 +126,8 @@
     pointer-events: auto;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 7px;
+    gap: 9px;
+    padding: 5px 8px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(12, 18, 36, 0.84);
@@ -136,8 +136,8 @@
 }
 
 .game-killfeed-icon {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 6px;
     object-fit: cover;
     border: 2px solid transparent;
@@ -148,7 +148,7 @@
 
 .game-killfeed-arrow {
     color: #e8ecf8;
-    font-size: 16px;
+    font-size: 17px;
     line-height: 1;
     font-weight: 900;
 }

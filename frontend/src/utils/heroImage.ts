@@ -38,6 +38,7 @@ const HERO_ID_ALIAS: Record<string, string> = {
     widowmaker: 'widowmaker',
     hanzo: 'hanzo',
     echo: 'echo',
+    ash: 'ashe',
     ashe: 'ashe',
     cassidy: 'cassidy',
     reaper: 'reaper',
@@ -239,6 +240,7 @@ function buildNormalizedAliasMap(source: Record<string, string>): Record<string,
 
 const HERO_NAME_ALIAS_NORMALIZED = buildNormalizedAliasMap(HERO_NAME_ALIAS);
 const SPELL_ALIAS_NORMALIZED = buildNormalizedAliasMap(SPELL_ALIAS);
+const KNOWN_HERO_KEYS = new Set<string>(Object.values(HERO_ID_ALIAS));
 
 function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
@@ -253,8 +255,12 @@ function resolveHeroKey(card: CardLike): string | null {
         const normalized = normalize(named);
         if (!normalized) continue;
 
-        const aliased = HERO_ID_ALIAS[normalized] ?? normalized;
-        return aliased;
+        // const aliased = HERO_ID_ALIAS[normalized] ?? normalized;
+        // return aliased;
+        const aliased = HERO_ID_ALIAS[normalized];
+        if (aliased) return aliased;
+
+        if (KNOWN_HERO_KEYS.has(normalized)) return normalized;
     }
 
     return null;
