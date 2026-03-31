@@ -96,7 +96,7 @@ def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) ->
 @register_skill("zarya", "skill_1")
 def zarya_particle_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     t = target or caster
-    t.add_status(ParticleBarrier(duration=2, source_uid=caster.uid))
+    t.add_status(ParticleBarrier(duration=-1, source_uid=caster.uid))
     return {"success": True, "skill": "입자 방벽", "target": t.uid}
 
 @register_skill("zarya", "skill_2")

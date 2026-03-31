@@ -136,6 +136,12 @@ class FieldCard:
 
         for status in list(self.statuses):
             result = status.on_take_damage(self, current_damage, **kwargs)
+            if result.get("particle_barrier_broken"):
+                log["particle_barrier_broken"] = True
+                self.extra["particle_barrier_break_seq"] = int(self.extra.get("particle_barrier_break_seq", 0) or 0) + 1
+            trigger_uid = result.get("trigger_zarya_buff")
+            if trigger_uid:
+                log["trigger_zarya_buff"] = trigger_uid
             if result.get("absorbed"):
                 log["absorbed_by"] = status.name
                 log["final_damage"] = 0

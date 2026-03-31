@@ -71,7 +71,7 @@ function getMainDamage(card: FieldCard): string {
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) => {
     const [imgError, setImgError] = useState(false);
     const [showZaryaBarrierBurst, setShowZaryaBarrierBurst] = useState(false);
-    const prevParticleBarrierRef = useRef<{ active: boolean; wasHit: boolean }>({ active: false, wasHit: false });
+    const prevParticleBarrierRef = useRef<{ breakSeq: number }>({ breakSeq: 0 });
 
     useEffect(() => {
         setImgError(false);
@@ -86,9 +86,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const barrierHp = (barrierStatus as any)?.barrier_hp ?? 0;
     const hasBarrier = barrierHp > 0;
 
-    const particleBarrierStatus = card.statuses?.find((s) => s.name === 'particle_barrier');
-    const isParticleBarrierActive = !!particleBarrierStatus;
-    const particleBarrierWasHit = Boolean((particleBarrierStatus as any)?.was_hit);
+    const particleBarrierBreakSeq = Number((card.extra as any)?.particle_barrier_break_seq ?? 0) || 0;
 
     const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
@@ -119,28 +117,26 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const symmetraCharge = Math.max(0, Math.min(3, Number(card.extra?.photon_charge ?? 0) || 0));
     const zaryaCharge = (() => {
         const fromExtra = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0);
-        if (fromExtra > 0) return 1;
-        if (particleBarrierWasHit) return 1;
-        return isParticleBarrierActive ? 1 : 0;
+        return fromExtra > 0 ? 1 : 0;
     })();
 
     useEffect(() => {
         if (heroKey !== 'zarya') {
-            prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
+            prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
             return;
         }
 
         const prev = prevParticleBarrierRef.current;
-        const barrierJustBroken = prev.active && !isParticleBarrierActive;
+        const barrierJustBroken = particleBarrierBreakSeq > prev.breakSeq;
         if (barrierJustBroken) {
             setShowZaryaBarrierBurst(true);
             const timer = window.setTimeout(() => setShowZaryaBarrierBurst(false), 720);
-            prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
+            prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
             return () => window.clearTimeout(timer);
         }
 
-        prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };
-    }, [heroKey, isParticleBarrierActive, particleBarrierWasHit, card.uid]);
+        prevParticleBarrierRef.current = { breakSeq: particleBarrierBreakSeq };
+    }, [heroKey, particleBarrierBreakSeq, card.uid]);
 
     let chargeLevel = 0;
     let chargeMax = 1;

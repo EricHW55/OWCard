@@ -151,20 +151,26 @@ class ParticleBarrier(StatusEffect):
     name: str = "particle_barrier"
     was_hit: bool = False
     source_uid: str = ""
-    visible_to_opponent: bool = False
+    visible_to_opponent: bool = True
     tags: list[str] = field(default_factory=lambda: ["barrier", "buff"])
 
     def on_take_damage(self, card, damage, **kwargs):
         if not self.was_hit:
             self.was_hit = True
-            self.duration = 0  # 맞으면 즉시 소멸
-            return {"damage": 0, "absorbed": True, "trigger_zarya_buff": self.source_uid}
+            card.remove_status(self.name)
+            return {
+                "damage": 0,
+                "absorbed": True,
+                "particle_barrier_broken": True,
+                "trigger_zarya_buff": self.source_uid if card.uid != self.source_uid else "",
+            }
         return {"damage": damage}
 
-    def on_turn_end(self, card):
+    def on_turn_start(self, card):
         if not self.was_hit:
-            # 공격 안 받으면 1턴 유지 후 파괴
-            pass
+            # 공격 안 받으면 상대 턴 종료 시점(내 턴 시작)에 해제
+            card.remove_status(self.name)
+            return {"expired": True}
         return {}
     
     def to_dict(self):

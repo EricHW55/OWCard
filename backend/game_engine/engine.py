@@ -563,7 +563,20 @@ class GameEngine:
         ps.field.remove_dead()
         return logs
     
-    
+    def _apply_particle_barrier_trigger(self, damage_log: dict | None) -> None:
+        if not isinstance(damage_log, dict):
+            return
+        zarya_uid = str(damage_log.get("trigger_zarya_buff") or "")
+        if not zarya_uid:
+            return
+        for player in self.players.values():
+            zarya = player.field.find_card(zarya_uid)
+            if not zarya:
+                continue
+            zarya.extra["particle_barrier_charge"] = 1
+            zarya.extra["zarya_charge"] = 1
+            break
+        
     def _process_turn_start_hero_passives(self, ps: PlayerState) -> list[dict]:
         logs: list[dict] = []
         for card in list(ps.field.all_cards()):
@@ -973,6 +986,7 @@ class GameEngine:
                     reflect_dmg = target_card_logs["reflected"]
                     caster.take_raw_damage(reflect_dmg)
                     result["reflected_to_caster"] = reflect_dmg
+                self._apply_particle_barrier_trigger(target_card_logs)
 
         # 사망 처리
         self._finalize_deaths(opp, ps)
@@ -1020,6 +1034,7 @@ class GameEngine:
                 return {"error": "Target is untargetable"}
 
         result = target.take_damage(attacker.attack)
+        self._apply_particle_barrier_trigger(result)
 
         # 반사 처리
         if result.get("reflected"):
