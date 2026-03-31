@@ -130,7 +130,7 @@ def wrecking_ball_piledriver(caster: FieldCard, target: FieldCard, game: GameSta
     if not target:
         return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
-    target.add_status(Airborne(duration=2, source_uid=caster.uid))
+    target.add_status(Airborne(duration=1, source_uid=caster.uid))
     return {"success": True, "skill": "파일드라이버", "damage_log": result, "airborne": True}
 
 # ── 정커퀸 ────────────────────────────────
