@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 import { getHeroImageSrc } from '../utils/heroImage';
@@ -11,14 +11,14 @@ interface Props {
 }
 
 interface AuraSpike {
-    top?: string;
-    right?: string;
-    bottom?: string;
-    left?: string;
+    x: number;
+    y: number;
     w: number;
     h: number;
     rotate: number;
     delay: number;
+    duration: number;
+    peak: number;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -34,17 +34,26 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function getAuraSpikes(level: number): AuraSpike[] {
     if (level <= 0) return [];
-    const protrusion = 1 + level * 0.35;
-    return [
-        { top: '-20%', left: '12%', w: 9 * protrusion, h: 24 * protrusion, rotate: -14, delay: 0.0 },
-        { top: '-22%', right: '10%', w: 8 * protrusion, h: 21 * protrusion, rotate: 16, delay: 0.2 },
-        { right: '-19%', top: '18%', w: 23 * protrusion, h: 9 * protrusion, rotate: 4, delay: 0.35 },
-        { right: '-20%', bottom: '18%', w: 21 * protrusion, h: 8 * protrusion, rotate: -7, delay: 0.55 },
-        { bottom: '-21%', right: '18%', w: 9 * protrusion, h: 22 * protrusion, rotate: 12, delay: 0.7 },
-        { bottom: '-20%', left: '13%', w: 8 * protrusion, h: 23 * protrusion, rotate: -15, delay: 0.9 },
-        { left: '-19%', bottom: '17%', w: 22 * protrusion, h: 9 * protrusion, rotate: -5, delay: 1.05 },
-        { left: '-20%', top: '16%', w: 21 * protrusion, h: 8 * protrusion, rotate: 8, delay: 1.25 },
-    ];
+    const spread = 1 + level * 0.25;
+    const count = 16 + level * 6;
+    return Array.from({ length: count }, (_, i) => {
+        const theta = Math.random() * Math.PI * 2;
+        const radius = 52 + Math.random() * 28;
+        const x = 50 + Math.cos(theta) * radius;
+        const y = 50 + Math.sin(theta) * radius;
+        const long = (14 + Math.random() * 16) * spread;
+        const short = (5 + Math.random() * 5) * spread;
+        return {
+            x,
+            y,
+            w: Math.max(5, short),
+            h: Math.max(12, long),
+            rotate: (theta * 180) / Math.PI + 90 + (Math.random() * 24 - 12),
+            delay: i * 0.11 + Math.random() * 0.5,
+            duration: 2.2 + Math.random() * 1.8,
+            peak: 0.7 + Math.random() * 0.5,
+        };
+    });
 }
 
 function getMainDamage(card: FieldCard): string {
@@ -129,7 +138,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const chargeAuraRing = chargeIntensity > 0
         ? `inset 0 0 ${4 + chargeIntensity * 5}px ${hexToRgba(chargeAuraColor, 0.55 + chargeIntensity * 0.25)}`
         : '';
-    const auraSpikes = getAuraSpikes(chargeLevel);
+    const auraSpikes = useMemo(() => getAuraSpikes(chargeLevel), [card.uid, chargeLevel]);
 
     let borderColor = color;
     let shadow = 'none';
@@ -221,26 +230,54 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 <div
                     key={`aura-spike-${idx}`}
                     style={{
-                        top: spike.top,
-                        right: spike.right,
-                        bottom: spike.bottom,
-                        left: spike.left,
                         position: 'absolute',
+                        top: `${spike.y}%`,
+                        left: `${spike.x}%`,
                         width: spike.w,
                         height: spike.h,
                         borderRadius: 0,
                         clipPath: 'polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%)',
-                        transform: `rotate(${spike.rotate}deg)`,
+                        transform: `translate(-50%, -50%) rotate(${spike.rotate}deg)`,
                         transformOrigin: '50% 100%',
                         background: `linear-gradient(180deg, ${hexToRgba(chargeAuraColor, 0.95)} 0%, ${hexToRgba(chargeAuraColor, 0.58)} 45%, ${hexToRgba(chargeAuraColor, 0.18)} 80%, transparent 100%)`,
                         filter: `blur(${0.3 + chargeIntensity * 0.8}px)`,
-                        opacity: 0.7 + chargeIntensity * 0.25,
+                        opacity: 0,
                         zIndex: -1,
                         pointerEvents: 'none',
-                        animation: `auraJitter ${1.4 + spike.delay * 0.35}s ease-in-out ${spike.delay}s infinite`,
+                        animation: `auraSpikePop ${spike.duration}s ease-in-out ${spike.delay}s infinite`,
+                        ['--aura-peak' as string]: String(Math.min(1, spike.peak + chargeIntensity * 0.2)),
+                        ['--aura-rot' as string]: `${spike.rotate}deg`,
                     }}
                 />
             ))}
+            {chargeLevel > 0 && (
+                <>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: '-24%',
+                            borderRadius: '30%',
+                            pointerEvents: 'none',
+                            zIndex: -2,
+                            background: `radial-gradient(circle, ${hexToRgba(chargeAuraColor, 0.05)} 0%, ${hexToRgba(chargeAuraColor, 0.1)} 42%, ${hexToRgba(chargeAuraColor, 0.35)} 72%, transparent 100%)`,
+                            filter: `blur(${4 + chargeIntensity * 10}px)`,
+                            animation: `auraFlow ${3 - chargeIntensity * 0.55}s linear infinite`,
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            inset: '-30%',
+                            borderRadius: '42%',
+                            pointerEvents: 'none',
+                            zIndex: -3,
+                            background: `conic-gradient(from 0deg, transparent 0deg, ${hexToRgba(chargeAuraColor, 0.4)} 70deg, transparent 150deg, ${hexToRgba(chargeAuraColor, 0.3)} 240deg, transparent 320deg)`,
+                            filter: `blur(${2 + chargeIntensity * 4}px)`,
+                            animation: `auraSweep ${4.8 - chargeIntensity * 0.8}s linear infinite`,
+                        }}
+                    />
+                </>
+            )}
 
             <div
                 style={{
@@ -363,10 +400,21 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
 
             <style>{`
                 @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
-                @keyframes auraJitter {
-                    0%, 100% { opacity: .48; }
-                    50% { opacity: 1; }
+                @keyframes auraSpikePop {
+                    0%, 14%, 100% { opacity: 0; transform: translate(-50%, -50%) scaleY(.1) rotate(var(--aura-rot, 0deg)); }
+                    28% { opacity: calc(var(--aura-peak, .8) * .95); transform: translate(-50%, -50%) scaleY(1.1) rotate(var(--aura-rot, 0deg)); }
+                    44% { opacity: calc(var(--aura-peak, .8) * .75); transform: translate(-50%, -50%) scaleY(.88) rotate(var(--aura-rot, 0deg)); }
+                    62% { opacity: 0; transform: translate(-50%, -50%) scaleY(.2) rotate(var(--aura-rot, 0deg)); }
                 }
+                @keyframes auraFlow {
+                    0% { transform: scale(.9); opacity: .45; }
+                    50% { transform: scale(1.08); opacity: .85; }
+                    100% { transform: scale(1.22); opacity: .15; }
+                }
+                @keyframes auraSweep {
+                    0% { transform: rotate(0deg) scale(0.95); opacity: .45; }
+                    50% { opacity: .9; }
+                    100% { transform: rotate(360deg) scale(1.08); opacity: .42; }
             `}</style>
         </div>
     );
