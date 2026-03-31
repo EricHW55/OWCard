@@ -434,9 +434,12 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
-          addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
+          // addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
+          const isWinner = Number(msg?.winner) === Number(session.player_id);
+          addLog(`게임 종료! ${isWinner ? '승리' : '패배'} · 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 미정'}`, 2000);
+          // showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 미정'}`, 2000);
+          showPhaseChange(isWinner ? '승리' : '패배', `${msg.winner_name ?? msg.winner ?? '승자 미정'}`, 2800);
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),

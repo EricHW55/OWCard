@@ -10,20 +10,32 @@ const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
   const navigate = useNavigate();
   const vm = useOnlineGameController(gameId);
+  const session = vm.session;
+
   const handleSurrender = () => {
+    if (isGameOver) return;
     const confirmed = window.confirm('정말로 항복하시겠습니까?');
     if (!confirmed) return;
     vm.surrenderGame();
-    navigate('/');
+    // navigate('/');
   };
 
-  if (!vm.session) {
+  if (!session) {
     return (
-      <div className="game-loading-screen">
-        <div>로그인이 필요합니다.</div>
-      </div>
+        <div className="game-loading-screen">
+          <div>로그인이 필요합니다.</div>
+        </div>
     );
   }
+
+  const isGameOver = vm.phase === 'game_over' && !!vm.gs;
+  const isWinner = isGameOver && vm.gs?.winner === session.player_id;
+  const resultTitle = !isGameOver ? '' : isWinner ? '승리!' : '패배';
+  const resultSubtitle = !isGameOver
+      ? ''
+      : isWinner
+          ? '상대가 항복했습니다.'
+          : '당신이 항복하여 패배했습니다.';
 
   if (!vm.gs || !vm.my || !vm.opp) {
     return (
@@ -51,6 +63,7 @@ const GamePage: React.FC = () => {
   ].filter(Boolean) as React.ReactNode[];
 
   return (
+    <>
     <GameScreen
       announcerData={vm.announcerData}
       onCloseAnnouncer={vm.closeAnnouncer}
@@ -65,7 +78,7 @@ const GamePage: React.FC = () => {
         <>
           <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{vm.isMyTurn ? '● 내 턴' : '○ 상대 턴'}</div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
-          <button onClick={handleSurrender} style={{ ...BTN_SM, background: '#4b1f2d' }}>항복</button>
+          <button onClick={handleSurrender} disabled={isGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isGameOver ? 0.5 : 1 }}>항복</button>
           <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>
         </>
       }
@@ -144,6 +157,18 @@ const GamePage: React.FC = () => {
       detailCard={vm.detailCard}
       onCloseDetail={() => vm.setDetailCard(null)}
     />
+      {isGameOver && (
+          <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
+            <div className={`game-result-modal ${isWinner ? 'win' : 'lose'}`}>
+              <h2>{resultTitle}</h2>
+              <p>{resultSubtitle}</p>
+              <button onClick={() => navigate('/')} style={{ ...BTN_SM, background: isWinner ? '#136b34' : '#6b1f2a' }}>
+                로비로 이동
+              </button>
+            </div>
+          </div>
+      )}
+    </>
   );
 };
 
