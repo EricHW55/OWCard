@@ -20,6 +20,12 @@ type ColumnPreview = {
 
 type KillSide = 'my' | 'opponent';
 
+function findFieldCardByUid(state: any, uid?: string | null) {
+  if (!state || !uid) return null;
+  const cards = [...(state?.field?.main || []), ...(state?.field?.side || [])];
+  return cards.find((c: any) => c?.uid === uid) || null;
+}
+
 function getSession() {
   const token = sessionStorage.getItem('access_token');
   const pid = sessionStorage.getItem('player_id');
@@ -442,14 +448,19 @@ export function useOnlineGameController(gameId: string) {
           const result = msg?.result || {};
           const latestMyState = gsRef.current?.my_state as any;
           const myHand = latestMyState?.hand || [];
+          const myCasterCard = findFieldCardByUid(latestMyState, msg?.caster_uid) || result?.caster || null;
           const spellName = result?.card?.name || result?.skill_name || result?.skill || myHand.find((c: any) => c.hero_key === result?.hero_key)?.name || pendingSpellNameRef.current || '스킬 카드';
-          const actorName = result?.caster_name || result?.caster?.name || result?.card?.name || latestMyState?.field?.main?.find?.((c: any) => c.uid === msg?.caster_uid)?.name || latestMyState?.field?.side?.find?.((c: any) => c.uid === msg?.caster_uid)?.name || '영웅';
+          const actorName = myCasterCard?.name || result?.caster_name || result?.caster?.name || result?.card?.name || '영웅';
           const resolvedSkillName = result?.skill_name || result?.skill || null;
           const fatalUids = Array.from(collectFatalUids(result));
+          const isSpellKill = msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_');
+          const killHeroKey = isSpellKill
+              ? (result?.hero_key || result?.card?.hero_key || '')
+              : (getHeroKey(myCasterCard) || result?.caster?.hero_key || '');
           pendingKillContextRef.current = {
-            killerName: result?.skill_name || result?.skill || result?.card?.name || actorName,
-            killerHeroKey: result?.hero_key || result?.card?.hero_key || result?.caster?.hero_key || '',
-            killerIsSpell: msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_'),
+            killerName: actorName,
+            killerHeroKey: killHeroKey,
+            killerIsSpell: isSpellKill,
             killerTeam: 'my',
             victimTeam: 'opponent',
             createdAt: Date.now(),
@@ -517,7 +528,7 @@ export function useOnlineGameController(gameId: string) {
           showDeathPassiveNotice(result, 'my');
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
-            const casterCard = [...(latestMyState?.field?.main || []), ...(latestMyState?.field?.side || [])].find((c: any) => c.uid === msg?.caster_uid) || result?.caster;
+            const casterCard = myCasterCard;
             showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill), heroKey: getHeroKey(casterCard), imageName: casterCard?.name, subtitle: result?.caster_name || casterCard?.name, isSpell: false, duration: 3200 });
           }
           if (msg.action === 'execute_spell') {
@@ -535,11 +546,18 @@ export function useOnlineGameController(gameId: string) {
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state);
           if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const result = msg?.result || {};
+          const oppState = gsRef.current?.opponent_state as any;
+          const opponentCasterCard = findFieldCardByUid(oppState, msg?.caster_uid) || result?.caster || null;
+          const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
           const fatalUids = Array.from(collectFatalUids(result));
+          const isSpellKill = cue?.isSpell || msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_');
+          const killHeroKey = isSpellKill
+              ? (cue?.heroKey || result?.hero_key || result?.card?.hero_key || '')
+              : (getHeroKey(opponentCasterCard) || result?.caster?.hero_key || '');
           pendingKillContextRef.current = {
-            killerName: result?.skill_name || result?.skill || cue?.title || '상대',
-            killerHeroKey: cue?.heroKey || result?.hero_key || result?.card?.hero_key || result?.caster?.hero_key || '',
-            killerIsSpell: cue?.isSpell || msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_'),
+            killerName: opponentName,
+            killerHeroKey: killHeroKey,
+            killerIsSpell: isSpellKill,
             killerTeam: 'opponent',
             victimTeam: 'my',
             createdAt: Date.now(),
