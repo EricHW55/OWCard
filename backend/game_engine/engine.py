@@ -626,6 +626,13 @@ class GameEngine:
         if passive_type == "jetpack_cat_extra_place":
             if hand_index is None or zone not in ("main", "side"):
                 return {"error": "추가 배치할 카드와 위치를 선택하세요"}
+            if hand_index < 0 or hand_index >= len(ps.hand):
+                return {"error": "잘못된 손패 선택"}
+            selected = ps.hand[hand_index]
+            if selected.get("is_spell", False):
+                return {"error": "스킬 카드는 견인할 수 없습니다"}
+            if selected.get("role") == "tank":
+                return {"error": "탱커는 제트팩 캣으로 견인할 수 없습니다"}
             ps.pending_passive = None
             result = self._place_from_hand_free(ps, hand_index, zone, trigger_passive=True)
             if "error" in result:

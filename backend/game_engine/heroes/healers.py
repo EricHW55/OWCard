@@ -286,10 +286,12 @@ def jetpack_cat_passive(card: FieldCard, game: GameState) -> dict:
         options = [
             {"index": i, "name": c.get("name", "?"), "role": c.get("role", "?")}
             for i, c in enumerate(ps.hand)
-            if not c.get("is_spell", False)
+            # if not c.get("is_spell", False)
+            if (not c.get("is_spell", False)) and c.get("role") != "tank"
         ]
     if not options:
-        return {"passive": "생명줄", "message": "추가 배치할 영웅 카드 없음"}
+        # return {"passive": "생명줄", "message": "추가 배치할 영웅 카드 없음"}
+        return {"passive": "생명줄", "message": "견인 가능한 영웅 카드(탱커 제외) 없음"}
     return {
         "passive": "생명줄",
         "needs_choice": {
