@@ -80,6 +80,16 @@ function getSkillDescriptionFromCard(card: any, skillRef?: string | null) {
 function buildOpponentSkillCue(msg: any, opponentState?: any) {
   const result = msg?.result || {};
   const action = msg?.action;
+  const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect']);
+  const resultHeroKey = String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').toLowerCase();
+  const isHiddenInstallSpell = hiddenInstallSpellKeys.has(resultHeroKey);
+
+  // 불사장치/튕겨내기는 "설치 시점"에는 상대에게 완전히 숨겨야 한다.
+  // (효과가 실제 발동될 때는 death/reflect 로그에서 별도로 UI를 띄운다.)
+  if (isHiddenInstallSpell && (result?.type === 'spell_played' || action === 'execute_spell' || action === 'place_card')) {
+    return null;
+  }
+
   if (result?.hidden) return null;
   const hasSkillSignal = action === 'use_skill' || action === 'execute_spell' || !!msg?.skill_name || !!result?.skill_name || !!result?.skill || result?.type === 'spell_played';
   if (!hasSkillSignal) return null;
