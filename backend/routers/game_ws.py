@@ -227,7 +227,17 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     opp_ids = [pid for pid in engine.players if pid != player_id]
     if opp_ids:
       safe = {k: v for k, v in result.items() if k != "hand"}
-      await manager.send_game(game_id, opp_ids[0], {"event": "opponent_action", "action": action, "result": safe})
+      opponent_payload = {"event": "opponent_action", "action": action, "result": safe}
+
+      # 상대 클라이언트가 announcer에서 정확한 영웅 이미지를 고를 수 있도록
+      # action 입력 메타(caster_uid/skill_key 등)를 함께 전달한다.
+      if action == "use_skill":
+          opponent_payload["caster_uid"] = data.get("caster_uid")
+          opponent_payload["skill_key"] = data.get("skill_key")
+      elif action == "execute_spell":
+          opponent_payload["hero_key"] = data.get("hero_key")
+
+      await manager.send_game(game_id, opp_ids[0], opponent_payload)
 
     await manager.broadcast_spectators(game_id, {
         "event": "game_action", "player_id": player_id,

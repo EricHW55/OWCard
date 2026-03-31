@@ -94,17 +94,17 @@ function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: 
   const hasSkillSignal = action === 'use_skill' || action === 'execute_spell' || !!msg?.skill_name || !!result?.skill_name || !!result?.skill || result?.type === 'spell_played';
   if (!hasSkillSignal) return null;
 
-  const actorName = msg?.caster_name || msg?.actor_name || msg?.card_name || result?.caster?.name || result?.card?.name || '상대';
+  const actorName = msg?.caster_name || result?.caster_name || msg?.actor_name || msg?.card_name || result?.caster?.name || result?.card?.name || '상대';
   const skillName = msg?.skill_name || result?.skill_name || result?.skill || result?.display_name || result?.card?.skill_name || result?.card?.name;
   if (!skillName) return null;
 
   const isSpell = action === 'execute_spell' || result?.type === 'spell_played' || !!result?.card?.is_spell || String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').startsWith('spell_');
   const oppField = opponentState ? [...(opponentState?.field?.main || []), ...(opponentState?.field?.side || [])] : [];
-  const actorCard = oppField.find((c: any) => c.uid === msg?.caster_uid) || oppField.find((c: any) => c.name === actorName) || result?.caster || null;
+  const actorCard = oppField.find((c: any) => c.uid === (msg?.caster_uid || result?.caster_uid)) || oppField.find((c: any) => c.name === actorName) || result?.caster || null;
   const spellCard = result?.card || { hero_key: result?.hero_key || msg?.hero_key, name: skillName, is_spell: true, description: result?.description };
   const heroKey = isSpell
     ? (result?.hero_key || msg?.hero_key || spellCard?.hero_key || undefined)
-    : (getHeroKey(actorCard) || fallbackHeroKey || getHeroKey(result?.caster) || undefined);
+      : (getHeroKey(actorCard) || result?.caster_hero_key || fallbackHeroKey || getHeroKey(result?.caster) || undefined);
   const description = isSpell
     ? getSkillDescriptionFromCard(spellCard, result?.skill_key || result?.skill || skillName)
     : getSkillDescriptionFromCard(actorCard, msg?.skill_key || result?.skill_key || result?.skill_name || result?.skill || skillName);
