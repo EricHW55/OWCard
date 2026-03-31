@@ -117,7 +117,7 @@ def wrecking_ball_hook(caster: FieldCard, target: FieldCard, game: GameState) ->
 
     my_field = game.get_my_field(caster)
     to_zone = Zone.SIDE if caster.zone == Zone.MAIN else Zone.MAIN
-    moved = my_field.move_card(caster, to_zone)
+    moved = my_field.move_card(caster, to_zone, ignore_limits=True)
     if not moved:
         return {"success": False, "message": "이동할 수 없는 위치입니다"}
     

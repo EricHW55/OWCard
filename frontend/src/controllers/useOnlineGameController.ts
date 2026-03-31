@@ -569,8 +569,8 @@ export function useOnlineGameController(gameId: string) {
               skillName: result.passive_triggered.passive,
               subtitle: `${actorName} 패시브`,
               description: result?.passive_triggered?.message || '',
-              heroKey: getHeroKey(myCasterCard),
-              imageName: actorName,
+              heroKey: getHeroKey(myCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+              imageName: myCasterCard?.name || actorName,
               isSpell: false,
               duration: 3000,
             });
@@ -593,7 +593,15 @@ export function useOnlineGameController(gameId: string) {
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
-            showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill), heroKey: getHeroKey(casterCard), imageName: casterCard?.name, subtitle: result?.caster_name || casterCard?.name, isSpell: false, duration: 3200 });
+            showSkillUse({
+              skillName: resolvedSkillName,
+              description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
+              heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+              imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
+              subtitle: result?.caster_name || casterCard?.name || actorName,
+              isSpell: false,
+              duration: 3200,
+            });
           }
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);

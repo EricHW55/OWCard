@@ -331,7 +331,7 @@ class Field:
         card.zone = zone
         return True
 
-    def move_card(self, card: FieldCard, to_zone: Zone) -> bool:
+    def move_card(self, card: FieldCard, to_zone: Zone, *, ignore_limits: bool = False) -> bool:
         if card.zone == to_zone:
             return False
 
@@ -344,7 +344,9 @@ class Field:
         else:
             self.side_cards = [c for c in self.side_cards if c.uid != card.uid]
 
-        can_move = self.can_place_main(card.role) if to_zone == Zone.MAIN else self.can_place_side(card.role)
+        can_move = True if ignore_limits else (
+            self.can_place_main(card.role) if to_zone == Zone.MAIN else self.can_place_side(card.role)
+        )
         if not can_move:
             self.main_cards = original_main
             self.side_cards = original_side
