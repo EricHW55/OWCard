@@ -17,6 +17,7 @@ interface AuraSpike {
     left?: string;
     w: number;
     h: number;
+    rotate: number;
     delay: number;
 }
 
@@ -33,16 +34,16 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function getAuraSpikes(level: number): AuraSpike[] {
     if (level <= 0) return [];
-    const protrusion = 1 + level * 0.45;
+    const protrusion = 1 + level * 0.35;
     return [
-        { top: '-9%', left: '12%', w: 18 * protrusion, h: 12 * protrusion, delay: 0.0 },
-        { top: '-10%', right: '10%', w: 12 * protrusion, h: 18 * protrusion, delay: 0.2 },
-        { right: '-11%', top: '20%', w: 16 * protrusion, h: 11 * protrusion, delay: 0.35 },
-        { right: '-10%', bottom: '18%', w: 13 * protrusion, h: 19 * protrusion, delay: 0.55 },
-        { bottom: '-10%', right: '18%', w: 20 * protrusion, h: 12 * protrusion, delay: 0.7 },
-        { bottom: '-11%', left: '14%', w: 14 * protrusion, h: 16 * protrusion, delay: 0.9 },
-        { left: '-11%', bottom: '18%', w: 17 * protrusion, h: 12 * protrusion, delay: 1.05 },
-        { left: '-9%', top: '18%', w: 12 * protrusion, h: 17 * protrusion, delay: 1.25 },
+        { top: '-20%', left: '12%', w: 9 * protrusion, h: 24 * protrusion, rotate: -14, delay: 0.0 },
+        { top: '-22%', right: '10%', w: 8 * protrusion, h: 21 * protrusion, rotate: 16, delay: 0.2 },
+        { right: '-19%', top: '18%', w: 23 * protrusion, h: 9 * protrusion, rotate: 4, delay: 0.35 },
+        { right: '-20%', bottom: '18%', w: 21 * protrusion, h: 8 * protrusion, rotate: -7, delay: 0.55 },
+        { bottom: '-21%', right: '18%', w: 9 * protrusion, h: 22 * protrusion, rotate: 12, delay: 0.7 },
+        { bottom: '-20%', left: '13%', w: 8 * protrusion, h: 23 * protrusion, rotate: -15, delay: 0.9 },
+        { left: '-19%', bottom: '17%', w: 22 * protrusion, h: 9 * protrusion, rotate: -5, delay: 1.05 },
+        { left: '-20%', top: '16%', w: 21 * protrusion, h: 8 * protrusion, rotate: 8, delay: 1.25 },
     ];
 }
 
@@ -163,6 +164,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 height: 'var(--field-card-height)',
                 borderRadius: 'var(--field-card-radius)',
                 position: 'relative',
+                overflow: 'visible',
+                isolation: 'isolate',
                 border: `2px solid ${borderColor}`,
                 background: selected
                     ? 'rgba(255,155,48,0.15)'
@@ -222,12 +225,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                         right: spike.right,
                         bottom: spike.bottom,
                         left: spike.left,
+                        position: 'absolute',
                         width: spike.w,
                         height: spike.h,
-                        borderRadius: '50% 45% 60% 40%',
-                        background: `radial-gradient(circle at 35% 35%, ${hexToRgba(chargeAuraColor, 0.92)}, ${hexToRgba(chargeAuraColor, 0.35)} 60%, transparent 90%)`,
-                        filter: `blur(${0.6 + chargeIntensity * 1.1}px)`,
-                        opacity: 0.55 + chargeIntensity * 0.4,
+                        borderRadius: 0,
+                        clipPath: 'polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%)',
+                        transform: `rotate(${spike.rotate}deg)`,
+                        transformOrigin: '50% 100%',
+                        background: `linear-gradient(180deg, ${hexToRgba(chargeAuraColor, 0.95)} 0%, ${hexToRgba(chargeAuraColor, 0.58)} 45%, ${hexToRgba(chargeAuraColor, 0.18)} 80%, transparent 100%)`,
+                        filter: `blur(${0.3 + chargeIntensity * 0.8}px)`,
+                        opacity: 0.7 + chargeIntensity * 0.25,
+                        zIndex: -1,
                         pointerEvents: 'none',
                         animation: `auraJitter ${1.4 + spike.delay * 0.35}s ease-in-out ${spike.delay}s infinite`,
                     }}
@@ -356,8 +364,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
             <style>{`
                 @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
                 @keyframes auraJitter {
-                    0%, 100% { transform: scale(0.92); opacity: .45; }
-                    50% { transform: scale(1.18); opacity: 1; }
+                    0%, 100% { opacity: .48; }
+                    50% { opacity: 1; }
                 }
             `}</style>
         </div>
