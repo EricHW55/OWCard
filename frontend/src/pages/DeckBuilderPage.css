@@ -27,8 +27,14 @@
 }
 .deck-builder-header h1 { margin: 0; font-size: clamp(16px, 4.5vw, 28px); font-weight: 900; }
 .deck-builder-header p { margin: 2px 0 0; color: #8a94b8; font-size: clamp(9px, 2.2vw, 13px); }
+
+.deck-builder-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 .deck-builder-tip {
-    margin-top: 6px;
     display: inline-flex;
     align-items: center;
     gap: 6px;

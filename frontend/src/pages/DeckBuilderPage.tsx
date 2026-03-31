@@ -241,9 +241,11 @@ const DeckBuilderPage: React.FC = () => {
                 <div className="deck-builder-shell">
                     <div className="deck-builder-header">
                         <div>
-                            <h1>덱 구성</h1>
+                            <div className="deck-builder-title-row">
+                                <h1>덱 구성</h1>
+                                <div className="deck-builder-tip">탭하면 카드 추가 · 꾹 누르면 세부 정보</div>
+                            </div>
                             <p>덱 크기: {deckSize}장</p>
-                            <div className="deck-builder-tip">탭하면 카드 추가 · 꾹 누르면 세부 정보</div>
                         </div>
                         <div className="deck-builder-actions">
                             <button className="ghost-btn" onClick={() => navigate('/')}>로비로</button>
