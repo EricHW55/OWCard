@@ -108,6 +108,7 @@ function isTargetlessSkill(card: any, skillKey: string): boolean {
   if (hero === 'doomfist' && skillKey === 'skill_2') return true;
   if (hero === 'ramattra' && (skillKey === 'skill_2' || skillKey === 'skill_3')) return true;
   if (hero === 'sigma' && (skillKey === 'skill_1' || skillKey === 'skill_2')) return true;
+  if (hero === 'domina' && skillKey === 'skill_2') return true;
   if (hero === 'roadhog' && skillKey === 'skill_2') return true;
   if (hero === 'torbjorn' && skillKey === 'skill_2') return true;
   return false;
