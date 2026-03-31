@@ -346,6 +346,11 @@ export function useSoloGameController() {
     if (!players || !activePlayer || phase !== 'placement' || selectedHandIdx === null) return;
     const card = activePlayer.hand[selectedHandIdx];
     if (!card?.is_spell) return;
+    const myFieldCount = activePlayer.field.main.length + activePlayer.field.side.length;
+    if (myFieldCount === 0) {
+      enqueueAnnouncer({ type: 'phase', title: '최소 배치 필요', subtitle: '필드에 카드를 1장 이상 먼저 배치하세요', duration: 1500 });
+      return;
+    }
 
     const placementCost = getPlacementCost(card);
     if ((activePlayer.placementUsed + placementCost) > 2) {

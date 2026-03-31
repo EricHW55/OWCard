@@ -108,6 +108,49 @@
     padding: 2px 4px;
     gap: 4px;
     -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
+.game-killfeed {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.game-killfeed-item {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 7px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(12, 18, 36, 0.84);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+}
+
+.game-killfeed-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 2px solid transparent;
+}
+
+.game-killfeed-icon.ally { border-color: #35b8ff; }
+.game-killfeed-icon.enemy { border-color: #ff4a5f; }
+
+.game-killfeed-arrow {
+    color: #e8ecf8;
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 900;
 }
 
 .game-board-scale {

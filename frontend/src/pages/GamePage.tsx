@@ -154,6 +154,8 @@ const GamePage: React.FC = () => {
         </>
       }
       logs={vm.logs}
+      killFeed={vm.killFeed}
+      onDismissKillFeedItem={vm.dismissKillFeedItem}
       detailCard={vm.detailCard}
       onCloseDetail={() => vm.setDetailCard(null)}
     />

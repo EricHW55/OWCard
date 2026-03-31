@@ -4,6 +4,7 @@ import FieldSection from '../components/FieldSection';
 import HandCardComp from '../components/HandCardComp';
 import CardDetail from '../components/CardDetail';
 import type { GameScreenProps } from '../types/screen';
+import { getCardImageSrc } from '../utils/heroImage';
 
 const GameScreen: React.FC<GameScreenProps> = ({
   announcerData,
@@ -22,10 +23,37 @@ const GameScreen: React.FC<GameScreenProps> = ({
   bottomMeta,
   bottomActions,
   logs = [],
+  killFeed = [],
+  onDismissKillFeedItem,
   detailCard = null,
   onCloseDetail,
 }) => {
   const [showLogModal, setShowLogModal] = React.useState(false);
+  const killTimerRef = React.useRef<Record<string, number>>({});
+
+  React.useEffect(() => {
+    if (!onDismissKillFeedItem) return;
+    const activeIds = new Set(killFeed.map((entry) => entry.id));
+    killFeed.forEach((entry) => {
+      if (killTimerRef.current[entry.id]) return;
+      const duration = entry.duration ?? 1500;
+      killTimerRef.current[entry.id] = window.setTimeout(() => {
+        onDismissKillFeedItem(entry.id);
+        delete killTimerRef.current[entry.id];
+      }, duration);
+    });
+    Object.keys(killTimerRef.current).forEach((id) => {
+      if (!activeIds.has(id)) {
+        window.clearTimeout(killTimerRef.current[id]);
+        delete killTimerRef.current[id];
+      }
+    });
+  }, [killFeed, onDismissKillFeedItem]);
+
+  React.useEffect(() => () => {
+    Object.values(killTimerRef.current).forEach((timerId) => window.clearTimeout(timerId));
+    killTimerRef.current = {};
+  }, []);
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
@@ -40,6 +68,21 @@ const GameScreen: React.FC<GameScreenProps> = ({
       ))}
 
       <div className="game-battle">
+        {killFeed.length > 0 && (
+            <div className="game-killfeed" aria-live="polite">
+              {killFeed.map((entry) => {
+                const killerSrc = getCardImageSrc({ hero_key: entry.killer.hero_key, name: entry.killer.name, is_spell: entry.killer.is_spell });
+                const victimSrc = getCardImageSrc({ hero_key: entry.victim.hero_key, name: entry.victim.name, is_spell: entry.victim.is_spell });
+                return (
+                    <button key={entry.id} type="button" className="game-killfeed-item" onClick={() => onDismissKillFeedItem?.(entry.id)}>
+                      <img src={killerSrc} alt={entry.killer.name} className={`game-killfeed-icon ${entry.killer.team === 'my' ? 'ally' : 'enemy'}`} />
+                      <span className="game-killfeed-arrow">➜</span>
+                      <img src={victimSrc} alt={entry.victim.name} className={`game-killfeed-icon ${entry.victim.team === 'my' ? 'ally' : 'enemy'}`} />
+                    </button>
+                );
+              })}
+            </div>
+        )}
         <div className="game-board-scale">
           <FieldSection {...topField} />
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AnnouncerData } from '../components/GameAnnouncer';
-import type { FieldCard, FieldState, HandCard } from '../types/game';
+import type { FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
 
 export type PlaceZone = 'main' | 'side';
 
@@ -40,6 +40,8 @@ export interface GameScreenProps {
   bottomActions?: ReactNode;
 
   logs?: string[];
+  killFeed?: KillFeedItem[];
+  onDismissKillFeedItem?: (id: string) => void;
   detailCard?: FieldCard | HandCard | null;
   onCloseDetail?: () => void;
 }

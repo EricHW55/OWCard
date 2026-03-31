@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FieldCard, GameState, HandCard } from '../types/game';
+import type { FieldCard, GameState, HandCard, KillFeedItem } from '../types/game';
 import { GameSocket, buildWsUrl } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../utils/ui';
@@ -17,6 +17,8 @@ type ColumnPreview = {
   repUid: string;
   names: string[];
 };
+
+type KillSide = 'my' | 'opponent';
 
 function getSession() {
   const token = sessionStorage.getItem('access_token');
@@ -154,6 +156,17 @@ function buildColumnChoices(field: any): ColumnPreview[] {
   return previews;
 }
 
+function collectFatalUids(node: any, found = new Set<string>()): Set<string> {
+  if (!node || typeof node !== 'object') return found;
+  const uid = node?.target || node?.uid;
+  const remainingHp = node?.remaining_hp;
+  if (uid && typeof remainingHp === 'number' && remainingHp <= 0) found.add(String(uid));
+  Object.values(node).forEach((value) => {
+    if (value && typeof value === 'object') collectFatalUids(value, found);
+  });
+  return found;
+}
+
 export function useOnlineGameController(gameId: string) {
   const session = useMemo(() => getSession(), []);
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
@@ -172,6 +185,8 @@ export function useOnlineGameController(gameId: string) {
   const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
+  const [killFeed, setKillFeed] = useState<KillFeedItem[]>([]);
+
 
   const wsRef = useRef<GameSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
@@ -181,6 +196,15 @@ export function useOnlineGameController(gameId: string) {
   const phaseStampRef = useRef('');
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
+  const pendingKillContextRef = useRef<{
+    killerName: string;
+    killerHeroKey?: string;
+    killerIsSpell?: boolean;
+    killerTeam: KillSide;
+    victimTeam: KillSide;
+    createdAt: number;
+    fatalUids: string[];
+  } | null>(null);
 
   const addLog = useCallback((msg: string) => {
     setLogs((prev) => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -207,6 +231,57 @@ export function useOnlineGameController(gameId: string) {
     if (!props.skillName) return;
     enqueueAnnouncer({ type: 'skill', title: props.skillName, description: props.description || '', heroKey: props.heroKey || '', imageName: props.imageName, subtitle: props.subtitle, isSpell: props.isSpell || false, duration: props.duration || 3200 });
   }, [enqueueAnnouncer]);
+
+  const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
+    const context = pendingKillContextRef.current;
+    if (!context || uids.length === 0) return;
+    const prev = gsRef.current;
+    if (!prev) return;
+    const prevAllCards = [
+      ...(prev?.my_state?.field?.main || []),
+      ...(prev?.my_state?.field?.side || []),
+      ...(prev?.opponent_state?.field?.main || []),
+      ...(prev?.opponent_state?.field?.side || []),
+    ];
+    const nextAllCards = [
+      ...(nextState?.my_state?.field?.main || []),
+      ...(nextState?.my_state?.field?.side || []),
+      ...(nextState?.opponent_state?.field?.main || []),
+      ...(nextState?.opponent_state?.field?.side || []),
+    ];
+    const nextAlive = new Set(nextAllCards.map((card: any) => card.uid));
+    const victimCards = uids
+        .map((uid) => prevAllCards.find((card: any) => card.uid === uid))
+        .filter((card: any) => !!card && !nextAlive.has(card.uid));
+
+    if (victimCards.length === 0) return;
+
+    setKillFeed((prevFeed) => {
+      const createdAt = Date.now();
+      const items = victimCards.map((victim: any, idx: number): KillFeedItem => ({
+        id: `${createdAt}-${victim.uid}-${idx}`,
+        killer: {
+          name: context.killerName,
+          hero_key: context.killerHeroKey,
+          is_spell: context.killerIsSpell,
+          team: context.killerTeam,
+        },
+        victim: {
+          name: victim.name || '영웅',
+          hero_key: getHeroKey(victim),
+          is_spell: !!victim?.is_spell,
+          team: context.victimTeam,
+        },
+        createdAt: createdAt + idx,
+        duration: 1500,
+      }));
+      return [...items, ...prevFeed].slice(0, 6);
+    });
+  }, []);
+
+  const dismissKillFeedItem = useCallback((id: string) => {
+    setKillFeed((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   const showPassiveNoticeFromLog = useCallback((entry: any, owner: 'my' | 'opponent') => {
     if (!entry) return;
@@ -346,6 +421,11 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('pong', () => {}),
         ws.on('game_state', (msg: any) => {
+          if (pendingKillContextRef.current?.createdAt) {
+            const pendingUids = pendingKillContextRef.current.fatalUids || [];
+            if (pendingUids.length > 0) pushKillFeedByUids(pendingUids, msg.state);
+            pendingKillContextRef.current = null;
+          }
           setGs(msg.state);
           const serverPendingPassive = msg?.state?.my_state?.pending_passive ?? msg?.state?.my_state?.pendingPassive ?? null;
           const serverPendingSpellChoice = msg?.state?.my_state?.pending_spell ?? msg?.state?.my_state?.pendingSpell ?? null;
@@ -365,6 +445,16 @@ export function useOnlineGameController(gameId: string) {
           const spellName = result?.card?.name || result?.skill_name || result?.skill || myHand.find((c: any) => c.hero_key === result?.hero_key)?.name || pendingSpellNameRef.current || '스킬 카드';
           const actorName = result?.caster_name || result?.caster?.name || result?.card?.name || latestMyState?.field?.main?.find?.((c: any) => c.uid === msg?.caster_uid)?.name || latestMyState?.field?.side?.find?.((c: any) => c.uid === msg?.caster_uid)?.name || '영웅';
           const resolvedSkillName = result?.skill_name || result?.skill || null;
+          const fatalUids = Array.from(collectFatalUids(result));
+          pendingKillContextRef.current = {
+            killerName: result?.skill_name || result?.skill || result?.card?.name || actorName,
+            killerHeroKey: result?.hero_key || result?.card?.hero_key || result?.caster?.hero_key || '',
+            killerIsSpell: msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_'),
+            killerTeam: 'my',
+            victimTeam: 'opponent',
+            createdAt: Date.now(),
+            fatalUids,
+          };
 
           if (msg.action === 'place_card' && result?.type === 'card_placed' && result?.card && !result?.card?.is_spell) {
             const zoneLabel = result?.zone === 'side' ? '사이드' : '본대';
@@ -445,6 +535,16 @@ export function useOnlineGameController(gameId: string) {
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state);
           if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const result = msg?.result || {};
+          const fatalUids = Array.from(collectFatalUids(result));
+          pendingKillContextRef.current = {
+            killerName: result?.skill_name || result?.skill || cue?.title || '상대',
+            killerHeroKey: cue?.heroKey || result?.hero_key || result?.card?.hero_key || result?.caster?.hero_key || '',
+            killerIsSpell: cue?.isSpell || msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_'),
+            killerTeam: 'opponent',
+            victimTeam: 'my',
+            createdAt: Date.now(),
+            fatalUids,
+          };
           if (result?.passive_triggered?.passive) showSkillUse({ skillName: result.passive_triggered.passive, subtitle: '상대 패시브', description: result?.passive_triggered?.message || '', heroKey: result?.caster?.hero_key || '', imageName: result?.caster_name || '상대', isSpell: false, duration: 3000 });
           [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => showPassiveNoticeFromLog(entry, 'opponent'));
           showDeathPassiveNotice(result, 'opponent');
@@ -492,7 +592,7 @@ export function useOnlineGameController(gameId: string) {
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
@@ -585,7 +685,13 @@ export function useOnlineGameController(gameId: string) {
   const handlePlace = useCallback((zone: 'main' | 'side') => {
     if (!my || selectedHandIdx === null || !isMyTurn || phase !== 'placement') return;
     const card = my.hand[selectedHandIdx];
+    const myFieldCount = (my.field.main?.length || 0) + (my.field.side?.length || 0);
     const zoneLabel = zone === 'main' ? '본대' : '사이드';
+    if (card.is_spell && myFieldCount === 0) {
+      addLog('필드에 카드가 없어 스킬 카드를 먼저 사용할 수 없음');
+      showSystemNotice('최소 배치 필요', '필드에 카드를 1장 이상 먼저 배치하세요', 1700);
+      return;
+    }
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
       addLog(`${card.name} → ${zoneLabel} 추가 배치`);
@@ -595,7 +701,7 @@ export function useOnlineGameController(gameId: string) {
     send({ action: 'place_card', hand_index: selectedHandIdx, zone });
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
     setSelectedHandIdx(null);
-  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog]);
+  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice]);
 
   const prepareSkill = useCallback((skillKey: string) => {
     if (!selectedMyFieldCard) return;
@@ -662,7 +768,7 @@ export function useOnlineGameController(gameId: string) {
     session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
-    selectedHeroKey, selectedChargeLevel, canActUids, fieldSkills, showContextPanel,
+    selectedHeroKey, selectedChargeLevel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,

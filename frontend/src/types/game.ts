@@ -110,3 +110,18 @@ export interface WSMessage {
   event: string;
   [key: string]: any;
 }
+
+export interface KillFeedUnit {
+  name: string;
+  hero_key?: string;
+  is_spell?: boolean;
+  team: 'my' | 'opponent';
+}
+
+export interface KillFeedItem {
+  id: string;
+  killer: KillFeedUnit;
+  victim: KillFeedUnit;
+  createdAt: number;
+  duration?: number;
+}
