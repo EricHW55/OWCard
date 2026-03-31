@@ -147,6 +147,7 @@ const SPELL_ALIAS: Record<string, string> = {
     '불사장치': 'immortality_field',
     '튕겨내기': 'deflect',
     '강철덫': 'steel_trap',
+    '카두세우스지팡이': 'caduceus_staff',
     '카드세우스지팡이': 'caduceus_staff',
     '밥': 'bob',
     '비오비': 'bob',
@@ -190,7 +191,8 @@ const SPELL_ALIAS: Record<string, string> = {
     caduceus_staff: 'caduceus_staff',
     caduceusstaff: 'caduceus_staff',
 
-    // probable spell_* forms from backend
+    // spell_* forms from backend
+    spell_thorn_volley: 'thorn_barrage',
     spell_thorn_barrage: 'thorn_barrage',
     spell_blizzard: 'blizzard',
     spell_earthshatter: 'earthshatter',
@@ -198,12 +200,15 @@ const SPELL_ALIAS: Record<string, string> = {
     spell_biotic_grenade: 'biotic_grenade',
     spell_rescue: 'rescue',
     spell_sound_barrier: 'sound_barrier',
+    spell_amp_matrix: 'amplification_matrix',
     spell_amplification_matrix: 'amplification_matrix',
     spell_nano_boost: 'nano_boost',
     spell_bob: 'bob',
     spell_duplicate: 'duplicate',
     spell_riptire: 'riptire',
+    spell_seismic_slam: 'seismic_shock',
     spell_seismic_shock: 'seismic_shock',
+    spell_dragonblade: 'cleaving_blade',
     spell_cleaving_blade: 'cleaving_blade',
     spell_orbital_ray: 'orbital_ray',
     spell_emp: 'emp',
