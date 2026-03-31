@@ -186,6 +186,15 @@ function collectFatalUids(node: any, found = new Set<string>()): Set<string> {
   return found;
 }
 
+function collectAllFieldCards(state: any) {
+  return [
+    ...(state?.my_state?.field?.main || []),
+    ...(state?.my_state?.field?.side || []),
+    ...(state?.opponent_state?.field?.main || []),
+    ...(state?.opponent_state?.field?.side || []),
+  ];
+}
+
 export function useOnlineGameController(gameId: string) {
   const session = useMemo(() => getSession(), []);
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
@@ -322,14 +331,11 @@ export function useOnlineGameController(gameId: string) {
     if (entry?.type === 'auto_heal') showSystemNotice('자동 치유', sourceName, 1400);
   }, [showSkillUse, showSystemNotice]);
 
-  const showDeathPassiveNotice = useCallback((result: any, owner: 'my' | 'opponent') => {
+  const showDeathPassiveNotice = useCallback((result: any) => {
     const gsNow = gsRef.current;
     if (!gsNow || !result) return;
 
-    const ownerCards = owner === 'my'
-      ? [...(gsNow.my_state?.field?.main || []), ...(gsNow.my_state?.field?.side || [])]
-      : [...(gsNow.opponent_state?.field?.main || []), ...(gsNow.opponent_state?.field?.side || [])];
-    const allCards = [ ...(gsNow.my_state?.field?.main || []), ...(gsNow.my_state?.field?.side || []), ...(gsNow.opponent_state?.field?.main || []), ...(gsNow.opponent_state?.field?.side || []) ];
+    const allCards = collectAllFieldCards(gsNow);
     const seen = new Set<string>();
     const queue: any[] = [result];
 
@@ -342,8 +348,8 @@ export function useOnlineGameController(gameId: string) {
         if (!seen.has(key)) {
           seen.add(key);
           const sourceUid = node?.target || node?.uid || node?.source_uid;
-          const sourceCard = ownerCards.find((c: any) => c.uid === sourceUid) || allCards.find((c: any) => c.uid === sourceUid);
-          const sourceName = sourceCard?.name || (owner === 'my' ? '아군' : '상대');
+          const sourceCard = allCards.find((c: any) => c.uid === sourceUid);
+          const sourceName = sourceCard?.name || '영웅';
 
           if (node?.by === 'mech_destruction' || node?.transform === 'hana_song') {
             showSkillUse({ skillName: '긴급 탈출', subtitle: `${sourceName} 패시브`, description: '메카 파괴 시 송하나 형태로 전환합니다.', heroKey: getHeroKey(sourceCard) || 'dva', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
@@ -361,6 +367,37 @@ export function useOnlineGameController(gameId: string) {
       Object.values(node).forEach((value) => { if (value && typeof value === 'object') queue.push(value); });
     }
   }, [showSkillUse, showSystemNotice]);
+
+  const showReactivePassiveFromStateDiff = useCallback((prevState: any, nextState: any) => {
+    if (!prevState || !nextState) return;
+    const detectKirikoSwiftStep = (ownerLabel: string, prevCards: any[], nextCards: any[]) => {
+      const prevByUid = new Map(prevCards.map((c: any) => [c.uid, c]));
+      for (const nextCard of nextCards) {
+        const prevCard = prevByUid.get(nextCard.uid);
+        if (!prevCard) continue;
+        if (getHeroKey(nextCard) !== 'kiriko') continue;
+        if (prevCard.zone !== 'side' || nextCard.zone !== 'main') continue;
+        const threshold = Number(nextCard?.extra?.swift_step_threshold ?? 4);
+        if (Number(nextCard?.current_hp ?? 0) > threshold) continue;
+        showSkillUse({
+          skillName: '순보',
+          subtitle: `${ownerLabel} 패시브`,
+          description: `체력이 ${threshold} 이하가 되어 본대로 이동합니다.`,
+          heroKey: 'kiriko',
+          imageName: nextCard?.name || '키리코',
+          isSpell: false,
+          duration: 2600,
+        });
+      }
+    };
+
+    const prevMy = [...(prevState?.my_state?.field?.main || []), ...(prevState?.my_state?.field?.side || [])];
+    const prevOpp = [...(prevState?.opponent_state?.field?.main || []), ...(prevState?.opponent_state?.field?.side || [])];
+    const nextMy = [...(nextState?.my_state?.field?.main || []), ...(nextState?.my_state?.field?.side || [])];
+    const nextOpp = [...(nextState?.opponent_state?.field?.main || []), ...(nextState?.opponent_state?.field?.side || [])];
+    detectKirikoSwiftStep('아군', prevMy, nextMy);
+    detectKirikoSwiftStep('상대', prevOpp, nextOpp);
+  }, [showSkillUse]);
 
   useEffect(() => { gsRef.current = gs; }, [gs]);
   useEffect(() => { pendingSpellNameRef.current = pendingSpellName; }, [pendingSpellName]);
@@ -444,11 +481,13 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('pong', () => {}),
         ws.on('game_state', (msg: any) => {
+          const prevState = gsRef.current;
           if (pendingKillContextRef.current?.createdAt) {
             const pendingUids = pendingKillContextRef.current.fatalUids || [];
             if (pendingUids.length > 0) pushKillFeedByUids(pendingUids, msg.state);
             pendingKillContextRef.current = null;
           }
+          showReactivePassiveFromStateDiff(prevState, msg.state);
           setGs(msg.state);
           const serverPendingPassive = msg?.state?.my_state?.pending_passive ?? msg?.state?.my_state?.pendingPassive ?? null;
           const serverPendingSpellChoice = msg?.state?.my_state?.pending_spell ?? msg?.state?.my_state?.pendingSpell ?? null;
@@ -550,7 +589,7 @@ export function useOnlineGameController(gameId: string) {
           }
 
           [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => showPassiveNoticeFromLog(entry, 'my'));
-          showDeathPassiveNotice(result, 'my');
+          showDeathPassiveNotice(result);
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
@@ -590,18 +629,23 @@ export function useOnlineGameController(gameId: string) {
             fatalUids,
           };
           if (result?.passive_triggered?.passive) {
+            const passiveSource = findFieldCardByUid(gsRef.current?.opponent_state, result?.card_uid)
+                || opponentCasterCard
+                || result?.caster
+                || result?.card
+                || null;
             showSkillUse({
               skillName: result.passive_triggered.passive,
               subtitle: '상대 패시브',
               description: result?.passive_triggered?.message || '',
-              heroKey: opponentCasterHeroKey,
-              imageName: result?.caster_name || opponentCasterCard?.name || '상대',
+              heroKey: getHeroKey(passiveSource) || opponentCasterHeroKey || result?.card?.hero_key || result?.hero_key || '',
+              imageName: passiveSource?.name || result?.caster_name || opponentCasterCard?.name || '상대',
               isSpell: false,
               duration: 3000,
             });
           }
           [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => showPassiveNoticeFromLog(entry, 'opponent'));
-          showDeathPassiveNotice(result, 'opponent');
+          showDeathPassiveNotice(result);
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
@@ -646,7 +690,7 @@ export function useOnlineGameController(gameId: string) {
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
