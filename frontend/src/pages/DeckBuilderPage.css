@@ -212,7 +212,14 @@
 }
 
 /* ── 스크롤 ───────────────────────── */
-.scroll-area { overflow-y: auto; overflow-x: hidden; padding-right: 3px; }
+.scroll-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 3px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
 .card-list-scroll { max-height: 38vh; }
 .deck-list-scroll { max-height: 25vh; }
 
