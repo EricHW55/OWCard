@@ -37,11 +37,20 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
 
     const imageSrc = useMemo(() => {
         if (!data || data.type !== 'skill') return '';
-        return getCardImageSrc({
+        const primary = getCardImageSrc({
             hero_key: data.heroKey,
             name: data.imageName || data.title,
             is_spell: data.isSpell,
         });
+        if (primary !== '/heroes/_unknown.png') return primary;
+
+        const actorName = String(data.subtitle || '').replace(/\s*사용$/, '').trim();
+        const secondary = getCardImageSrc({
+            hero_key: data.heroKey,
+            name: actorName || data.imageName || data.title,
+            is_spell: data.isSpell,
+        });
+        return secondary;
     }, [data]);
 
     if (!data) return null;

@@ -117,9 +117,12 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const heroKey = String(card.hero_key || card.extra?._hero_key || '').toLowerCase();
     const sojournCharge = Math.max(0, Math.min(3, Number(card.extra?.charge_level ?? 0) || 0));
     const symmetraCharge = Math.max(0, Math.min(3, Number(card.extra?.photon_charge ?? 0) || 0));
-    const zaryaCharge = card.statuses?.some(
-        (s) => s.name === 'particle_barrier' && Boolean((s as any).was_hit)
-    ) ? 1 : 0;
+    const zaryaCharge = (() => {
+        const fromExtra = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0);
+        if (fromExtra > 0) return 1;
+        if (particleBarrierWasHit) return 1;
+        return isParticleBarrierActive ? 1 : 0;
+    })();
 
     useEffect(() => {
         if (heroKey !== 'zarya') {
@@ -128,8 +131,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
         }
 
         const prev = prevParticleBarrierRef.current;
-        const barrierJustBrokenByHit = prev.active && !isParticleBarrierActive && prev.wasHit;
-        if (barrierJustBrokenByHit) {
+        const barrierJustBroken = prev.active && !isParticleBarrierActive;
+        if (barrierJustBroken) {
             setShowZaryaBarrierBurst(true);
             const timer = window.setTimeout(() => setShowZaryaBarrierBurst(false), 720);
             prevParticleBarrierRef.current = { active: isParticleBarrierActive, wasHit: particleBarrierWasHit };

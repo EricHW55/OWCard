@@ -35,7 +35,7 @@ function getSession() {
 }
 
 function getHeroKey(card: any): string {
-  return String(card?.hero_key || card?.extra?._hero_key || '').toLowerCase();
+  return String(card?.hero_key || card?.extra?._hero_key || card?.id || '').toLowerCase().trim();
 }
 
 function getChargeLevel(card: any): number {
@@ -257,7 +257,18 @@ export function useOnlineGameController(gameId: string) {
     duration?: number;
   }) => {
     if (!props.skillName) return;
-    enqueueAnnouncer({ type: 'skill', title: props.skillName, description: props.description || '', heroKey: props.heroKey || '', imageName: props.imageName, subtitle: props.subtitle, isSpell: props.isSpell || false, duration: props.duration || 3200 });
+    const rawHeroKey = String(props.heroKey || '').toLowerCase();
+    const inferredSpell = rawHeroKey.startsWith('spell_');
+    enqueueAnnouncer({
+      type: 'skill',
+      title: props.skillName,
+      description: props.description || '',
+      heroKey: props.heroKey || '',
+      imageName: props.imageName,
+      subtitle: props.subtitle,
+      isSpell: props.isSpell ?? inferredSpell,
+      duration: props.duration || 3200,
+    });
   }, [enqueueAnnouncer]);
 
   const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
