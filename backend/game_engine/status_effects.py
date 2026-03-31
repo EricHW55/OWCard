@@ -324,8 +324,8 @@ class NextTurnStartDamageReduction(DamageReduction):
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_turn_start(self, card):
-        self.duration = 0
-        return {}
+        card.remove_status(self.name)
+        return {"expired": True}
 
 
 @dataclass
