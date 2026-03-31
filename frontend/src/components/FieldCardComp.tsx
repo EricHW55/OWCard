@@ -10,6 +10,42 @@ interface Props {
     onClick?: () => void;
 }
 
+interface AuraSpike {
+    top?: string;
+    right?: string;
+    bottom?: string;
+    left?: string;
+    w: number;
+    h: number;
+    delay: number;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+    const clean = hex.replace('#', '');
+    const full = clean.length === 3
+        ? clean.split('').map((c) => `${c}${c}`).join('')
+        : clean;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getAuraSpikes(level: number): AuraSpike[] {
+    if (level <= 0) return [];
+    const protrusion = 1 + level * 0.45;
+    return [
+        { top: '-9%', left: '12%', w: 18 * protrusion, h: 12 * protrusion, delay: 0.0 },
+        { top: '-10%', right: '10%', w: 12 * protrusion, h: 18 * protrusion, delay: 0.2 },
+        { right: '-11%', top: '20%', w: 16 * protrusion, h: 11 * protrusion, delay: 0.35 },
+        { right: '-10%', bottom: '18%', w: 13 * protrusion, h: 19 * protrusion, delay: 0.55 },
+        { bottom: '-10%', right: '18%', w: 20 * protrusion, h: 12 * protrusion, delay: 0.7 },
+        { bottom: '-11%', left: '14%', w: 14 * protrusion, h: 16 * protrusion, delay: 0.9 },
+        { left: '-11%', bottom: '18%', w: 17 * protrusion, h: 12 * protrusion, delay: 1.05 },
+        { left: '-9%', top: '18%', w: 12 * protrusion, h: 17 * protrusion, delay: 1.25 },
+    ];
+}
+
 function getMainDamage(card: FieldCard): string {
     const d = card.skill_damages;
     if (!d) return '0';
@@ -75,20 +111,24 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     if (heroKey === 'sojourn') {
         chargeLevel = sojournCharge;
         chargeMax = 3;
-        chargeAuraColor = '#40a9ff';
+        chargeAuraColor = '#2f8fff';
     } else if (heroKey === 'symmetra') {
         chargeLevel = symmetraCharge;
         chargeMax = 3;
-        chargeAuraColor = '#3d7bff';
+        chargeAuraColor = '#356dff';
     } else if (heroKey === 'zarya') {
         chargeLevel = zaryaCharge;
         chargeMax = 1;
-        chargeAuraColor = '#ff4d6d';
+        chargeAuraColor = '#ff2f4f';
     }
     const chargeIntensity = chargeMax > 0 ? chargeLevel / chargeMax : 0;
-    const chargeAura = chargeIntensity > 0
-        ? `0 0 ${8 + chargeIntensity * 12}px ${chargeAuraColor}${Math.round(60 + chargeIntensity * 120).toString(16).padStart(2, '0')}`
+    const chargeAuraGlow = chargeIntensity > 0
+        ? `0 0 ${10 + chargeIntensity * 16}px ${hexToRgba(chargeAuraColor, 0.45 + chargeIntensity * 0.25)}`
         : '';
+    const chargeAuraRing = chargeIntensity > 0
+        ? `inset 0 0 ${4 + chargeIntensity * 5}px ${hexToRgba(chargeAuraColor, 0.55 + chargeIntensity * 0.25)}`
+        : '';
+    const auraSpikes = getAuraSpikes(chargeLevel);
 
     let borderColor = color;
     let shadow = 'none';
@@ -111,7 +151,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
     else if (isExposed) moveBadge = { text: '노출', cls: 'exposed' };
 
-    const finalShadow = [chargeAura, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
+    const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
         .filter(Boolean)
         .join(', ');
 
@@ -174,25 +214,25 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 </div>
             )}
 
-            {chargeLevel > 0 && (
+            {chargeLevel > 0 && auraSpikes.map((spike, idx) => (
                 <div
+                    key={`aura-spike-${idx}`}
                     style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        padding: '1px 5px',
-                        borderRadius: 999,
-                        fontSize: 9,
-                        fontWeight: 800,
-                        lineHeight: 1.2,
-                        background: `${chargeAuraColor}22`,
-                        border: `1px solid ${chargeAuraColor}88`,
-                        color: chargeAuraColor,
+                        top: spike.top,
+                        right: spike.right,
+                        bottom: spike.bottom,
+                        left: spike.left,
+                        width: spike.w,
+                        height: spike.h,
+                        borderRadius: '50% 45% 60% 40%',
+                        background: `radial-gradient(circle at 35% 35%, ${hexToRgba(chargeAuraColor, 0.92)}, ${hexToRgba(chargeAuraColor, 0.35)} 60%, transparent 90%)`,
+                        filter: `blur(${0.6 + chargeIntensity * 1.1}px)`,
+                        opacity: 0.55 + chargeIntensity * 0.4,
+                        pointerEvents: 'none',
+                        animation: `auraJitter ${1.4 + spike.delay * 0.35}s ease-in-out ${spike.delay}s infinite`,
                     }}
-                >
-                    CHG {chargeLevel}
-                </div>
-            )}
+                />
+            ))}
 
             <div
                 style={{
@@ -313,7 +353,13 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 </div>
             )}
 
-            <style>{`@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }`}</style>
+            <style>{`
+                @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+                @keyframes auraJitter {
+                    0%, 100% { transform: scale(0.92); opacity: .45; }
+                    50% { transform: scale(1.18); opacity: 1; }
+                }
+            `}</style>
         </div>
     );
 };
