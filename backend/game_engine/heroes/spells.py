@@ -465,12 +465,12 @@ def spell_sleep_dart(caster: FieldCard, target: FieldCard, game: GameState) -> d
 @register_skill("spell_immortality_field", "skill_1")
 def spell_immortality_field(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """불사장치: 아군에게 부착 (상대에게 안 보임).
-    사망 시 체력 1 보장. 2턴 유지."""
+     발동 전까지 영구 대기, 발동 후 2턴 유지."""
     if not target:
         return {"success": False, "message": "아군을 선택하세요"}
 
     target.add_status(Immortality(
-        duration=2,
+        duration=-1,
         source_uid="spell",
         visible_to_opponent=False,
         tags=["buff", "install"],

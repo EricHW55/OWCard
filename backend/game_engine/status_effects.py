@@ -512,15 +512,19 @@ class FrozenRevive(StatusEffect):
 
 @dataclass
 class Immortality(StatusEffect):
-    """불사장치: 치명타 시 체력 1 보장."""
+    """불사장치: 설치 후 영구 대기, 최초 발동 후 2턴 동안 치명타 시 체력 1 보장."""
     name: str = "immortality"
-    duration: int = 2
+    duration: int = -1
+    activated: bool = False
     visible_to_opponent: bool = False  # 상대에게 안 보임
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_death(self, card):
-         # 최초 발동 후에는 상대에게도 상태를 공개한다.
-        self.visible_to_opponent = True
+        # 최초 발동 전에는 영구 대기, 발동 시점부터 2턴 카운트 시작
+        if not self.activated:
+            self.activated = True
+            self.duration = 2
+            self.visible_to_opponent = True
         return {"prevent_death": True, "set_hp": 1}
 
 
