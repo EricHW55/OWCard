@@ -8,7 +8,9 @@ from config import (
     MAX_MULLIGAN,
     CARDS_PER_TURN,
     TANK_COST,
-    TRASH_WIN_COUNT,
+    TRASH_WIN_COUNT, 
+    DECK_ROLE_MAX_COUNTS,
+    SPELL_CARD_MAX_COPIES,
 )
 from services.matchmaking import matchmaking
 from services.room_manager import room_manager
@@ -25,6 +27,8 @@ async def get_game_config():
         "cards_per_turn": CARDS_PER_TURN,
         "tank_cost": TANK_COST,
         "trash_win_count": TRASH_WIN_COUNT,
+        "deck_role_max_counts": DECK_ROLE_MAX_COUNTS,
+        "spell_card_max_copies": SPELL_CARD_MAX_COPIES,
     }
 
 

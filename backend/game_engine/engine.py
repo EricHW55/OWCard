@@ -906,6 +906,8 @@ class GameEngine:
             return 3
         if hero_key == "roadhog" and skill_key == "skill_1": 
             return 3
+        if hero_key == "ashe" and skill_key == "skill_2":
+            return 3
         
         return None
 

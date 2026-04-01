@@ -30,18 +30,23 @@ if TYPE_CHECKING:
 
 @register_skill("spell_thorn_volley", "skill_1")
 def spell_thorn_volley(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """가시 소나기: 한 세로줄에 있는 모든 적의 스킬을 봉쇄."""
+    """가시 소나기: 한 세로줄에 있는 모든 적의 스킬을 봉쇄하고 3 피해."""
     if not target:
         return {"success": False, "message": "대상 열을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
     column = enemy_field.get_column(target)
+    dmg = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in column:
         card.add_status(SkillSilence(duration=1, source_uid="spell"))
-        logs.append({"target": card.uid, "silenced": True})
+        dmg_log = card.take_damage(dmg)
+        logs.append({"target": card.uid, "silenced": True, "damage": dmg_log})
 
-    return {"success": True, "skill": "가시 소나기", "affected": logs}
+
+    enemy_field.remove_dead()
+
+    return {"success": True, "skill": "가시 소나기", "damage": dmg, "affected": logs}
 
 
 @register_skill("spell_blizzard", "skill_1")

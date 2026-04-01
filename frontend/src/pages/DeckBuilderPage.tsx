@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardDetail from '../components/CardDetail';
+import GameAnnouncer from '../components/GameAnnouncer';
 import { getApiBase } from '../api/ws';
+import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { getCardImageSrc } from '../utils/heroImage';
 import './DeckBuilderPage.css';
 
@@ -22,6 +24,11 @@ interface CardTemplate {
 }
 interface DeckEntry { card_template_id: number; quantity: number; }
 interface DeckInfo { id: number; player_id: number; name: string; cards: DeckEntry[]; }
+interface GameConfig {
+    deck_size?: number;
+    deck_role_max_counts?: Record<string, number>;
+    spell_card_max_copies?: number;
+}
 
 const ROLE_COLOR: Record<string, string> = {
     tank: '#22cc88',
@@ -50,6 +57,9 @@ const DeckBuilderPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [detailCard, setDetailCard] = useState<CardTemplate | null>(null);
+    const [roleMaxCounts, setRoleMaxCounts] = useState<Record<string, number>>({});
+    const [spellCardMaxCopies, setSpellCardMaxCopies] = useState(1);
+    const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
 
     const longPressTimerRef = useRef<number | null>(null);
     const longPressTriggeredRef = useRef(false);
@@ -151,10 +161,12 @@ const DeckBuilderPage: React.FC = () => {
             fetch(`${apiBase}/decks/player/${pid}`),
         ]);
         if (!cfgRes.ok || !cardsRes.ok || !decksRes.ok) throw new Error('데이터 로드 실패');
-        const cfg = await cfgRes.json();
+        const cfg: GameConfig = await cfgRes.json();
         const cardList = await cardsRes.json();
         const deckList = await decksRes.json();
         setDeckSize(cfg.deck_size ?? 20);
+        setRoleMaxCounts(cfg.deck_role_max_counts ?? {});
+        setSpellCardMaxCopies(cfg.spell_card_max_copies ?? 1);
         setCards(Array.isArray(cardList) ? cardList : []);
         setMyDecks(Array.isArray(deckList) ? deckList : []);
         if (Array.isArray(deckList) && deckList.length > 0) selectDeck(deckList[0]);
@@ -178,8 +190,42 @@ const DeckBuilderPage: React.FC = () => {
         loadAll(pid).catch(e => alert(e.message)).finally(() => setLoading(false));
     }, [navigate]);
 
+    const showDeckLimitAnnouncer = (description: string) => {
+        enqueueAnnouncer({
+            type: 'phase',
+            title: '덱 제한',
+            subtitle: '카드를 더 넣을 수 없습니다',
+            description,
+            duration: 1700,
+        });
+    };
+
     const addCard = (id: number) => {
         if (totalCount >= deckSize) return;
+
+        const card = cards.find(c => c.id === id);
+        if (!card) return;
+
+        const currentQty = entries[id] ?? 0;
+        if (card.is_spell && currentQty >= spellCardMaxCopies) {
+            showDeckLimitAnnouncer(`${card.name} 스킬 카드는 최대 ${spellCardMaxCopies}장까지 가능합니다.`);
+            return;
+        }
+
+        const roleKey = card.is_spell ? 'spell' : card.role;
+        const roleLimit = roleMaxCounts[roleKey];
+        if (typeof roleLimit === 'number') {
+            const currentRoleCount = cards.reduce((sum, c) => {
+                const cRoleKey = c.is_spell ? 'spell' : c.role;
+                if (cRoleKey !== roleKey) return sum;
+                return sum + (entries[c.id] ?? 0);
+            }, 0);
+            if (currentRoleCount >= roleLimit) {
+                showDeckLimitAnnouncer(`${roleKey} 카드는 최대 ${roleLimit}장까지 넣을 수 있습니다.`);
+                return;
+            }
+        }
+
         setEntries(p => ({ ...p, [id]: (p[id] ?? 0) + 1 }));
     };
 
@@ -412,6 +458,7 @@ const DeckBuilderPage: React.FC = () => {
             </div>
 
             <CardDetail card={detailCard as any} onClose={() => setDetailCard(null)} />
+            <GameAnnouncer data={announcerData} onClose={closeAnnouncer} />
         </>
     );
 };

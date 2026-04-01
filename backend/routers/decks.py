@@ -4,8 +4,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import DECK_SIZE
+from config import DECK_SIZE, DECK_ROLE_MAX_COUNTS, SPELL_CARD_MAX_COPIES
 from database import get_db
+from models.card import CardTemplate
 from models.deck import Deck, DeckCard
 from models.player import Player
 
@@ -32,11 +33,40 @@ class SelectDeckReq(BaseModel):
     player_id: int
 
 
+async def _validate_deck_constraints(db: AsyncSession, cards: list[DeckCardIn]) -> None:
+    role_counts = {"tank": 0, "dealer": 0, "healer": 0, "spell": 0}
+
+    for ci in cards:
+        if ci.quantity < 1:
+            raise HTTPException(400, f"카드 수량은 1 이상이어야 합니다: {ci.card_template_id}")
+
+        template_result = await db.execute(
+            select(CardTemplate).where(CardTemplate.id == ci.card_template_id)
+        )
+        template = template_result.scalar_one_or_none()
+        if not template:
+            raise HTTPException(404, f"Card template not found: {ci.card_template_id}")
+
+        role_key = "spell" if template.is_spell else str(template.role).lower()
+        if role_key not in role_counts:
+            raise HTTPException(400, f"지원하지 않는 역할군입니다: {role_key}")
+
+        if template.is_spell and ci.quantity > SPELL_CARD_MAX_COPIES:
+            raise HTTPException(400, f"스킬 카드는 각각 최대 {SPELL_CARD_MAX_COPIES}장만 넣을 수 있습니다")
+
+        role_counts[role_key] += ci.quantity
+
+    for role_key, max_count in DECK_ROLE_MAX_COUNTS.items():
+        if role_counts.get(role_key, 0) > max_count:
+            raise HTTPException(400, f"{role_key} 카드 최대 {max_count}장까지 가능합니다")
+
+
 @router.post("/")
 async def create_deck(req: CreateDeckReq, db: AsyncSession = Depends(get_db)):
     total = sum(c.quantity for c in req.cards)
     if total != DECK_SIZE:
         raise HTTPException(400, f"Deck must have {DECK_SIZE} cards, got {total}")
+    await _validate_deck_constraints(db, req.cards)
 
     player_result = await db.execute(select(Player).where(Player.id == req.player_id))
     player = player_result.scalar_one_or_none()
@@ -93,6 +123,7 @@ async def update_deck(deck_id: int, req: UpdateDeckReq, db: AsyncSession = Depen
         total = sum(c.quantity for c in req.cards)
         if total != DECK_SIZE:
             raise HTTPException(400, f"Deck must have {DECK_SIZE} cards, got {total}")
+        await _validate_deck_constraints(db, req.cards)
 
         for dc in list(deck.cards):
             await db.delete(dc)

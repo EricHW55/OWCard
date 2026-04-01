@@ -21,6 +21,15 @@ CARDS_PER_TURN = 2      # 일반 카드 기준
 TANK_COST = 2            # 탱커는 2장 취급
 TRASH_WIN_COUNT = 7
 
+# Deck builder limits
+DECK_ROLE_MAX_COUNTS = {
+    "tank": 4,
+    "dealer": 4,
+    "healer": 4,
+    "spell": 1,
+}
+SPELL_CARD_MAX_COPIES = 1
+
 # Field limits
 MAIN_MAX_TANK = 1
 MAIN_MAX_DEALER = 2
