@@ -34,7 +34,7 @@ class SelectDeckReq(BaseModel):
 
 
 async def _validate_deck_constraints(db: AsyncSession, cards: list[DeckCardIn]) -> None:
-    role_counts = {"tank": 0, "dealer": 0, "healer": 0, "spell": 0}
+    supported_roles = {"tank", "dealer", "healer", "spell"}
 
     for ci in cards:
         if ci.quantity < 1:
@@ -48,17 +48,18 @@ async def _validate_deck_constraints(db: AsyncSession, cards: list[DeckCardIn]) 
             raise HTTPException(404, f"Card template not found: {ci.card_template_id}")
 
         role_key = "spell" if template.is_spell else str(template.role).lower()
-        if role_key not in role_counts:
+        if role_key not in supported_roles:
             raise HTTPException(400, f"지원하지 않는 역할군입니다: {role_key}")
 
-        if template.is_spell and ci.quantity > SPELL_CARD_MAX_COPIES:
-            raise HTTPException(400, f"스킬 카드는 각각 최대 {SPELL_CARD_MAX_COPIES}장만 넣을 수 있습니다")
+        if template.is_spell:
+            if ci.quantity > SPELL_CARD_MAX_COPIES:
+                raise HTTPException(400, f"스킬 카드는 각각 최대 {SPELL_CARD_MAX_COPIES}장만 넣을 수 있습니다")
+            
+            continue
 
-        role_counts[role_key] += ci.quantity
-
-    for role_key, max_count in DECK_ROLE_MAX_COUNTS.items():
-        if role_counts.get(role_key, 0) > max_count:
-            raise HTTPException(400, f"{role_key} 카드 최대 {max_count}장까지 가능합니다")
+        per_card_limit = DECK_ROLE_MAX_COUNTS.get(role_key)
+        if isinstance(per_card_limit, int) and ci.quantity > per_card_limit:
+            raise HTTPException(400, f"{template.name} 카드는 최대 {per_card_limit}장까지 넣을 수 있습니다")
 
 
 @router.post("/")

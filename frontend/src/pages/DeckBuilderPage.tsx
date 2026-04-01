@@ -213,17 +213,10 @@ const DeckBuilderPage: React.FC = () => {
         }
 
         const roleKey = card.is_spell ? 'spell' : card.role;
-        const roleLimit = roleMaxCounts[roleKey];
-        if (typeof roleLimit === 'number') {
-            const currentRoleCount = cards.reduce((sum, c) => {
-                const cRoleKey = c.is_spell ? 'spell' : c.role;
-                if (cRoleKey !== roleKey) return sum;
-                return sum + (entries[c.id] ?? 0);
-            }, 0);
-            if (currentRoleCount >= roleLimit) {
-                showDeckLimitAnnouncer(`${roleKey} 카드는 최대 ${roleLimit}장까지 넣을 수 있습니다.`);
-                return;
-            }
+        const perCardLimit = roleMaxCounts[roleKey];
+        if (!card.is_spell && typeof perCardLimit === 'number' && currentQty >= perCardLimit) {
+            showDeckLimitAnnouncer(`${card.name} 카드는 최대 ${perCardLimit}장까지 넣을 수 있습니다.`);
+            return;
         }
 
         setEntries(p => ({ ...p, [id]: (p[id] ?? 0) + 1 }));
