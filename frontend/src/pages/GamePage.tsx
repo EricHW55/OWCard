@@ -73,7 +73,7 @@ const GamePage: React.FC = () => {
           <span className="game-phase-pill">{phaseLabel(vm.phase)}</span>
         </>
       }
-      topbarCenter={<>상대 패:{vm.opp.hand_count} · 덱:{vm.opp.draw_pile_count}</>}
+      topbarCenter={<>상대: {vm.opp.username || '상대'} · 패:{vm.opp.hand_count} · 덱:{vm.opp.draw_pile_count}</>}
       topbarRight={
         <>
           <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{vm.isMyTurn ? '● 내 턴' : '○ 상대 턴'}</div>

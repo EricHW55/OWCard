@@ -46,6 +46,7 @@ class PlayerState:
     trash: list[dict] = dc_field(default_factory=list)
     field: Field = dc_field(default_factory=Field)
     mulligan_done: bool = False
+    mulligan_used: int = 0
     placement_cost_used: int = 0
     connected: bool = False
     commander_skill_uses: int = 0
@@ -63,6 +64,7 @@ class PlayerState:
             "trash": [{"name": c.get("name", "?"), "role": c.get("role", "?")} for c in self.trash] if reveal_hand else [],
             "field": self.field.to_dict(for_opponent=not reveal_hand),
             "mulligan_done": self.mulligan_done,
+            "mulligan_used": self.mulligan_used,
             "placement_cost_used": self.placement_cost_used,
             "pending_passive": self.pending_passive if reveal_hand else None,
             "pending_spell": self.pending_spell if reveal_hand else None,
@@ -420,19 +422,25 @@ class GameEngine:
             return {"error": "Not in mulligan phase"}
         if ps.mulligan_done:
             return {"error": "Already done"}
-        if len(card_indices) > MAX_MULLIGAN:
-            return {"error": f"Max {MAX_MULLIGAN} cards"}
+        remaining = MAX_MULLIGAN - ps.mulligan_used
+        if len(card_indices) > remaining:
+            return {"error": f"Max {remaining} cards"}
 
+        replaced = 0
         for idx in sorted(card_indices, reverse=True):
             if 0 <= idx < len(ps.hand) and ps.draw_pile:
                 old = ps.hand.pop(idx)
                 ps.draw_pile.append(old)
                 ps.hand.insert(idx, ps.draw_pile.pop(0))
+                replaced += 1
 
-        ps.mulligan_done = True
+        ps.mulligan_used += replaced
+        ps.mulligan_done = ps.mulligan_used >= MAX_MULLIGAN or len(card_indices) == 0
         if all(p.mulligan_done for p in self.players.values()):
             return self._coin_flip()
-        return {"phase": self.phase.value, "message": "Waiting for opponent"}
+        remaining_after = max(0, MAX_MULLIGAN - ps.mulligan_used)
+        message = "Waiting for opponent" if ps.mulligan_done else f"Mulligan remaining: {remaining_after}"
+        return {"phase": self.phase.value, "message": message, "remaining": remaining_after}
 
     def skip_mulligan(self, player_id: int) -> dict:
         return self.mulligan(player_id, [])

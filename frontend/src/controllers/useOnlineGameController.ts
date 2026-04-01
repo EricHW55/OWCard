@@ -312,7 +312,7 @@ export function useOnlineGameController(gameId: string) {
           team: context.victimTeam,
         },
         createdAt: createdAt + idx,
-        duration: 3000,
+        duration: 5000,
       }));
       return [...items, ...prevFeed].slice(0, 6);
     });
@@ -761,7 +761,13 @@ export function useOnlineGameController(gameId: string) {
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (!my) return;
     if (phase === 'mulligan') {
-      setSelectedMulligan((prev) => prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index].slice(0, 2));
+      setSelectedMulligan((prev) => {
+        if (prev[0] === index) {
+          setDetailCard(card);
+          return [];
+        }
+        return [index];
+      });
       return;
     }
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
@@ -849,7 +855,11 @@ export function useOnlineGameController(gameId: string) {
     setColumnChoice(null); setActionMode(skillKey); addLog(`${caster.name} — ${rawSkillName} 준비`); showSystemNotice(rawSkillName, `${caster.name} 준비`, 900);
   }, [selectedMyFieldCard, send, addLog, showSystemNotice]);
 
-  const runMulligan = useCallback(() => { send({ action: 'mulligan', card_indices: selectedMulligan }); setSelectedMulligan([]); }, [send, selectedMulligan]);
+  const runMulligan = useCallback(() => {
+    if (selectedMulligan.length === 0) return;
+    send({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
+    setSelectedMulligan([]);
+  }, [send, selectedMulligan]);
   const skipMulligan = useCallback(() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }, [send]);
   const selectColumn = useCallback((repUid: string, label: string) => {
     if (columnChoice?.source === 'spell' && pendingSpell) {

@@ -53,7 +53,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
 
     const hp = fc ? fc.current_hp : ('hp' in card ? card.hp : 0);
     const maxHp = fc ? fc.max_hp : ('hp' in card ? card.hp : 0);
-    const rng = fc ? fc.attack_range : ('base_attack_range' in card ? card.base_attack_range : 0);
+    const rng = fc ? fc.attack_range : 0;
     const fallbackDescription = ('description' in card ? card.description : '') || '';
 
     const skills: Record<string, { name?: string; cooldown?: number; description?: string }> =
