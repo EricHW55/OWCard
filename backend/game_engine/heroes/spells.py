@@ -433,18 +433,59 @@ def spell_orbital_ray(caster: FieldCard, target: FieldCard, game: GameState) -> 
 
 @register_skill("spell_emp", "skill_1")
 def spell_emp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """EMP: 상대의 설치 스킬(install 태그) 모두 비활성화."""
+    """EMP:
+    - 상대 설치 효과(install 태그) 제거
+    - 상대 방벽(barrier, particle_barrier) 제거 (추가체력은 유지)
+    - 상대 설치물 토큰(토르비욘 포탑/일리아리 힐 포탑) 파괴
+    - 상대 강철 덫 큐 비우기
+    """
     enemy_field = game.get_enemy_field(caster)
     removed_count = 0
+    broken_barriers = 0
+    destroyed_tokens = 0
+    cleared_traps = 0
     logs = []
+    
     for card in enemy_field.all_cards():
+        # 1) 설치 효과 제거 (불사장치/튕겨내기/카두세우스 지팡이 공버프 등)
         to_remove = [s for s in card.statuses if "install" in s.tags]
         for s in to_remove:
             card.remove_status(s.name)
             removed_count += 1
             logs.append({"target": card.uid, "removed": s.name})
 
-    return {"success": True, "skill": "EMP", "removed_count": removed_count, "affected": logs}
+        # 2) 방벽만 제거 (추가체력 extra_hp는 건드리지 않음)
+        if card.remove_status("barrier"):
+            broken_barriers += 1
+            logs.append({"target": card.uid, "removed": "barrier"})
+        if card.remove_status("particle_barrier"):
+            broken_barriers += 1
+            logs.append({"target": card.uid, "removed": "particle_barrier"})
+
+        # 3) 설치물 토큰 파괴 (딜을 넣어 파괴)
+        token_kind = card.extra.get("token_kind")
+        if token_kind in ("torbjorn_turret", "illari_pylon") and card.current_hp > 0:
+            dmg_log = card.take_damage(card.current_hp, ignore_barrier=True)
+            destroyed_tokens += 1
+            logs.append({"target": card.uid, "destroyed_token": token_kind, "damage_log": dmg_log})
+
+    # 4) 강철 덫 무효화
+    traps = getattr(enemy_field, "traps", None)
+    if isinstance(traps, list) and traps:
+        cleared_traps = len(traps)
+        traps.clear()
+
+    enemy_field.remove_dead()
+
+    return {
+        "success": True,
+        "skill": "EMP",
+        "removed_count": removed_count,
+        "broken_barriers": broken_barriers,
+        "destroyed_tokens": destroyed_tokens,
+        "cleared_traps": cleared_traps,
+        "affected": logs,
+    }
 
 
 # ═══════════════════════════════════════════════════════════
