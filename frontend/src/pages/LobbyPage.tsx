@@ -89,6 +89,8 @@ const LobbyPage: React.FC = () => {
     const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queueing, setQueueing] = useState(false);
+    const [queueStartedAt, setQueueStartedAt] = useState<number | null>(null);
+    const [queueNow, setQueueNow] = useState(() => Date.now());
     const [viewportSize, setViewportSize] = useState(() => ({
         width: typeof window !== 'undefined' ? window.innerWidth : 0,
         height: typeof window !== 'undefined' ? window.innerHeight : 0,
@@ -103,6 +105,8 @@ const LobbyPage: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
     const [playMode, setPlayMode] = useState<PlayMode>('none');
     const [showPlayModal, setShowPlayModal] = useState(false);
+    const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
+    const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
     const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
 
@@ -165,6 +169,24 @@ const LobbyPage: React.FC = () => {
         if (!session) return;
         refreshDecks(session.player_id);
     }, [session, refreshDecks]);
+
+    useEffect(() => {
+        if (!decks.length) {
+            setQuickMatchDeckId(1);
+            return;
+        }
+        if (!decks.some((deck) => deck.id === quickMatchDeckId)) {
+            setQuickMatchDeckId(decks[0].id);
+        }
+    }, [decks, quickMatchDeckId]);
+
+    useEffect(() => {
+        if (!queueing || !queueStartedAt) return;
+        const id = window.setInterval(() => {
+            setQueueNow(Date.now());
+        }, 1000);
+        return () => window.clearInterval(id);
+    }, [queueing, queueStartedAt]);
 
     useEffect(() => {
         const updateOrientation = () => {
@@ -311,22 +333,29 @@ const LobbyPage: React.FC = () => {
         });
 
         const offMatchFound = ws.on('match_found', (msg: any) => {
+            setQueueing(false);
+            setQueueStartedAt(null);
             addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
             navigate(`/game/${msg.game_id}`);
         });
 
         const offGameStarting = ws.on('game_starting', (msg: any) => {
+            setQueueing(false);
+            setQueueStartedAt(null);
             addLog(`게임 시작: ${msg.game_id}`);
             navigate(`/game/${msg.game_id}`);
         });
 
         const offQueueJoined = ws.on('queue_joined', (msg: any) => {
             setQueueing(true);
+            setQueueStartedAt(Date.now());
+            setQueueNow(Date.now());
             addLog(`매칭 대기열 참가. 현재 큐 인원: ${msg.queue_size}`);
         });
 
         const offQueueLeft = ws.on('queue_left', () => {
             setQueueing(false);
+            setQueueStartedAt(null);
             addLog('매칭 대기열에서 나왔습니다.');
         });
 
@@ -416,7 +445,13 @@ const LobbyPage: React.FC = () => {
             setShowPlayModal(false);
             return;
         }
-        send({ action: 'join_queue', deck_id: deckId });
+        setShowQuickDeckModal(true);
+    };
+
+    const confirmQuickMatch = () => {
+        send({ action: 'join_queue', deck_id: quickMatchDeckId });
+        addLog(`퀵매칭 시작: 덱 ${quickMatchDeckId}`);
+        setShowQuickDeckModal(false);
         setShowPlayModal(false);
     };
 
@@ -457,6 +492,9 @@ const LobbyPage: React.FC = () => {
     const showMainMenu = !(activeMenu === 'play' && playMode === 'private');
     // const menuClassName = `lobby-menu ${isPortrait && showMainMenu ? 'main-menu-mode' : ''}`.trim();
     const menuClassName = `lobby-menu ${useCompactMenuLayout && showMainMenu ? 'main-menu-mode' : ''}`.trim();
+    const queueElapsedSec = queueStartedAt ? Math.max(0, Math.floor((queueNow - queueStartedAt) / 1000)) : 0;
+    const queueElapsedMin = String(Math.floor(queueElapsedSec / 60)).padStart(2, '0');
+    const queueElapsedRemainSec = String(queueElapsedSec % 60).padStart(2, '0');
     const bgMotionStyle = {
         '--lobby-bg-pan-range': `${backgroundPanRange}px`,
         '--lobby-bg-pan-duration': `${backgroundPanDuration}s`,
@@ -508,6 +546,20 @@ const LobbyPage: React.FC = () => {
 
     return (
         <div className={`lobby-page ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
+            {queueing && (
+                <div className={`queue-status-banner ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
+                    <div className="queue-status-left">
+                        <div className="queue-status-label">퀵매칭</div>
+                        <div className="queue-status-text">게임 찾는 중...</div>
+                    </div>
+                    <div className="queue-status-right">
+                        <div className="queue-status-time">{queueElapsedMin}:{queueElapsedRemainSec}</div>
+                        <button className="queue-status-cancel" onClick={() => send({ action: 'leave_queue' })}>
+                            취소
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className={bgClassName} style={bgMotionStyle}>
                 {backgroundImage && (
                     <img
@@ -672,6 +724,38 @@ const LobbyPage: React.FC = () => {
                                 참가하기
                             </button>
                             <button className="lobby-ghost-btn" onClick={() => setPendingJoinRoom(null)}>취소</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showQuickDeckModal && (
+                <div className="play-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="play-modal">
+                        <button className="play-modal-close" onClick={() => setShowQuickDeckModal(false)}>×</button>
+                        <h3>퀵매칭 덱 선택</h3>
+                        <p>퀵매칭에 사용할 덱을 골라주세요.</p>
+                        <div className="deck-row quick-match-deck-row">
+                            <label>사용할 덱</label>
+                            <select
+                                className="lobby-input"
+                                value={quickMatchDeckId}
+                                onChange={(e) => setQuickMatchDeckId(Number(e.target.value))}
+                            >
+                                {decks.length === 0 ? (
+                                    <option value={1}>덱 없음</option>
+                                ) : (
+                                    decks.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                    ))
+                                )}
+                            </select>
+                        </div>
+                        <div className="play-modal-actions">
+                            <button className="lobby-ghost-btn" disabled={!decks.length} onClick={confirmQuickMatch}>
+                                매칭 시작
+                            </button>
+                            <button className="lobby-ghost-btn" onClick={() => setShowQuickDeckModal(false)}>닫기</button>
                         </div>
                     </div>
                 </div>

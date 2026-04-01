@@ -227,6 +227,10 @@
     font-size: 13px;
 }
 
+.quick-match-deck-row {
+    padding-bottom: 10px;
+}
+
 .join-by-code > div {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -255,6 +259,9 @@
 .room-list-wrap {
     display: grid;
     gap: 8px;
+    max-height: min(48vh, 420px);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .room-item {
@@ -437,7 +444,7 @@
     border-radius: 16px;
     border: 1px solid rgba(91, 131, 242, 0.62);
     background: rgba(8, 18, 47, 0.94);
-    padding: 20px;
+    padding: 22px;
     position: relative;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
 }
@@ -471,4 +478,90 @@
     color: #c2d3ff;
     font-size: 28px;
     cursor: pointer;
+}
+
+.queue-status-banner {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 70;
+    border: 1px solid rgba(255, 161, 126, 0.8);
+    border-radius: 12px;
+    background: linear-gradient(90deg, rgba(214, 63, 127, 0.96), rgba(170, 37, 104, 0.95));
+    color: #fff8ef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
+}
+
+.queue-status-banner.mobile {
+    width: min(360px, calc(100vw - 20px));
+    padding: 8px 10px;
+}
+
+.queue-status-banner.desktop {
+    width: min(760px, calc(100vw - 40px));
+    padding: 10px 14px;
+}
+
+.queue-status-left {
+    display: grid;
+    gap: 2px;
+}
+
+.queue-status-label {
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 0.9;
+}
+
+.queue-status-text {
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.queue-status-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.queue-status-time {
+    font-size: 15px;
+    font-weight: 800;
+    min-width: 52px;
+    text-align: right;
+}
+
+.queue-status-cancel {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(243, 244, 248, 0.94);
+    color: #2d2f37;
+    font-weight: 900;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+    .room-list-wrap {
+        max-height: min(34vh, 280px);
+    }
+
+    .queue-status-text {
+        font-size: 13px;
+    }
+
+    .queue-status-time {
+        font-size: 13px;
+        min-width: 46px;
+    }
+
+    .queue-status-cancel {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
 }
