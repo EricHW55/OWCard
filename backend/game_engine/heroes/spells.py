@@ -465,7 +465,7 @@ def spell_emp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         # 3) 설치물 토큰 파괴 (딜을 넣어 파괴)
         token_kind = card.extra.get("token_kind")
         if token_kind in ("torbjorn_turret", "illari_pylon") and card.current_hp > 0:
-            dmg_log = card.take_damage(card.current_hp, ignore_barrier=True)
+            dmg_log = card.take_damage(max(card.current_hp, 99), ignore_barrier=True)
             destroyed_tokens += 1
             logs.append({"target": card.uid, "destroyed_token": token_kind, "damage_log": dmg_log})
 
