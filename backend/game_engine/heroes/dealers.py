@@ -176,7 +176,7 @@ def echo_bombs(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def echo_beam(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     base = game.get_skill_damage(caster, "skill_2")
-    dmg = int(base * 1.5) if target.current_hp <= target.max_hp / 2 else base
+    dmg = int(base * 2) if target.current_hp <= target.max_hp / 2 else base
     result = target.take_damage(dmg)
     return {"success": True, "skill": "광선집중", "half_hp_bonus": dmg > base, "damage_log": result}
 
