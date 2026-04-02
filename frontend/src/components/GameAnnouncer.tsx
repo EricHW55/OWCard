@@ -11,6 +11,7 @@ export interface AnnouncerData {
     imageName?: string;
     isSpell?: boolean;
     duration?: number;
+    nonBlocking?: boolean;
 }
 
 interface Props {
@@ -61,10 +62,11 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
         // <div className="game-announcer-overlay">
         <div
             className="game-announcer-overlay"
-            onClick={handleSkip}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleSkip()}
+            style={data.nonBlocking ? { pointerEvents: 'none' } : undefined}
+            onClick={data.nonBlocking ? undefined : handleSkip}
+            role={data.nonBlocking ? undefined : 'button'}
+            tabIndex={data.nonBlocking ? -1 : 0}
+            onKeyDown={data.nonBlocking ? undefined : (e) => e.key === 'Enter' && handleSkip()}
         >
             {data.type === 'phase' && (
                 // <div className="announcer-phase" style={animationStyle} onClick={handleSkip}
@@ -74,7 +76,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                     <div className="announcer-phase-body">
                         <div className="announcer-phase-title">{data.title}</div>
                         {data.subtitle && <div className="announcer-phase-subtitle">{data.subtitle}</div>}
-                        <div className="announcer-skip-hint">클릭하여 건너뛰기</div>
+                        {!data.nonBlocking && <div className="announcer-skip-hint">클릭하여 건너뛰기</div>}
                     </div>
                     <div className="announcer-phase-line" />
                 </div>
@@ -118,7 +120,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                             )}
                         </div>
 
-                        <div className="announcer-skip-hint skill">클릭하여 건너뛰기</div>
+                        {!data.nonBlocking && <div className="announcer-skip-hint skill">클릭하여 건너뛰기</div>}
                         <div className="skill-card-bottom-trim" />
                     </div>
                 </div>

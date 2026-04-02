@@ -266,6 +266,7 @@ export function useOnlineGameController(gameId: string) {
     subtitle?: string;
     isSpell?: boolean;
     duration?: number;
+    nonBlocking?: boolean;
   }) => {
     if (!props.skillName) return;
     const rawHeroKey = String(props.heroKey || '').toLowerCase();
@@ -279,6 +280,7 @@ export function useOnlineGameController(gameId: string) {
       subtitle: props.subtitle,
       isSpell: props.isSpell ?? inferredSpell,
       duration: props.duration || 3200,
+      nonBlocking: !!props.nonBlocking,
     });
   }, [enqueueAnnouncer]);
 
@@ -620,16 +622,31 @@ export function useOnlineGameController(gameId: string) {
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
-            showSkillUse({
-              skillName: resolvedSkillName,
-              description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
-              heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
-              imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
-              subtitle: result?.caster_name || casterCard?.name || actorName,
-              isSpell: false,
-              duration: 3200,
-            });
-            if (result?.swift_strike_reset && msg?.skill_key === 'skill_1') {
+            const isSwiftStrikeReset = !!(result?.swift_strike_reset && msg?.skill_key === 'skill_1');
+            if (isSwiftStrikeReset) {
+              const casterName = result?.caster_name || casterCard?.name || actorName || '겐지';
+              showSkillUse({
+                skillName: '질풍참 초기화',
+                description: '적 처치 시 질풍참이 즉시 초기화됩니다. 대상을 다시 선택하세요.',
+                heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+                imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
+                subtitle: `${casterName} 처치 성공`,
+                isSpell: false,
+                duration: 1700,
+                nonBlocking: true,
+              });
+            } else {
+              showSkillUse({
+                skillName: resolvedSkillName,
+                description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
+                heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+                imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
+                subtitle: result?.caster_name || casterCard?.name || actorName,
+                isSpell: false,
+                duration: 3200,
+              });
+            }
+            if (isSwiftStrikeReset) {
               const casterUid = result?.caster_uid || msg?.caster_uid || myCasterCard?.uid || null;
               const forcedSkillName = resolvedSkillName || '질풍참';
               setSelectedHandIdx(null);
