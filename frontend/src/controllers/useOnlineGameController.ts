@@ -622,7 +622,8 @@ export function useOnlineGameController(gameId: string) {
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
-            const isSwiftStrikeReset = !!(result?.swift_strike_reset && msg?.skill_key === 'skill_1');
+            const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
+            const isSwiftStrikeReset = !!(result?.swift_strike_reset && usedSkillKey === 'skill_1');
             if (isSwiftStrikeReset) {
               const casterName = result?.caster_name || casterCard?.name || actorName || '겐지';
               showSkillUse({
