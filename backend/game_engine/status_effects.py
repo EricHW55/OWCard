@@ -291,6 +291,7 @@ class AttackBuff(StatusEffect):
     """공격력 증감."""
     name: str = "attack_buff"
     value: int = 0   # +면 버프, -면 디버프
+    stackable: bool = True
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
     def on_before_attack(self, card, target):
@@ -302,6 +303,7 @@ class DamageMultiplier(StatusEffect):
     """스킬 피해 배율 증감. value=2.0이면 2배, value=1.5면 50% 증가."""
     name: str = "damage_multiplier"
     value: float = 1.0
+    stackable: bool = True
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
 
@@ -361,6 +363,7 @@ class HealMultiplier(StatusEffect):
     """힐 배율 (증폭 매트릭스): 받는 힐량에 배율 적용."""
     name: str = "heal_multiplier"
     value: float = 2.0
+    stackable: bool = True
     tags: list[str] = field(default_factory=lambda: ["buff"])
 
 

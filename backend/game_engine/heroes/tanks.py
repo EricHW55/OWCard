@@ -75,13 +75,20 @@ def dva_booster(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
 @register_skill("dva", "skill_2")
 def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    from game_engine.field import Role
+
     if caster.extra.get("form") != "mech":
         return {"success": False, "message": "메카만 가능"}
     if not target:
         return {"success": False, "message": "대상 필요"}
 
     dmg_table = game.get_skill_damage(caster, "skill_2")
-    idx = game.get_shotgun_slot_index(caster, target, dmg_table)
+    role_index = {
+        Role.TANK: 0,
+        Role.DEALER: 1,
+        Role.HEALER: 2,
+    }
+    idx = min(role_index.get(target.role, len(dmg_table) - 1), len(dmg_table) - 1)
     dmg = dmg_table[idx]
     result = target.take_damage(dmg)
 

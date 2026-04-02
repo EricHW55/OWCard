@@ -206,7 +206,9 @@ class GameState:
         """산탄형 공격 인덱스 계산.
         - 기본은 역할 기반 거리.
         - Hooked면 풀딜(탱커 인덱스).
-        - Pulled/Airborne/사이드는 각각 1단계 더 가까운 딜.
+        - Pulled/Airborne은 각각 1단계 더 가까운 딜.
+        - Side 카드는 별도 가산을 하지 않는다.
+          (이미 get_actual_slot_index에서 가장 먼 슬롯으로 계산됨)
         """
         idx = self.get_actual_slot_index(target, damage_table, side_as_front=False)
 
@@ -218,8 +220,8 @@ class GameState:
             step_bonus += 1
         if target.has_status("airborne") or target.has_status("gravity_flux_airborne"):
             step_bonus += 1
-        if target.zone == Zone.SIDE:
-            step_bonus += 1
+        # if target.zone == Zone.SIDE:
+        #     step_bonus += 1
 
         idx = max(0, idx - step_bonus)
         return min(idx, len(damage_table) - 1)
