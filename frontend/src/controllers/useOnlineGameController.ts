@@ -630,7 +630,7 @@ export function useOnlineGameController(gameId: string) {
               duration: 3200,
             });
             if (result?.swift_strike_reset && msg?.skill_key === 'skill_1') {
-              const casterUid = result?.caster_uid || msg?.caster_uid || null;
+              const casterUid = result?.caster_uid || msg?.caster_uid || myCasterCard?.uid || null;
               const forcedSkillName = resolvedSkillName || '질풍참';
               setSelectedHandIdx(null);
               setColumnChoice(null);
