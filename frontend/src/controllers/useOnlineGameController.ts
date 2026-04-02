@@ -164,14 +164,19 @@ function buildColumnChoices(field: any): ColumnPreview[] {
   const mainDealers = main.filter((c: any) => c?.role === 'dealer');
   const mainHealers = main.filter((c: any) => c?.role === 'healer');
   const previews: ColumnPreview[] = [];
+  const pickRepresentativeUid = (preferred: Array<any>) => preferred.find((c) => c?.uid)?.uid;
 
   const leftMembers = [mainTanks[0], mainDealers[0], mainHealers[0]].filter(Boolean);
-  if (leftMembers.length > 0) previews.push({ key: 'main_left', label: '본대 왼쪽', repUid: leftMembers[0].uid, names: leftMembers.map((c: any) => c.name) });
+  const leftRepUid = pickRepresentativeUid([mainDealers[0], mainHealers[0], mainTanks[0]]);
+  if (leftMembers.length > 0 && leftRepUid) {
+    previews.push({ key: 'main_left', label: '본대 왼쪽', repUid: leftRepUid, names: leftMembers.map((c: any) => c.name) });
+  }
 
   const rightMembers = [mainTanks[0], mainDealers[1], mainHealers[1]].filter(Boolean);
   const hasRightBackline = !!mainDealers[1] || !!mainHealers[1];
-  if (hasRightBackline && rightMembers.length > 0) {
-    previews.push({ key: 'main_right', label: '본대 오른쪽', repUid: rightMembers[0].uid, names: rightMembers.map((c: any) => c.name) });
+  const rightRepUid = pickRepresentativeUid([mainDealers[1], mainHealers[1], mainTanks[0]]);
+  if (hasRightBackline && rightMembers.length > 0 && rightRepUid) {
+    previews.push({ key: 'main_right', label: '본대 오른쪽', repUid: rightRepUid, names: rightMembers.map((c: any) => c.name) });
   }
 
   if (side.length > 0) previews.push({ key: 'side', label: '사이드', repUid: side[0].uid, names: side.map((c: any) => c.name) });
