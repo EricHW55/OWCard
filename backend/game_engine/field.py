@@ -518,7 +518,8 @@ class Field:
 
         result: list[FieldCard] = []
         tank_cards = alive_main(Role.TANK)
-        if tank_cards and column_index == 0:
+        if tank_cards:
+            # 본대 세로줄(좌/우) 모두 단일 탱커 슬롯을 공유한다.
             result.append(tank_cards[0])
         for role in (Role.DEALER, Role.HEALER):
             role_cards = alive_main(role)
