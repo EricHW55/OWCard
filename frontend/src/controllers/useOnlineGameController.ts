@@ -633,7 +633,7 @@ export function useOnlineGameController(gameId: string) {
                 imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
                 subtitle: `${casterName} 처치 성공`,
                 isSpell: false,
-                duration: 1700,
+                duration: 2700,
                 nonBlocking: true,
               });
             } else {
@@ -655,7 +655,7 @@ export function useOnlineGameController(gameId: string) {
               if (casterUid) setSelectedFieldUid(casterUid);
               setActionMode('skill_1');
               addLog(`${forcedSkillName} 초기화: 대상을 다시 선택하세요`);
-              showSystemNotice(forcedSkillName, '처치 성공! 추가 사용 대상을 선택하세요', 1500);
+              // showSystemNotice(forcedSkillName, '처치 성공! 추가 사용 대상을 선택하세요', 1500);
             }
           }
           if (msg.action === 'execute_spell') {
