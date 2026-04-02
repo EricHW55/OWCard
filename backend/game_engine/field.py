@@ -483,12 +483,21 @@ class Field:
 
     def get_all_targetable(self, attacker: FieldCard, override_range: int | None = None, apply_taunt: bool = True) -> list[FieldCard]:
         if attacker.zone == Zone.MAIN:
-            targets = self.get_targetable_from_main(attacker, override_range=override_range, apply_taunt=apply_taunt)
+            targets = self.get_targetable_from_main(attacker, override_range=override_range, apply_taunt=False)
         else:
-            targets = self.get_targetable_from_side(attacker, override_range=override_range, apply_taunt=apply_taunt)
+            targets = self.get_targetable_from_side(attacker, override_range=override_range, apply_taunt=False)
         targets += self.get_side_targets()
         seen = set()
-        return [t for t in targets if not (t.uid in seen or seen.add(t.uid))]
+        deduped = [t for t in targets if not (t.uid in seen or seen.add(t.uid))]
+
+        if apply_taunt:
+            # 도발은 구역(본대/사이드)과 거리 계산보다 우선한다.
+            # 즉, 상대 진영 어디에 있든 살아있는 도발 대상이 있으면 그 카드들만 타겟 가능.
+            global_taunts = [c for c in self.all_cards() if c.alive and c.is_targetable and c.has_status("taunt")]
+            if global_taunts:
+                return global_taunts
+
+        return deduped
 
     # ── 특수 타겟팅 (스킬용) ──────────────────
 

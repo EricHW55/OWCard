@@ -921,6 +921,9 @@ class GameEngine:
             return 3
         if hero_key == "ashe" and skill_key == "skill_2":
             return 3
+        if hero_key == "sojourn" and skill_key == "skill_2":
+            # 차징샷은 대상이 속한 세로줄 전체를 타격하므로 사실상 거리 제한 없음.
+            return 3
         
         return None
 
