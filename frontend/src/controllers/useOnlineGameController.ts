@@ -633,7 +633,7 @@ export function useOnlineGameController(gameId: string) {
                 imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
                 subtitle: `${casterName} 처치 성공`,
                 isSpell: false,
-                duration: 2700,
+                duration: 1000,
                 nonBlocking: true,
               });
             } else {
