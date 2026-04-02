@@ -416,7 +416,7 @@ class Field:
                 return False
         return True
 
-    def get_targetable_from_main(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
+    def get_targetable_from_main(self, attacker: FieldCard, override_range: int | None = None, apply_taunt: bool = True) -> list[FieldCard]:
         atk_range = override_range if override_range is not None else attacker.attack_range
 
         bypass = 0
@@ -443,10 +443,12 @@ class Field:
             if self._layer_ignored_as_blocker(attacker, layer):
                 skipped_layers += 1
 
-        taunts = [c for c in result if c.has_status("taunt")]
-        return taunts if taunts else result
+        if apply_taunt:
+            taunts = [c for c in result if c.has_status("taunt")]
+            return taunts if taunts else result
+        return result
 
-    def get_targetable_from_side(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
+    def get_targetable_from_side(self, attacker: FieldCard, override_range: int | None = None, apply_taunt: bool = True) -> list[FieldCard]:
         """
         사이드는 '앞줄 스킵'이 아니라 '사거리 +1' 느낌으로 처리.
         예: 사거리 1이면 탱커/딜러까지 가능.
@@ -471,17 +473,19 @@ class Field:
                 if target_distance <= effective_range:
                     result.append(c)
 
-        taunts = [c for c in result if c.has_status("taunt")]
-        return taunts if taunts else result
+        if apply_taunt:
+            taunts = [c for c in result if c.has_status("taunt")]
+            return taunts if taunts else result
+        return result
 
     def get_side_targets(self) -> list[FieldCard]:
         return [c for c in self._alive(self.side_cards) if c.is_targetable]
 
-    def get_all_targetable(self, attacker: FieldCard, override_range: int | None = None) -> list[FieldCard]:
+    def get_all_targetable(self, attacker: FieldCard, override_range: int | None = None, apply_taunt: bool = True) -> list[FieldCard]:
         if attacker.zone == Zone.MAIN:
-            targets = self.get_targetable_from_main(attacker, override_range=override_range)
+            targets = self.get_targetable_from_main(attacker, override_range=override_range, apply_taunt=apply_taunt)
         else:
-            targets = self.get_targetable_from_side(attacker, override_range=override_range)
+            targets = self.get_targetable_from_side(attacker, override_range=override_range, apply_taunt=apply_taunt)
         targets += self.get_side_targets()
         seen = set()
         return [t for t in targets if not (t.uid in seen or seen.add(t.uid))]

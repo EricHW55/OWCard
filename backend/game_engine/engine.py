@@ -964,9 +964,20 @@ class GameEngine:
         # 적군 대상이면 사거리 검증
         if target and is_enemy_target:
             range_override = self._get_skill_range_override(caster, skill_key)
-            valid_targets = opp.field.get_all_targetable(caster, override_range=range_override)
+            hero_key = str(caster.extra.get("_hero_key", "")).lower()
+            ignore_taunt_for_targeting = hero_key == "sojourn" and skill_key == "skill_2"
+            valid_targets = opp.field.get_all_targetable(
+                caster,
+                override_range=range_override,
+                apply_taunt=not ignore_taunt_for_targeting,
+            )
+            valid_target_uids = {c.uid for c in valid_targets}
             shown_range = range_override if range_override is not None else caster.attack_range
-            if target.uid not in {c.uid for c in valid_targets}:
+            if target.uid not in valid_target_uids:
+                reachable_targets = opp.field.get_all_targetable(caster, override_range=range_override, apply_taunt=False)
+                reachable_target_uids = {c.uid for c in reachable_targets}
+                if (not ignore_taunt_for_targeting) and target.uid in reachable_target_uids and any(c.has_status("taunt") for c in reachable_targets):
+                    return {"error": "도발 효과로 인해 해당 대상을 지정할 수 없습니다"}
                 return {"error": f"사거리 밖의 대상입니다 (사거리: {shown_range})"}
         elif target and not is_enemy_target:
             # 힐러는 자기 자신을 직접 타겟팅해서 스킬을 사용할 수 없다.
