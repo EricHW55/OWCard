@@ -250,8 +250,9 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     my_field = game.get_my_field(caster)
 
-    # 탱커 자리가 비어있어야 함
-    if not my_field.can_place_main(Role.TANK):
+    # 본대 탱커 자리가 비어있어야 함 (특수 소환 유닛 포함)
+    has_main_tank = any(c.alive and c.role == Role.TANK for c in my_field.main_cards)
+    if has_main_tank:
         return {"success": False, "message": "탱커 자리가 이미 차있습니다"}
 
     bob = FC(
@@ -265,6 +266,8 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         base_attack_range=1,
         zone=Zone.MAIN,
     )
+    # 특수 소환 유닛: 일반 역할군 제한 카운트에서 제외
+    bob.extra["is_token"] = True
     my_field.place_card(bob, Zone.MAIN)
 
     return {"success": True, "skill": "B.O.B", "bob_uid": bob.uid, "bob_hp": 30}
@@ -305,6 +308,8 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
         extra=dict(target.extra),
     )
     clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
+    # 복제 카드는 일반 역할군 제한 카운트에서 제외한다.
+    clone.extra["is_token"] = True
     clone.current_hp = target.current_hp
 
     if hasattr(my_field, "force_place_card"):

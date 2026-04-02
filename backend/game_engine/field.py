@@ -304,7 +304,7 @@ class Field:
 
     def can_place_main(self, role: Role) -> bool:
         main_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
-        total_limits = {Role.TANK: 2, Role.DEALER: 2, Role.HEALER: 2}
+        total_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
         main_count = self._count_role(self.main_cards, role)
         total_count = main_count + self._count_role(self.side_cards, role)
         return main_count < main_limits[role] and total_count < total_limits[role]
@@ -321,7 +321,7 @@ class Field:
             if self._count_role(self.side_cards, role) > 0:
                 return False
 
-        total_limits = {Role.TANK: 2, Role.DEALER: 2, Role.HEALER: 2}
+        total_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
         total_count = self._count_role(self.main_cards, role) + self._count_role(self.side_cards, role)
         return total_count < total_limits[role]
 
@@ -336,6 +336,14 @@ class Field:
             self.side_cards.append(card)
         card.zone = zone
         return True
+    
+    def force_place_card(self, card: FieldCard, zone: Zone) -> None:
+        """자리 제한을 무시하고 강제로 배치한다. (복제/특수 소환 전용)"""
+        if zone == Zone.MAIN:
+            self.main_cards.append(card)
+        else:
+            self.side_cards.append(card)
+        card.zone = zone
 
     def move_card(self, card: FieldCard, to_zone: Zone, *, ignore_limits: bool = False) -> bool:
         if card.zone == to_zone:

@@ -79,6 +79,9 @@ function toFieldCard(card: HandCard, side: Side): FieldCard {
 }
 
 function canPlaceToZone(field: FieldState, role: Role, zone: 'main' | 'side') {
+  const totalRoleCount = [...field.main, ...field.side].filter((c) => c.role === role).length;
+  if (role === 'tank' && totalRoleCount >= 1) return false;
+
   if (zone === 'main') {
     if (role === 'tank') return field.main.filter((c) => c.role === 'tank').length < 1;
     if (role === 'dealer') return field.main.filter((c) => c.role === 'dealer').length < 2;
