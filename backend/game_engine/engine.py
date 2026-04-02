@@ -204,13 +204,22 @@ class GameState:
     
     def get_shotgun_slot_index(self, _attacker: FieldCard, target: FieldCard, damage_table) -> int:
         """산탄형 공격 인덱스 계산.
-        - 기본은 역할 기반 거리.
+        - 기본은 역할군(탱커/딜러/힐러) 기반 데미지 슬롯.
+        - 4칸 테이블([근접,중,원,최원])만 사이드 칸 페널티를 적용.
         - Hooked면 풀딜(탱커 인덱스).
         - Pulled/Airborne은 각각 1단계 더 가까운 딜.
-        - Side 카드는 별도 가산을 하지 않는다.
+        - Side 여부와 무관하게 역할군 기준으로 계산한다.
           (이미 get_actual_slot_index에서 가장 먼 슬롯으로 계산됨)
         """
-        idx = self.get_actual_slot_index(target, damage_table, side_as_front=False)
+        if not isinstance(damage_table, (list, tuple)) or not damage_table:
+            return 0
+
+        role_index = {
+            Role.TANK: 0,
+            Role.DEALER: 1,
+            Role.HEALER: 2,
+        }
+        idx = min(role_index.get(target.role, len(damage_table) - 1), len(damage_table) - 1)
 
         if target.has_status("hooked"):
             return 0
@@ -220,8 +229,6 @@ class GameState:
             step_bonus += 1
         if target.has_status("airborne") or target.has_status("gravity_flux_airborne"):
             step_bonus += 1
-        # if target.zone == Zone.SIDE:
-        #     step_bonus += 1
 
         idx = max(0, idx - step_bonus)
         return min(idx, len(damage_table) - 1)
