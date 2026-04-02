@@ -581,17 +581,44 @@ class MechDestruction(StatusEffect):
     used: bool = False
     visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["passive"])
+    
+    def _apply_hana_form(self, card: FieldCard) -> None:
+        hana_profile = dict(card.extra.get("hana_profile", {}))
+        card.extra["form"] = "hana"
+        card.extra["_hero_key"] = hana_profile.get("hero_key", "hana_song")
+        card.name = hana_profile.get("name", "송하나")
+        card.max_hp = int(hana_profile.get("hp", self.hana_hp) or self.hana_hp)
+        card.base_attack_range = int(hana_profile.get("attack_range", 1) or 1)
+        card.skill_damages = dict(hana_profile.get("skill_damages", card.skill_damages))
+        card.skill_meta = dict(hana_profile.get("skill_meta", card.skill_meta))
+        from game_engine.skill_registry import get_hero_skills
+        card.skills = get_hero_skills(card.extra["_hero_key"])
+        card.skill_cooldowns["skill_2"] = max(2, int(card.skill_cooldowns.get("skill_2", 0) or 0))
+        card.current_hp = min(card.current_hp, card.max_hp)
+
+    def restore_mech(self, card: FieldCard) -> None:
+        mech_profile = dict(card.extra.get("mech_profile", {}))
+        card.extra["form"] = "mech"
+        card.extra["_hero_key"] = mech_profile.get("hero_key", "dva")
+        card.name = mech_profile.get("name", "디바")
+        card.max_hp = int(mech_profile.get("hp", 20) or 20)
+        card.base_attack_range = int(mech_profile.get("attack_range", 1) or 1)
+        card.skill_damages = dict(mech_profile.get("skill_damages", card.skill_damages))
+        card.skill_meta = dict(mech_profile.get("skill_meta", card.skill_meta))
+        from game_engine.skill_registry import get_hero_skills
+        card.skills = get_hero_skills(card.extra["_hero_key"])
+        card.skill_cooldowns.pop("skill_2", None)
+        card.current_hp = card.max_hp
+        self.used = False
 
     def on_death(self, card):
         if not self.used and card.extra.get("form") == "mech":
             self.used = True
-            card.extra["form"] = "hana"
-            card.extra["hana_survive_turns"] = 0
-            card.name = "송하나"
+            self._apply_hana_form(card)
             return {
                 "prevent_death": True,
                 "set_hp": self.hana_hp,
-                "transform": "hana_song",
+                "summon": "hana_song",
             }
         return {}
     

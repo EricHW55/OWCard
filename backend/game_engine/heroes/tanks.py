@@ -50,7 +50,25 @@ def winston_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> di
 @register_passive("dva")
 def dva_passive(card: FieldCard, game: GameState) -> dict:
     card.extra["form"] = "mech"
-    card.extra["hana_survive_turns"] = 0
+    card.extra["mech_profile"] = {
+        "hero_key": "dva",
+        "name": card.name,
+        "hp": card.max_hp,
+        "attack_range": card.base_attack_range,
+        "skill_damages": dict(card.skill_damages),
+        "skill_meta": dict(card.skill_meta),
+    }
+    card.extra["hana_profile"] = {
+        "hero_key": "hana_song",
+        "name": "송하나",
+        "hp": card.extra.get("hana_hp", 5),
+        "attack_range": 1,
+        "skill_damages": {"skill_1": 1},
+        "skill_meta": {
+            "skill_1": {"name": "광선총", "cooldown": 0, "description": "사거리 1에서 1 피해를 준다."},
+            "skill_2": {"name": "메카 호출", "cooldown": 0, "description": "송하나 상태에서 2턴 이후 메카를 다시 호출한다."},
+        },
+    }
     from game_engine.status_effects import MechDestruction
     card.add_status(MechDestruction(hana_hp=card.extra.get("hana_hp", 5), source_uid=card.uid))
     return {"mech_form": True}
@@ -91,6 +109,23 @@ def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) ->
         "slot_index": idx,
         "damage_log": result,
     }
+    
+@register_skill("hana_song", "skill_1")
+def hana_light_gun(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    result = target.take_damage(1)
+    return {"success": True, "skill": "광선총", "damage_log": result}
+
+@register_skill("hana_song", "skill_2")
+def hana_call_mech(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if caster.extra.get("form") != "hana":
+        return {"success": False, "message": "송하나만 가능"}
+    status = caster.get_status("mech_destruction")
+    if status is None:
+        return {"success": False, "message": "메카 파괴 패시브 없음"}
+    status.restore_mech(caster)
+    return {"success": True, "skill": "메카 호출", "restore_mech": True}
 
 # ── 자리야 ────────────────────────────────
 @register_skill("zarya", "skill_1")

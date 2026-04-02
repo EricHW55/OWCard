@@ -364,7 +364,7 @@ export function useOnlineGameController(gameId: string) {
     while (queue.length > 0) {
       const node = queue.shift();
       if (!node || typeof node !== 'object') continue;
-      const isDeathPassive = !!(node?.death_prevented || node?.prevent_death || node?.transform || node?.enter_frozen || node?.reflect_by === 'reflect');
+      const isDeathPassive = !!(node?.death_prevented || node?.prevent_death || node?.transform || node?.summon || node?.enter_frozen || node?.reflect_by === 'reflect');
       if (isDeathPassive) {
         const key = `${node?.by || ''}:${node?.reflect_by || ''}:${node?.target || node?.uid || ''}:${node?.transform || ''}:${node?.enter_frozen ? 1 : 0}`;
         if (!seen.has(key)) {
@@ -373,8 +373,8 @@ export function useOnlineGameController(gameId: string) {
           const sourceCard = allCards.find((c: any) => c.uid === sourceUid);
           const sourceName = sourceCard?.name || '영웅';
 
-          if (node?.by === 'mech_destruction' || node?.transform === 'hana_song') {
-            showSkillUse({ skillName: '긴급 탈출', subtitle: `${sourceName} 패시브`, description: '메카 파괴 시 송하나 형태로 전환합니다.', heroKey: getHeroKey(sourceCard) || 'dva', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
+          if (node?.by === 'mech_destruction' || node?.transform === 'hana_song' || node?.summon === 'hana_song') {
+            showSkillUse({ skillName: '긴급 탈출', subtitle: `${sourceName} 패시브`, description: '메카 파괴 시 송하나 카드를 소환합니다.', heroKey: getHeroKey(sourceCard) || 'dva', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
           } else if (node?.by === 'frozen_revive' || node?.enter_frozen) {
             showSkillUse({ skillName: '급속 빙결', subtitle: `${sourceName} 패시브`, description: '치명 피해 시 빙결 상태가 되고 다음 턴 시작에 회복합니다.', heroKey: getHeroKey(sourceCard) || 'mei', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
           } else if (node?.by === 'immortality') {
