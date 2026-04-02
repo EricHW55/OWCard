@@ -374,3 +374,18 @@ def emre_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
             br = bounce_target.take_damage(bounce_d)
             logs.append({"target": bounce_target.uid, "bounce_damage": br})
     return {"success": True, "skill": "사이버 파편 수류탄", "damage_logs": logs}
+
+
+# ── 겐지 (신규) ───────────────────────────
+@register_skill("genji", "skill_1")
+def genji_swift_strike(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """질풍참: 4 피해. 처치 시 즉시 질풍참 1회 추가 사용."""
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage)
+    payload = {"success": True, "skill": "질풍참", "damage_log": result}
+    if result.get("died"):
+        payload["swift_strike_reset"] = True
+    return payload

@@ -629,6 +629,16 @@ export function useOnlineGameController(gameId: string) {
               isSpell: false,
               duration: 3200,
             });
+            if (result?.swift_strike_reset && msg?.skill_key === 'skill_1') {
+              const casterUid = result?.caster_uid || msg?.caster_uid || null;
+              const forcedSkillName = resolvedSkillName || '질풍참';
+              setSelectedHandIdx(null);
+              setColumnChoice(null);
+              if (casterUid) setSelectedFieldUid(casterUid);
+              setActionMode('skill_1');
+              addLog(`${forcedSkillName} 초기화: 대상을 다시 선택하세요`);
+              showSystemNotice(forcedSkillName, '처치 성공! 추가 사용 대상을 선택하세요', 1500);
+            }
           }
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);

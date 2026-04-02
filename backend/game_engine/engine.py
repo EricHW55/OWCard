@@ -1031,6 +1031,8 @@ class GameEngine:
                     caster.take_raw_damage(reflect_dmg)
                     result["reflected_to_caster"] = reflect_dmg
                 self._apply_particle_barrier_trigger(target_card_logs)
+            if result.get("swift_strike_reset"):
+                caster.acted_this_turn = False
 
         # 사망 처리
         self._finalize_deaths(opp, ps)
