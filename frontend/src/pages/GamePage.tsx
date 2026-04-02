@@ -103,7 +103,13 @@ const GamePage: React.FC = () => {
         selectedUid: vm.selectedFieldUid,
         canActUids: vm.canActUids,
         onCardClick: (card) => vm.handleFieldClick(card, false),
-        placingCard: vm.phase === 'placement' && vm.isMyTurn && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
+        placingCard: vm.phase === 'placement' && vm.isMyTurn
+            ? (vm.selectedHandCard && !vm.selectedHandCard.is_spell
+                ? vm.selectedHandCard
+                : (vm.pendingSpell === 'spell_duplicate' && vm.actionMode === 'duplicate_place' && vm.duplicateTargetRole
+                    ? ({ role: vm.duplicateTargetRole } as any)
+                    : null))
+            : null,
         onPlaceClick: vm.handlePlace,
       }}
       contextPanel={
@@ -127,8 +133,7 @@ const GamePage: React.FC = () => {
           onCancelColumnChoice={vm.cancelColumnChoice}
           pendingSpell={vm.pendingSpell}
           pendingSpellName={vm.pendingSpellName}
-          duplicateTargetZone={vm.duplicateTargetZone}
-          onSelectDuplicateTargetZone={vm.setDuplicateTargetZone}
+          duplicateTargetName={vm.duplicateTargetName}
           onCancelPendingSpell={vm.cancelPendingSpell}
           selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
           onUseSelectedSpell={vm.useSelectedSpell}

@@ -73,8 +73,7 @@ const SoloGamePage: React.FC = () => {
               onCancelColumnChoice={() => {}}
               pendingSpell={vm.pendingSpellCard?.hero_key || null}
               pendingSpellName={vm.pendingSpellCard?.name || null}
-              duplicateTargetZone={'main'}
-              onSelectDuplicateTargetZone={() => {}}
+              duplicateTargetName={null}
               onCancelPendingSpell={vm.cancelPendingSpell}
               selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
               onUseSelectedSpell={vm.useSelectedSpell}

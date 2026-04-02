@@ -209,7 +209,9 @@ export function useOnlineGameController(gameId: string) {
   const [connected, setConnected] = useState(false);
   const [pendingSpell, setPendingSpell] = useState<string | null>(null);
   const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
-  const [duplicateTargetZone, setDuplicateTargetZone] = useState<'main' | 'side'>('main');
+  const [duplicateTargetUid, setDuplicateTargetUid] = useState<string | null>(null);
+  const [duplicateTargetRole, setDuplicateTargetRole] = useState<'tank' | 'dealer' | 'healer' | null>(null);
+  const [duplicateTargetName, setDuplicateTargetName] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
@@ -544,7 +546,11 @@ export function useOnlineGameController(gameId: string) {
             showSystemNotice(result.card.name, `${zoneLabel} 추가 배치`, 1300);
           }
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
-            if (result?.hero_key === 'spell_duplicate') setDuplicateTargetZone('main');
+            if (result?.hero_key === 'spell_duplicate') {
+              setDuplicateTargetUid(null);
+              setDuplicateTargetRole(null);
+              setDuplicateTargetName(null);
+            }
             setPendingSpell(result.hero_key);
             setPendingSpellName(spellName);
             setLocalPendingSpellChoice(null);
@@ -758,7 +764,15 @@ export function useOnlineGameController(gameId: string) {
     fieldSkills.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
 
-  const showContextPanel = (!!my && phase === 'mulligan' && !my.mulligan_done) || fieldSkills.length > 0 || (actionMode === 'spell' && !!pendingSpell) || (phase === 'placement' && isMyTurn && !!selectedHandCard?.is_spell && !pendingSpell) || !!columnChoice || pendingPassive?.type === 'mercy_resurrect' || pendingPassive?.type === 'jetpack_cat_extra_place' || !!pendingSpellChoice;
+  const showContextPanel = (!!my && phase === 'mulligan' && !my.mulligan_done)
+      || fieldSkills.length > 0
+      || (actionMode === 'spell' && !!pendingSpell)
+      || (actionMode === 'duplicate_place' && pendingSpell === 'spell_duplicate')
+      || (phase === 'placement' && isMyTurn && !!selectedHandCard?.is_spell && !pendingSpell)
+      || !!columnChoice
+      || pendingPassive?.type === 'mercy_resurrect'
+      || pendingPassive?.type === 'jetpack_cat_extra_place'
+      || !!pendingSpellChoice;
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (!my) return;
@@ -786,9 +800,21 @@ export function useOnlineGameController(gameId: string) {
   const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
     if (columnChoice) { addLog('위 패널에서 열을 선택하세요'); return; }
     if (actionMode === 'spell' && pendingSpell) {
-      const payload: Record<string, any> = { action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid };
-      if (pendingSpell === 'spell_duplicate') payload.zone = duplicateTargetZone;
-      send(payload);
+      if (pendingSpell === 'spell_duplicate') {
+        if (!isOpponent) {
+          addLog('복제 대상은 상대 필드 카드만 선택할 수 있습니다');
+          showSystemNotice('복제', '상대 필드의 대상을 선택하세요', 1200);
+          return;
+        }
+        setDuplicateTargetUid(card.uid);
+        setDuplicateTargetRole(card.role);
+        setDuplicateTargetName(card.name);
+        setActionMode('duplicate_place');
+        addLog(`복제 대상 선택: ${card.name} → 배치 위치 선택`);
+        showSystemNotice('복제', `${card.name} 선택 · 빈 위치를 클릭하세요`, 1400);
+        return;
+      }
+      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
       addLog(`스킬 카드 → ${card.name}`);
       showSystemNotice(pendingSpellName || '스킬 카드', `${card.name} 대상`, 1200);
       setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); setSelectedHandIdx(null); return;
@@ -807,10 +833,23 @@ export function useOnlineGameController(gameId: string) {
       if (selectedFieldUid === card.uid) { setDetailCard(card); setSelectedFieldUid(null); }
       else { setSelectedFieldUid(card.uid); setSelectedHandIdx(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); }
     } else setDetailCard(card);
-  }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField, duplicateTargetZone]);
+  }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField]);
 
   const handlePlace = useCallback((zone: 'main' | 'side') => {
-    if (!my || selectedHandIdx === null || !isMyTurn || phase !== 'placement') return;
+    if (!my || !isMyTurn || phase !== 'placement') return;
+    if (pendingSpell === 'spell_duplicate' && actionMode === 'duplicate_place' && duplicateTargetUid) {
+      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: duplicateTargetUid, zone });
+      addLog(`복제 배치: ${duplicateTargetName || '대상 카드'} → ${zone === 'main' ? '본대' : '사이드'}`);
+      setActionMode(null);
+      setPendingSpell(null);
+      setPendingSpellName(null);
+      setDuplicateTargetUid(null);
+      setDuplicateTargetRole(null);
+      setDuplicateTargetName(null);
+      setSelectedHandIdx(null);
+      return;
+    }
+    if (selectedHandIdx === null) return;
     const card = my.hand[selectedHandIdx];
     const myFieldCount = (my.field.main?.length || 0) + (my.field.side?.length || 0);
     const zoneLabel = zone === 'main' ? '본대' : '사이드';
@@ -828,7 +867,7 @@ export function useOnlineGameController(gameId: string) {
     send({ action: 'place_card', hand_index: selectedHandIdx, zone });
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
     setSelectedHandIdx(null);
-  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice]);
+  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice, pendingSpell, actionMode, duplicateTargetUid, duplicateTargetName]);
 
   const prepareSkill = useCallback((skillKey: string) => {
     if (!selectedMyFieldCard) return;
@@ -877,7 +916,14 @@ export function useOnlineGameController(gameId: string) {
     setColumnChoice(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setSelectedHandIdx(null);
   }, [columnChoice, pendingSpell, selectedMyFieldCard, send, addLog, showSystemNotice]);
   const cancelColumnChoice = useCallback(() => { setColumnChoice(null); setPendingSpell(null); setPendingSpellName(null); }, []);
-  const cancelPendingSpell = useCallback(() => { setActionMode(null); setPendingSpell(null); setPendingSpellName(null); }, []);
+  const cancelPendingSpell = useCallback(() => {
+    setActionMode(null);
+    setPendingSpell(null);
+    setPendingSpellName(null);
+    setDuplicateTargetUid(null);
+    setDuplicateTargetRole(null);
+    setDuplicateTargetName(null);
+  }, []);
   const useSelectedSpell = useCallback(() => { handlePlace('main'); }, [handlePlace]);
   const cancelSelectedHand = useCallback(() => { setSelectedHandIdx(null); }, []);
   const resolveMercy = useCallback((trashIndex: number) => { setLocalPendingPassive(null); send({ action: 'resolve_passive_choice', trash_index: trashIndex }); }, [send]);
@@ -904,7 +950,7 @@ export function useOnlineGameController(gameId: string) {
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,
-    duplicateTargetZone, setDuplicateTargetZone,
+    duplicateTargetUid, duplicateTargetRole, duplicateTargetName,
   };
 }
 

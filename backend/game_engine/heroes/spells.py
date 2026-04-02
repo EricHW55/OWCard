@@ -250,10 +250,15 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     my_field = game.get_my_field(caster)
 
-    # 본대 탱커 자리가 비어있어야 함 (특수 소환 유닛 포함)
     has_main_tank = any(c.alive and c.role == Role.TANK for c in my_field.main_cards)
+    has_any_side = any(c.alive for c in my_field.side_cards)
+    has_side_tank = any(c.alive and c.role == Role.TANK for c in my_field.side_cards)
+    place_zone = Zone.MAIN
     if has_main_tank:
-        return {"success": False, "message": "탱커 자리가 이미 차있습니다"}
+        # 본대 탱커가 이미 있으면 사이드 탱커 슬롯(비어 있을 때)으로 소환한다.
+        if has_any_side or has_side_tank:
+            return {"success": False, "message": "B.O.B를 배치할 빈 탱커 자리가 없습니다"}
+        place_zone = Zone.SIDE
 
     bob = FC(
         uid=uuid.uuid4().hex[:8],
@@ -264,13 +269,13 @@ def spell_bob(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         base_attack=0,
         base_defense=0,
         base_attack_range=1,
-        zone=Zone.MAIN,
+        zone=place_zone,
     )
     # 특수 소환 유닛: 일반 역할군 제한 카운트에서 제외
     bob.extra["is_token"] = True
-    my_field.place_card(bob, Zone.MAIN)
+    my_field.force_place_card(bob, place_zone)
 
-    return {"success": True, "skill": "B.O.B", "bob_uid": bob.uid, "bob_hp": 30}
+    return {"success": True, "skill": "B.O.B", "bob_uid": bob.uid, "bob_hp": 30, "zone": place_zone.value}
 
 
 @register_skill("spell_duplicate", "skill_1")
@@ -278,7 +283,7 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     """복제: 상대 카드 하나를 복제해서 내 필드에 배치.
     복제로 생성된 카드는 일반 역할군 자리 제한을 무시한다."""
     import uuid
-    from game_engine.field import FieldCard as FC, Zone
+    from game_engine.field import FieldCard as FC, Zone, Role
 
     if not target:
         return {"success": False, "message": "복제할 상대 카드를 선택하세요"}
@@ -316,10 +321,23 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     clone.extra["is_token"] = True
     clone.current_hp = target.current_hp
 
-    if hasattr(my_field, "force_place_card"):
-        my_field.force_place_card(clone, place_zone)
-    elif not my_field.place_card(clone, place_zone):
-        return {"success": False, "message": "복제 카드를 배치할 수 없습니다"}
+    def _can_place_duplicate(zone: Zone) -> bool:
+        if zone == Zone.MAIN:
+            main_limits = {Role.TANK: 1, Role.DEALER: 2, Role.HEALER: 2}
+            alive_same_role = sum(1 for c in my_field.main_cards if c.alive and c.role == clone.role)
+            return alive_same_role < main_limits[clone.role]
+
+        alive_side = [c for c in my_field.side_cards if c.alive]
+        if clone.role == Role.TANK:
+            return len(alive_side) == 0
+        has_side_tank = any(c.role == Role.TANK for c in alive_side)
+        has_same_role = any(c.role == clone.role for c in alive_side)
+        return (not has_side_tank) and (not has_same_role)
+
+    if not _can_place_duplicate(place_zone):
+        return {"success": False, "message": "선택한 위치에 복제 카드를 배치할 수 없습니다"}
+
+    my_field.force_place_card(clone, place_zone)
 
     passive_result = {}
     passive_fn = get_passive(clone.extra.get("_hero_key", ""))

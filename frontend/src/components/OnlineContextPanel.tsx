@@ -47,8 +47,7 @@ export interface OnlineContextPanelProps {
 
   pendingSpell: string | null;
   pendingSpellName: string | null;
-  duplicateTargetZone: 'main' | 'side';
-  onSelectDuplicateTargetZone: (zone: 'main' | 'side') => void;
+  duplicateTargetName?: string | null;
   onCancelPendingSpell: () => void;
 
   selectedHandSpellName?: string | null;
@@ -84,8 +83,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   onCancelColumnChoice,
   pendingSpell,
   pendingSpellName,
-  duplicateTargetZone,
-  onSelectDuplicateTargetZone,
+  duplicateTargetName,
   onCancelPendingSpell,
   selectedHandSpellName,
   onUseSelectedSpell,
@@ -178,33 +176,23 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
           <div className="game-context-head">
             <span className="game-toolbar-title">{pendingSpellName || '스킬 카드'} 대상 선택</span>
             <span className="game-context-subtext">
-              {pendingSpell === 'spell_duplicate' ? '→ 대상 카드 클릭 + 복제 배치 위치 선택' : '→ 적용할 카드를 클릭'}
+              {pendingSpell === 'spell_duplicate' ? '→ 복제할 상대 카드를 먼저 클릭하세요' : '→ 적용할 카드를 클릭'}
             </span>
           </div>
-          {pendingSpell === 'spell_duplicate' && (
-              <div className="game-context-actions game-context-actions-wrap">
-                <button
-                    onClick={() => onSelectDuplicateTargetZone('main')}
-                    style={{
-                      ...BTN_SM,
-                      background: duplicateTargetZone === 'main' ? '#ff9b3040' : '#243055',
-                      border: duplicateTargetZone === 'main' ? '1px solid #ff9b30' : '1px solid #3a4a78',
-                    }}
-                >
-                  본대에 배치
-                </button>
-                <button
-                    onClick={() => onSelectDuplicateTargetZone('side')}
-                    style={{
-                      ...BTN_SM,
-                      background: duplicateTargetZone === 'side' ? '#ff9b3040' : '#243055',
-                      border: duplicateTargetZone === 'side' ? '1px solid #ff9b30' : '1px solid #3a4a78',
-                    }}
-                >
-                  사이드에 배치
-                </button>
-              </div>
-          )}
+          <div className="game-context-actions">
+            <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
+          </div>
+        </div>
+      )}
+
+      {actionMode === 'duplicate_place' && pendingSpell === 'spell_duplicate' && (
+          <div className="game-context-panel">
+            <div className="game-context-head">
+              <span className="game-toolbar-title">복제 배치 위치 선택</span>
+              <span className="game-context-subtext">
+              {duplicateTargetName ? `${duplicateTargetName} 복제본을 둘 빈 칸을 클릭하세요` : '내 필드의 빈 칸을 클릭하세요'}
+            </span>
+          </div>
           <div className="game-context-actions">
             <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
           </div>
