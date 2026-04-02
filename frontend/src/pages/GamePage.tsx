@@ -127,6 +127,8 @@ const GamePage: React.FC = () => {
           onCancelColumnChoice={vm.cancelColumnChoice}
           pendingSpell={vm.pendingSpell}
           pendingSpellName={vm.pendingSpellName}
+          duplicateTargetZone={vm.duplicateTargetZone}
+          onSelectDuplicateTargetZone={vm.setDuplicateTargetZone}
           onCancelPendingSpell={vm.cancelPendingSpell}
           selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
           onUseSelectedSpell={vm.useSelectedSpell}

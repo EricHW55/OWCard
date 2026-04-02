@@ -288,8 +288,12 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     if not my_player:
         return {"success": False, "message": "플레이어 찾기 실패"}
 
-    preferred_zone = target.zone
-    place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
+    requested_zone = caster.extra.get("_zone")
+    if requested_zone in (Zone.MAIN.value, Zone.SIDE.value):
+        place_zone = Zone(requested_zone)
+    else:
+        preferred_zone = target.zone
+        place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],

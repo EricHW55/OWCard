@@ -187,6 +187,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
             target_uid=data.get("target_uid"),
             trash_index=data.get("trash_index"),
             draw_index=data.get("draw_index"),
+            zone=data.get("zone"),
         )
     elif action == "end_turn":
         result = engine.end_turn(player_id)

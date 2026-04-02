@@ -332,7 +332,8 @@ class GameEngine:
         }
 
     def _execute_spell_effect(self, ps: PlayerState, hero_key: str, *, target: FieldCard | None = None,
-                              trash_index: int | None = None, draw_index: int | None = None) -> dict:
+                              trash_index: int | None = None, draw_index: int | None = None,
+                              zone: str | None = None) -> dict:
         spell_fn = get_skill(hero_key, "skill_1")
         if not spell_fn:
             return {"error": f"Spell function not found: {hero_key}"}
@@ -355,6 +356,7 @@ class GameEngine:
                 "_hero_key": hero_key,
                 "_trash_index": trash_index,
                 "_draw_index": draw_index,
+                "_zone": zone,
                 "is_spell": True,
             },
         )
@@ -804,7 +806,8 @@ class GameEngine:
     def execute_spell(self, player_id: int, hero_key: str,
                   target_uid: str | None = None,
                   trash_index: int | None = None,
-                  draw_index: int | None = None) -> dict:
+                  draw_index: int | None = None,
+                  zone: str | None = None) -> dict:
         """스킬 카드 효과 실행."""
         if player_id != self.current_player_id:
             return {"error": "Not your turn"}
@@ -857,6 +860,7 @@ class GameEngine:
                 target=target,
                 trash_index=trash_index,
                 draw_index=draw_index,
+                zone=zone,
             )
         else:
             spell_fn = get_skill(hero_key, "skill_1")
@@ -881,6 +885,7 @@ class GameEngine:
                     "_hero_key": hero_key,
                     "_trash_index": trash_index,
                     "_draw_index": draw_index,
+                    "_zone": zone,
                     "is_spell": True,
                 },
             )
