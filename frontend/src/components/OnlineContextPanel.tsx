@@ -37,6 +37,7 @@ export interface OnlineContextPanelProps {
   selectedChargeLevel?: number;
   fieldSkills: FieldSkill[];
   actionMode: string | null;
+  actionModeLabel?: string | null;
   onPrepareSkill: (skillKey: string) => void;
   onCancelSkillSelection: () => void;
 
@@ -75,6 +76,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   selectedChargeLevel,
   fieldSkills,
   actionMode,
+  actionModeLabel,
   onPrepareSkill,
   onCancelSkillSelection,
   columnChoice,
@@ -143,6 +145,29 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
           </div>
           {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
         </div>
+      )}
+
+      {actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && fieldSkills.length === 0 && (
+          <div className="game-context-panel">
+            <div className="game-context-head game-context-head-wrap">
+              <span className="game-toolbar-title">{selectedFieldName || '영웅'}</span>
+              <span className="game-context-subtext">사용할 스킬을 고르세요</span>
+            </div>
+            <div className="game-context-actions game-context-actions-wrap">
+              <button
+                  onClick={() => onPrepareSkill(actionMode)}
+                  style={{
+                    ...BTN_SM,
+                    background: '#ff9b3040',
+                    border: '1px solid #ff9b30',
+                  }}
+              >
+                ✦ {actionModeLabel || actionMode}
+              </button>
+              <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
+            </div>
+            <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>
+          </div>
       )}
 
       {columnChoice && (

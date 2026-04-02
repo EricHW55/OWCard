@@ -782,6 +782,9 @@ export function useOnlineGameController(gameId: string) {
   const enemyColumns = buildColumnChoices(opp?.field);
   const selectedHeroKey = getHeroKey(selectedMyFieldCard);
   const selectedChargeLevel = getChargeLevel(selectedMyFieldCard);
+  const actionModeLabel = (actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && selectedMyFieldCard)
+      ? getSkillNameFromCard(selectedMyFieldCard, actionMode)
+      : null;
   const canActUids = (phase === 'action' && isMyTurn) ? allMyField.filter((c) => !c.placed_this_turn && !c.acted_this_turn).map((c) => c.uid) : [];
 
   const fieldSkills: { key: string; name: string; onCooldown: boolean; cdLeft: number }[] = [];
@@ -801,6 +804,7 @@ export function useOnlineGameController(gameId: string) {
 
   const showContextPanel = (!!my && phase === 'mulligan' && !my.mulligan_done)
       || fieldSkills.length > 0
+      || (!!actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place')
       || (actionMode === 'spell' && !!pendingSpell)
       || (actionMode === 'duplicate_place' && pendingSpell === 'spell_duplicate')
       || (phase === 'placement' && isMyTurn && !!selectedHandCard?.is_spell && !pendingSpell)
@@ -980,7 +984,7 @@ export function useOnlineGameController(gameId: string) {
     session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
-    selectedHeroKey, selectedChargeLevel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
+    selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,

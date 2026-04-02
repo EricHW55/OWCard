@@ -125,6 +125,7 @@ const GamePage: React.FC = () => {
           selectedChargeLevel={vm.selectedChargeLevel}
           fieldSkills={vm.fieldSkills}
           actionMode={vm.actionMode}
+          actionModeLabel={vm.actionModeLabel}
           onPrepareSkill={vm.prepareSkill}
           onCancelSkillSelection={() => { vm.setSelectedFieldUid(null); vm.setActionMode(null); vm.setColumnChoice(null); }}
           columnChoice={vm.columnChoice}
