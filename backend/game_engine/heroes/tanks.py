@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     Barrier, Exposed, ParticleBarrier, AttackBuff, ExtraHP,
-    NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked, Airborne
+    NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked, Airborne,
+    Burn, OrisaFortifyPassive
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -314,3 +315,74 @@ def roadhog_breather(caster: FieldCard, target: FieldCard, game: GameState) -> d
     heal_amt = game.get_skill_damage(caster, "skill_2", apply_attack_buff=False)
     healed = caster.heal(heal_amt)
     return {"success": True, "skill": "숨돌리기", "healed": healed}
+
+
+# ── 마우가 (신규) ───────────────────────
+@register_passive("mauga")
+def mauga_passive(card: FieldCard, game: GameState) -> dict:
+    return {"lifesteal_vs_burn": True}
+
+
+def _mauga_heal_from_burn_damage(caster: FieldCard, target: FieldCard, damage_log: dict) -> int:
+    if not target.has_status("burn"):
+        return 0
+    dealt = int(damage_log.get("final_damage", 0) or 0)
+    if dealt <= 0:
+        return 0
+    return caster.heal(dealt)
+
+
+@register_skill("mauga", "skill_1")
+def mauga_gunny(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
+    target.add_status(Burn(
+        damage_per_turn=int(caster.extra.get("burn_damage", 1)),
+        duration=int(caster.extra.get("burn_duration", 3)),
+        source_uid=caster.uid,
+    ))
+    healed = _mauga_heal_from_burn_damage(caster, target, result)
+    return {"success": True, "skill": "화염기관포 거니", "damage_log": result, "healed": healed}
+
+
+@register_skill("mauga", "skill_2")
+def mauga_chacha(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    base = game.get_skill_damage(caster, "skill_2")
+    dmg = base * 2 if target.has_status("burn") else base
+    result = target.take_damage(dmg)
+    healed = _mauga_heal_from_burn_damage(caster, target, result)
+    return {"success": True, "skill": "촉발기관포 차차", "damage_log": result, "damage": dmg, "healed": healed}
+
+
+# ── 오리사 (신규) ───────────────────────
+@register_passive("orisa")
+def orisa_passive(card: FieldCard, game: GameState) -> dict:
+    card.add_status(OrisaFortifyPassive(source_uid=card.uid))
+    return {"fortify_passive": True}
+
+
+def _orisa_has_javelin_bonus_target(enemy_field, target) -> bool:
+    from game_engine.field import Role
+
+    if target.role == Role.TANK:
+        return len(enemy_field.get_role_cards(Role.DEALER)) > 0
+    if target.role == Role.DEALER:
+        return len(enemy_field.get_role_cards(Role.HEALER)) > 0
+    return False
+
+
+@register_skill("orisa", "skill_1")
+def orisa_javelin(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    enemy = game.get_enemy_field(caster)
+    base = game.get_skill_damage(caster, "skill_1")
+    bonus = 2 if _orisa_has_javelin_bonus_target(enemy, target) else 0
+    result = target.take_damage(base + bonus)
+    return {"success": True, "skill": "투창", "damage_log": result, "bonus_damage": bonus}

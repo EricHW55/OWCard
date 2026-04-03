@@ -638,3 +638,61 @@ class Charging(StatusEffect):
 
     def reset(self):
         self.level = 0
+        
+    
+@dataclass
+class OrisaFortifyPassive(StatusEffect):
+    """오리사 방어강화: 체력 10 이하일 때 디버프 정화 + 상태이상 면역 + 50% 피해 감소."""
+    name: str = "orisa_fortify_passive"
+    duration: int = -1
+    reduction_percent: int = 50
+    hp_threshold: int = 10
+    active: bool = False
+    tags: list[str] = field(default_factory=lambda: ["passive", "buff"])
+
+    def _default_clear_list(self) -> list[str]:
+        return [
+            "knockback", "pulled", "frozen_state", "burn", "discord",
+            "heal_block", "range_modifier", "hooked", "gravity_flux_airborne",
+            "airborne",
+        ]
+
+    def _sync_state(self, card: FieldCard) -> None:
+        should_activate = card.current_hp <= self.hp_threshold
+        if should_activate == self.active:
+            return
+        self.active = should_activate
+        if self.active:
+            clear_list = card.extra.get("fortify_clear_debuffs") or self._default_clear_list()
+            removed = card.clear_statuses_by_name(list(clear_list))
+            card.extra["fortify_removed_statuses"] = removed
+            immunity = {str(n).lower() for n in clear_list}
+            card.extra["status_immunity"] = sorted(immunity)
+        else:
+            card.extra["status_immunity"] = []
+
+    def on_apply(self, card: FieldCard) -> dict:
+        self._sync_state(card)
+        return {"active": self.active}
+
+    def on_turn_start(self, card: FieldCard) -> dict:
+        self._sync_state(card)
+        return {"active": self.active}
+
+    def on_hp_changed(self, card: FieldCard) -> dict:
+        self._sync_state(card)
+        return {"active": self.active}
+
+    def on_take_damage(self, card: FieldCard, damage: int, **kwargs) -> dict:
+        self._sync_state(card)
+        if not self.active:
+            return {"damage": damage}
+        reduced = int(damage * (1 - self.reduction_percent / 100))
+        return {"damage": reduced}
+
+    def to_dict(self):
+        d = super().to_dict()
+        d["active"] = self.active
+        d["reduction_percent"] = self.reduction_percent
+        d["hp_threshold"] = self.hp_threshold
+        return d

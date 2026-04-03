@@ -83,10 +83,35 @@ class FieldCard:
         return self.current_hp > 0
 
     def add_status(self, status: StatusEffect) -> dict:
+        immune = {str(n).lower() for n in self.extra.get("status_immunity", [])}
+        if status.name.lower() in immune:
+            return {"blocked_status": status.name}
+
+        if status.name == "burn":
+            existing = self.get_status("burn")
+            if existing is not None:
+                existing.duration = max(existing.duration, status.duration)
+                return {"refreshed_status": "burn", "duration": existing.duration}
+
         if not status.stackable:
             self.statuses = [s for s in self.statuses if s.name != status.name]
         self.statuses.append(status)
         return status.on_apply(self)
+    
+    def clear_statuses_by_name(self, names: list[str]) -> list[str]:
+        normalized = {str(n).lower() for n in names}
+        removed: list[str] = []
+        kept: list[StatusEffect] = []
+        for status in self.statuses:
+            status_name = status.name.lower()
+            cls_name = status.__class__.__name__.lower()
+            if status_name in normalized or cls_name in normalized:
+                status.on_remove(self)
+                removed.append(status.name)
+            else:
+                kept.append(status)
+        self.statuses = kept
+        return removed
 
     def remove_status(self, name: str) -> Optional[StatusEffect]:
         for i, s in enumerate(self.statuses):
@@ -166,6 +191,11 @@ class FieldCard:
         if self.current_hp <= 0:
             death_result = self._process_death()
             log.update(death_result)
+        else:
+            for s in list(self.statuses):
+                hp_changed = getattr(s, "on_hp_changed", None)
+                if callable(hp_changed):
+                    hp_changed(self)
 
         return log
 
@@ -198,6 +228,10 @@ class FieldCard:
         actual = int((amount + amp) * mult)
         before = self.current_hp
         self.current_hp = min(self.max_hp, self.current_hp + actual)
+        for s in list(self.statuses):
+            hp_changed = getattr(s, "on_hp_changed", None)
+            if callable(hp_changed):
+                hp_changed(self)
         return self.current_hp - before
 
     def process_turn_start(self) -> list[dict]:
