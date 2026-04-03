@@ -370,9 +370,9 @@ def _orisa_has_javelin_bonus_target(enemy_field, target) -> bool:
     from game_engine.field import Role
 
     if target.role == Role.TANK:
-        return len(enemy_field.get_role_cards(Role.DEALER)) > 0
+        return len(enemy_field.get_role_row_in_zone(Role.DEALER, target.zone)) > 0
     if target.role == Role.DEALER:
-        return len(enemy_field.get_role_cards(Role.HEALER)) > 0
+        return len(enemy_field.get_role_row_in_zone(Role.HEALER, target.zone)) > 0
     return False
 
 
