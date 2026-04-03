@@ -356,10 +356,10 @@ def sojourn_charged(caster: FieldCard, target: FieldCard, game: GameState) -> di
         "column_size": len(column),
     }
 
-# ── 엠레 (신규) ──────────────────────────
-@register_skill("emre", "skill_1")
-def emre_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """사이버 파편 수류탄: 6딜 + 랜덤 바운스 3딜."""
+# ── 정크랫 (신규) ─────────────────────────
+@register_skill("junkrat", "skill_1")
+def junkrat_grenade_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """폭탄 발사기: 6딜 + 랜덤 바운스 3딜."""
     if not target: return {"success": False, "message": "대상 필요"}
     dmgs = game.get_skill_damage(caster, "skill_1")  # [6, 3]
     main_d = dmgs[0] if isinstance(dmgs, list) else dmgs
@@ -375,6 +375,22 @@ def emre_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
             logs.append({"target": bounce_target.uid, "bounce_damage": br})
     return {"success": True, "skill": "사이버 파편 수류탄", "damage_logs": logs}
 
+# ── 엠레 (신규) ──────────────────────────
+@register_skill("emre", "skill_1")
+def emre_siphon_blaster(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """사이펀 블라스터: 6딜 + 자기 자신 3회복."""
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    damage = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(damage[0] if isinstance(damage, list) else damage)
+    healed = caster.heal(damage[1] if isinstance(damage, list) and len(damage) > 1 else 0)
+    return {
+        "success": True,
+        "skill": "사이펀 블라스터",
+        "damage_log": result,
+        "healed": healed,
+    }
 
 # ── 겐지 (신규) ───────────────────────────
 @register_skill("genji", "skill_1")
