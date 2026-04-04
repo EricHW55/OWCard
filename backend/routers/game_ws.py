@@ -184,7 +184,15 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     elif action == "basic_attack":
         result = engine.basic_attack(player_id, data.get("attacker_uid", ""), data.get("target_uid", ""))
     elif action == "use_skill":
-        result = engine.use_skill(player_id, data.get("caster_uid", ""), data.get("skill_key", ""), data.get("target_uid"))
+        result = engine.use_skill(
+            player_id,
+            data.get("caster_uid", ""),
+            data.get("skill_key", ""),
+            data.get("target_uid"),
+            target_zone=data.get("target_zone"),
+            target_role=data.get("target_role"),
+            target_slot_index=data.get("target_slot_index"),
+        )
     elif action == "execute_spell":
         result = engine.execute_spell(
             player_id=player_id,

@@ -5,7 +5,7 @@ from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     Barrier, Exposed, ParticleBarrier, AttackBuff, ExtraHP,
     NextTurnStartDamageReduction, Knockback, Taunt, Pulled, Hooked, Airborne,
-    Burn, OrisaFortifyPassive
+    Burn, OrisaFortifyPassive, HealBlock
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -153,9 +153,11 @@ def wrecking_ball_hook(caster: FieldCard, target: FieldCard, game: GameState) ->
 
     my_field = game.get_my_field(caster)
     to_zone = Zone.SIDE if caster.zone == Zone.MAIN else Zone.MAIN
-    moved = my_field.move_card(caster, to_zone, ignore_limits=True)
+    moved = my_field.move_card(caster, to_zone, ignore_limits=False)
     if not moved:
-        return {"success": False, "message": "이동할 수 없는 위치입니다"}
+        if to_zone == Zone.SIDE:
+            return {"success": False, "message": "행동 불가: 사이드 자리가 꽉 찼습니다"}
+        return {"success": False, "message": "행동 불가: 본대 탱커 자리가 꽉 찼습니다"}
     
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     
@@ -386,3 +388,99 @@ def orisa_javelin(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     bonus = 2 if _orisa_has_javelin_bonus_target(enemy, target) else 0
     result = target.take_damage(base + bonus)
     return {"success": True, "skill": "투창", "damage_log": result, "bonus_damage": bonus}
+
+
+# ── 해저드 (신규) ───────────────────────
+@register_passive("hazard")
+def hazard_passive(card: FieldCard, game: GameState) -> dict:
+    """날카로운 저항: 피격 시 공격자에게 2 반격."""
+    card.extra["hazard_retaliate"] = int(card.extra.get("hazard_retaliate", 2) or 2)
+    card.extra["hazard_wall_hp"] = int(card.extra.get("hazard_wall_hp", 6) or 6)
+    return {"passive": "날카로운 저항", "retaliate_damage": card.extra["hazard_retaliate"]}
+
+
+@register_skill("hazard", "skill_1")
+def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """가시벽: 상대 메인 빈 칸에 내구도 6 벽 설치. 한 번에 하나만 유지."""
+    from game_engine.field import FieldCard as FC, Role, Zone
+    import uuid
+
+    zone = str(caster.extra.get("_skill_target_zone") or "main").lower()
+    role_raw = str(caster.extra.get("_skill_target_role") or "").lower()
+    slot_raw = caster.extra.get("_skill_target_slot_index")
+    slot_index = int(slot_raw) if slot_raw is not None else None
+
+    if zone != Zone.MAIN.value:
+        return {"success": False, "message": "가시벽은 본대(main) 빈 칸에만 설치할 수 있습니다"}
+    if role_raw not in {"tank", "dealer", "healer"}:
+        return {"success": False, "message": "설치할 역할군을 선택하세요 (tank/dealer/healer)"}
+    if role_raw == "tank" and slot_index not in (None, 0):
+        return {"success": False, "message": "탱커 칸은 슬롯 0만 선택할 수 있습니다"}
+    if role_raw in {"dealer", "healer"} and slot_index not in (0, 1):
+        return {"success": False, "message": "딜러/힐러는 슬롯 0 또는 1을 선택해야 합니다"}
+
+    role = Role(role_raw)
+    slot = 0 if slot_index is None else int(slot_index)
+
+    enemy_field = game.get_enemy_field(caster)
+    hp = int(caster.extra.get("hazard_wall_hp", 6) or 6)
+
+    for card in enemy_field.main_cards:
+        if not card.alive:
+            continue
+        if card.role != role:
+            continue
+        card_slot = int(card.extra.get("slot_index", 0) or 0)
+        if card_slot == slot:
+            return {"success": False, "message": "선택한 칸이 비어있지 않습니다"}
+
+    existing_walls = [
+        c for c in enemy_field.main_cards
+        if c.alive and c.extra.get("token_kind") == "hazard_wall" and c.extra.get("source_uid") == caster.uid
+    ]
+    for wall in existing_walls:
+        wall.current_hp = 0
+    enemy_field.remove_dead()
+
+    wall = FC(
+        uid=uuid.uuid4().hex[:8],
+        template_id=-1,
+        name="가시벽",
+        role=role,
+        max_hp=hp,
+        base_attack=0,
+        base_defense=0,
+        base_attack_range=1,
+        zone=Zone.MAIN,
+        description="해저드 설치물",
+    )
+    wall.extra["is_token"] = True
+    wall.extra["token_kind"] = "hazard_wall"
+    wall.extra["source_uid"] = caster.uid
+    wall.extra["_hero_key"] = "hazard_wall"
+    wall.extra["slot_index"] = slot
+    wall.add_status(Exposed(duration=-1, source_uid=caster.uid))
+    wall.add_status(HealBlock(duration=-1, source_uid=caster.uid))
+
+    placed = enemy_field.place_card(wall, Zone.MAIN, preferred_slot=slot)
+    if not placed:
+        return {"success": False, "message": "선택한 칸에 가시벽을 설치할 수 없습니다"}
+
+    return {
+        "success": True,
+        "skill": "가시벽",
+        "cooldown": 2,
+        "wall_uid": wall.uid,
+        "wall_hp": hp,
+        "zone": Zone.MAIN.value,
+        "role": role.value,
+        "slot_index": slot,
+    }
+
+
+@register_skill("hazard", "skill_2")
+def hazard_lunge(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
+    return {"success": True, "skill": "덤벼들기", "damage_log": result}

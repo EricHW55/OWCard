@@ -940,7 +940,10 @@ class GameEngine:
     # ── 액션: 스킬 사용 ──────────────────────
 
     def use_skill(self, player_id: int, caster_uid: str,
-                  skill_key: str, target_uid: str | None = None) -> dict:
+                  skill_key: str, target_uid: str | None = None,
+                  target_zone: str | None = None,
+                  target_role: str | None = None,
+                  target_slot_index: int | None = None) -> dict:
         """스킬 사용. 레지스트리에서 함수를 찾아 실행."""
         if player_id != self.current_player_id or self.phase != GamePhase.ACTION:
             return {"error": "Not your turn / wrong phase"}
@@ -1003,7 +1006,25 @@ class GameEngine:
         if not skill_fn:
             return {"error": "Skill function not found"}
 
-        result = skill_fn(caster, target, self.state)
+        temp_target_keys = {
+            "_skill_target_zone": target_zone,
+            "_skill_target_role": target_role,
+            "_skill_target_slot_index": target_slot_index,
+        }
+        original_target_keys = {k: caster.extra.get(k) for k in temp_target_keys}
+        try:
+            for key, value in temp_target_keys.items():
+                if value is None:
+                    caster.extra.pop(key, None)
+                else:
+                    caster.extra[key] = value
+            result = skill_fn(caster, target, self.state)
+        finally:
+            for key, value in original_target_keys.items():
+                if value is None:
+                    caster.extra.pop(key, None)
+                else:
+                    caster.extra[key] = value
         # 프론트 announcer/killfeed에서 안정적으로 시전자 이미지를 매핑할 수 있도록
         # 스킬 사용 결과에 시전자 메타데이터를 항상 포함한다.
         result.setdefault("caster_uid", caster.uid)
@@ -1032,6 +1053,62 @@ class GameEngine:
                     caster.take_raw_damage(reflect_dmg)
                     result["reflected_to_caster"] = reflect_dmg
                 self._apply_particle_barrier_trigger(target_card_logs)
+                
+            retaliation_logs: list[dict] = []
+            retaliation_damage = 0
+            retaliation_targets: list[FieldCard] = []
+            if target and isinstance(result.get("damage_log"), dict):
+                retaliation_targets.append(target)
+            for entry in result.get("affected", []) or []:
+                if not isinstance(entry, dict):
+                    continue
+                target_uid_from_log = (
+                    entry.get("target")
+                    or entry.get("target_uid")
+                    or entry.get("uid")
+                )
+                if not target_uid_from_log:
+                    continue
+                target_card = opp.field.find_card(str(target_uid_from_log)) or ps.field.find_card(str(target_uid_from_log))
+                if target_card:
+                    retaliation_targets.append(target_card)
+
+            seen_targets: set[str] = set()
+            for target_card in retaliation_targets:
+                if not target_card or target_card.uid in seen_targets:
+                    continue
+                seen_targets.add(target_card.uid)
+                if not target_card.extra.get("hazard_retaliate", 0):
+                    continue
+                retaliate = int(target_card.extra.get("hazard_retaliate", 0) or 0)
+                if retaliate <= 0 or caster.uid == target_card.uid or not caster.alive:
+                    continue
+                dmg_log = None
+                if target and target.uid == target_card.uid and isinstance(result.get("damage_log"), dict):
+                    dmg_log = result.get("damage_log")
+                if dmg_log is None:
+                    for entry in result.get("affected", []) or []:
+                        if not isinstance(entry, dict):
+                            continue
+                        uid = entry.get("target") or entry.get("target_uid") or entry.get("uid")
+                        if uid == target_card.uid and isinstance(entry.get("damage_log"), dict):
+                            dmg_log = entry.get("damage_log")
+                            break
+                if not isinstance(dmg_log, dict):
+                    continue
+                if int(dmg_log.get("final_damage", 0) or 0) <= 0:
+                    continue
+                retaliation_log = caster.take_raw_damage(retaliate)
+                retaliation_logs.append({
+                    "from_uid": target_card.uid,
+                    "to_uid": caster.uid,
+                    "damage": retaliate,
+                    "damage_log": retaliation_log,
+                })
+                retaliation_damage += retaliate
+            if retaliation_logs:
+                result["hazard_retaliation"] = retaliation_logs
+                result["hazard_retaliation_total"] = retaliation_damage
             if result.get("swift_strike_reset"):
                 caster.acted_this_turn = False
 
@@ -1086,7 +1163,18 @@ class GameEngine:
         # 반사 처리
         if result.get("reflected"):
             attacker.take_raw_damage(result["reflected"])
-
+            
+        if target.extra.get("hazard_retaliate", 0):
+            retaliate = int(target.extra.get("hazard_retaliate", 0) or 0)
+            if retaliate > 0 and int(result.get("final_damage", 0) or 0) > 0 and attacker.alive and attacker.uid != target.uid:
+                retaliation_log = attacker.take_raw_damage(retaliate)
+                result["hazard_retaliation"] = {
+                    "from_uid": target.uid,
+                    "to_uid": attacker.uid,
+                    "damage": retaliate,
+                    "damage_log": retaliation_log,
+                }
+            
         self._finalize_deaths(opp, ps)
 
         log = {"success": True, "type": "basic_attack",

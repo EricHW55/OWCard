@@ -275,12 +275,19 @@ def soldier76_pulse(caster: FieldCard, target: FieldCard, game: GameState) -> di
 @register_skill("symmetra", "skill_1")
 def symmetra_tp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "이동할 아군 선택"}
-    from game_engine.field import Zone
+    from game_engine.field import Zone, Role
     my = game.get_my_field(caster)
     new_zone = Zone.SIDE if target.zone == Zone.MAIN else Zone.MAIN
-    if my.move_card(target, new_zone, ignore_limits=True):
+    if my.move_card(target, new_zone, ignore_limits=False):
         return {"success": True, "skill": "순간이동기", "moved": target.uid, "to": new_zone.value}
-    return {"success": False, "message": "이동 불가"}
+    role = target.role if isinstance(target.role, Role) else Role(str(target.role))
+    if new_zone == Zone.SIDE:
+        if role == Role.TANK:
+            return {"success": False, "message": "행동 불가: 사이드 자리가 꽉 찼습니다"}
+        return {"success": False, "message": f"행동 불가: 사이드 {role.value} 자리가 꽉 찼습니다"}
+    if role == Role.TANK:
+        return {"success": False, "message": "행동 불가: 본대 탱커 자리가 꽉 찼습니다"}
+    return {"success": False, "message": f"행동 불가: 본대 {role.value} 자리가 꽉 찼습니다"}
 
 @register_skill("symmetra", "skill_2")
 def symmetra_photon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
