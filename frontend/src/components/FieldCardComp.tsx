@@ -225,14 +225,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         color: effect.floatingDamage > 0 ? '#ff5f7a' : '#37d67a',
-                        fontWeight: 950,
-                        fontSize: 21,
-                        fontFamily: '"Montserrat", "Noto Sans KR", "Pretendard", sans-serif',
-                        letterSpacing: '0.3px',
-                        textShadow: '0 0 8px rgba(0,0,0,0.72)',
+                        fontWeight: 1000,
+                        fontSize: 24,
+                        lineHeight: 1,
+                        fontFamily: '"Montserrat", "Inter", "Noto Sans KR", "Pretendard", sans-serif',
+                        letterSpacing: '-0.2px',
+                        textShadow: '0 1px 0 rgba(0,0,0,0.52), 0 0 10px rgba(0,0,0,0.7)',
                         pointerEvents: 'none',
                         zIndex: 8,
-                        animation: 'damageFloatTrajectory 1.35s cubic-bezier(0.22, 0.7, 0.3, 1) forwards',
+                        animation: 'damageFloatTrajectory 0.78s linear forwards',
                     }}
                 >
                     {effect.floatingDamage > 0 ? '-' : '+'}{Math.abs(effect.floatingDamage)}
@@ -500,30 +501,41 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 }
                 @keyframes damageFloatTrajectory {
                     0% {
-                        opacity: .22;
-                        filter: blur(2.2px);
-                        transform: translate(-50%, 0%);
+                        opacity: .24;
+                        filter: blur(1.9px);
+                        transform: translate(-50%, 0%) scale(.94);
                     }
-                    34% {
-                        opacity: .96;
-                        filter: blur(.25px);
-                        transform: translate(-50%, -60%);
-                    }
-                    52% {
+                    6% {
                         opacity: 1;
                         filter: blur(0);
-                        transform: translate(-50%, -74%);
+                        transform: translate(-50%, -26%) scale(1.05);
                     }
-                    70% {
+                    12% {
+                        opacity: .98;
+                        filter: blur(.25px);
+                        transform: translate(-50%, -38%) scale(1);
+                    }
+                    18% {
+                        opacity: 1;
+                        filter: blur(0);
+                        transform: translate(-50%, -46%) scale(1);
+                    }
+                    76% {
                         opacity: .95;
                         filter: blur(0);
-                        transform: translate(-50%, -74%);
+                        transform: translate(-50%, -46%) scale(1);
+                    }
+                    88% {
+                        opacity: .86;
+                        filter: blur(.2px);
+                        transform: translate(-50%, -94%) scale(.98);
                     }
                     100% {
                         opacity: 0;
-                        filter: blur(1.9px);
-                        transform: translate(-50%, -146%);
+                        filter: blur(1.4px);
+                        transform: translate(-50%, -138%) scale(.9);
                     }
+                }
                 @keyframes destroyFadeOut {
                     0% { opacity: 1; transform: scale(1); filter: saturate(1); }
                     100% { opacity: 0; transform: scale(0.94); filter: saturate(.4) blur(1px); }
