@@ -67,11 +67,11 @@ const FieldSection: React.FC<Props> = ({
         const slots = [];
         for (let i = 0; i < max; i++) {
             const slottedCard = cardBySlot.get(i);
+            const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
             if (slottedCard) {
-                const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
-                slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
+                slots.push(renderCard(slottedCard));
             } else if (canPlace && placingRole === role) {
-                slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main')} />);
+                slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
             } else {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} />);
             }
