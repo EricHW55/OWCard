@@ -406,7 +406,7 @@ def hazard_passive(card: FieldCard, game: GameState) -> dict:
 
 @register_skill("hazard", "skill_1")
 def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """가시벽: 상대 메인 빈 칸에 내구도 6 벽 설치. 한 번에 하나만 유지."""
+    """가시벽: 상대 필드(본대/사이드)의 빈 칸에 내구도 6 벽 설치. 한 번에 하나만 유지."""
     from game_engine.field import FieldCard as FC, Role, Zone
     import uuid
 
@@ -415,22 +415,27 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
     slot_raw = caster.extra.get("_skill_target_slot_index")
     slot_index = int(slot_raw) if slot_raw is not None else None
 
-    if zone != Zone.MAIN.value:
-        return {"success": False, "message": "가시벽은 본대(main) 빈 칸에만 설치할 수 있습니다"}
+    if zone not in {Zone.MAIN.value, Zone.SIDE.value}:
+        return {"success": False, "message": "가시벽 설치 위치는 main 또는 side 여야 합니다"}
     if role_raw not in {"tank", "dealer", "healer"}:
         return {"success": False, "message": "설치할 역할군을 선택하세요 (tank/dealer/healer)"}
-    if role_raw == "tank" and slot_index not in (None, 0):
-        return {"success": False, "message": "탱커 칸은 슬롯 0만 선택할 수 있습니다"}
-    if role_raw in {"dealer", "healer"} and slot_index not in (0, 1):
-        return {"success": False, "message": "딜러/힐러는 슬롯 0 또는 1을 선택해야 합니다"}
+    if zone == Zone.MAIN.value:
+        if role_raw == "tank" and slot_index not in (None, 0):
+            return {"success": False, "message": "탱커 칸은 슬롯 0만 선택할 수 있습니다"}
+        if role_raw in {"dealer", "healer"} and slot_index not in (0, 1):
+            return {"success": False, "message": "딜러/힐러는 슬롯 0 또는 1을 선택해야 합니다"}
+    elif slot_index not in (None, 0):
+        return {"success": False, "message": "사이드 칸은 슬롯 0만 선택할 수 있습니다"}
 
     role = Role(role_raw)
     slot = 0 if slot_index is None else int(slot_index)
+    target_zone = Zone(zone)
 
     enemy_field = game.get_enemy_field(caster)
     hp = int(caster.extra.get("hazard_wall_hp", 6) or 6)
 
-    for card in enemy_field.main_cards:
+    cards_in_zone = enemy_field.main_cards if target_zone == Zone.MAIN else enemy_field.side_cards
+    for card in cards_in_zone:
         if not card.alive:
             continue
         if card.role != role:
@@ -464,12 +469,14 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
     wall.extra["source_uid"] = caster.uid
     wall.extra["_hero_key"] = "hazard_wall"
     wall.extra["slot_index"] = slot
+    wall.zone = target_zone
     wall.add_status(Exposed(duration=-1, source_uid=caster.uid))
     wall.add_status(HealBlock(duration=-1, source_uid=caster.uid))
 
-    placed = enemy_field.place_card(wall, Zone.MAIN, preferred_slot=slot)
-    if not placed:
-        return {"success": False, "message": "선택한 칸에 가시벽을 설치할 수 없습니다"}
+    if target_zone == Zone.MAIN:
+        enemy_field.main_cards.append(wall)
+    else:
+        enemy_field.side_cards.append(wall)
 
     return {
         "success": True,
@@ -477,7 +484,7 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
         "cooldown": 2,
         "wall_uid": wall.uid,
         "wall_hp": hp,
-        "zone": Zone.MAIN.value,
+        "zone": target_zone.value,
         "role": role.value,
         "slot_index": slot,
     }

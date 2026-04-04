@@ -1006,8 +1006,7 @@ export function useOnlineGameController(gameId: string) {
   }) => {
     if (!isHazardWallTargeting) return false;
     if (!params.isOpponent) return false;
-    if (params.zone !== 'main') return false;
-    const cards = opp?.field?.main || [];
+    const cards = params.zone === 'main' ? (opp?.field?.main || []) : (opp?.field?.side || []);
     return !cards.some((c: any) => c.role === params.role && Number(c?.extra?.slot_index ?? 0) === params.slotIndex);
   }, [isHazardWallTargeting, opp]);
 
@@ -1018,8 +1017,8 @@ export function useOnlineGameController(gameId: string) {
     isOpponent: boolean;
   }) => {
     if (!selectedMyFieldCard || !isHazardWallTargeting) return;
-    if (!params.isOpponent || params.zone !== 'main') {
-      showSystemNotice('가시벽', '상대 본대의 빈 공간을 선택하세요', 1300);
+    if (!params.isOpponent) {
+      showSystemNotice('가시벽', '상대 필드의 빈 공간을 선택하세요', 1300);
       return;
     }
     const roleLabel = params.role === 'tank' ? '탱커' : params.role === 'dealer' ? '딜러' : '힐러';
@@ -1035,7 +1034,7 @@ export function useOnlineGameController(gameId: string) {
         action: 'use_skill',
         caster_uid: selectedMyFieldCard.uid,
         skill_key: 'skill_1',
-        target_zone: 'main',
+        target_zone: params.zone,
         target_role: params.role,
         target_slot_index: params.slotIndex,
       }),
