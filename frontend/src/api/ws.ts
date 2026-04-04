@@ -78,7 +78,7 @@ const REACT_APP_WS_BASE =
     (process.env.REACT_APP_WS_BASE || '').trim().replace(/\/+$/, '');
 
 export function getApiBase(): string {
-  console.log('[DEBUG] REACT_APP_API_BASE =', REACT_APP_API_BASE);
+  // console.log('[DEBUG] REACT_APP_API_BASE =', REACT_APP_API_BASE);
 
   if (REACT_APP_API_BASE) {
     return REACT_APP_API_BASE;

@@ -523,22 +523,28 @@ const LobbyPage: React.FC = () => {
                         />
                     )}
                 </div>
-                <div className="lobby-auth-card">
-                    <h2>배틀태그 입력</h2>
-                    <p>배틀태그 입력시 바로 로비에 들어갑니다.</p>
-                    <input
-                        className="lobby-input"
-                        placeholder="닉네임 입력"
-                        value={nicknameInput}
-                        maxLength={20}
-                        onChange={(e) => setNicknameInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !authLoading) createGuestSession();
-                        }}
-                    />
-                    <button className="lobby-solid-btn" onClick={createGuestSession} disabled={authLoading}>
-                        {authLoading ? '입장 중...' : '로비 입장'}
-                    </button>
+                <div className="lobby-dim" />
+                <div className="lobby-auth-content">
+                    <header className="lobby-auth-brand" aria-label="게임 타이틀">
+                        <span>Overwatch</span>
+                        <span>Card Game</span>
+                    </header>
+                    <div className="lobby-auth-card">
+                        <h2>배틀태그를 입력해주세요</h2>
+                        <input
+                            className="lobby-input"
+                            placeholder="닉네임 입력"
+                            value={nicknameInput}
+                            maxLength={20}
+                            onChange={(e) => setNicknameInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !authLoading) createGuestSession();
+                            }}
+                        />
+                        <button className="lobby-solid-btn" onClick={createGuestSession} disabled={authLoading}>
+                            {authLoading ? '입장 중...' : '확인'}
+                        </button>
+                    </div>
                 </div>
             </div>
         );

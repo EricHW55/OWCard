@@ -1,6 +1,8 @@
 .lobby-page,
 .lobby-auth-page {
-    --lobby-menu-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --lobby-menu-font: 'Segoe UI', 'Inter', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
+    --lobby-brand-font: 'Arial Black', 'Segoe UI', 'Inter', 'Noto Sans KR', sans-serif;
+    font-family: var(--lobby-menu-font);
     position: relative;
     min-height: 100vh;
     overflow: hidden;
@@ -306,26 +308,47 @@
 .lobby-auth-page {
     display: grid;
     place-items: center;
-    padding: 24px;
+    padding: clamp(14px, 3.4vh, 28px) clamp(12px, 4vw, 32px);
     box-sizing: border-box;
 }
 
+.lobby-auth-content {
+    width: min(500px, 100%);
+    display: grid;
+    gap: clamp(14px, 2.8vh, 24px);
+    justify-items: center;
+}
+
+.lobby-auth-brand {
+    width: 100%;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    color: #f4f8ff;
+    font-family: var(--lobby-brand-font);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+    font-size: clamp(34px, 8.4vw, 60px);
+}
+
 .lobby-auth-card {
-    width: min(420px, 96vw);
-    border-radius: 14px;
+    width: min(500px, 100%);
+    border-radius: clamp(14px, 2.2vw, 18px);
     border: 1px solid rgba(66, 103, 206, 0.55);
     background: rgba(8, 17, 43, 0.86);
-    padding: 20px;
+    padding: clamp(16px, 3.4vw, 28px);
+    display: grid;
+    gap: clamp(10px, 1.9vh, 14px);
 }
 
 .lobby-auth-card h2 {
-    margin-top: 0;
-    margin-bottom: 10px;
-}
-
-.lobby-auth-card p {
-    margin: 0 0 14px;
-    color: #9eb0da;
+    margin: 0;
+    color: #d5e3ff;
+    font-size: clamp(18px, 4.8vw, 26px);
+    font-weight: 800;
 }
 
 .lobby-input {
@@ -381,6 +404,17 @@
     cursor: not-allowed;
     transform: none;
     filter: none;
+}
+
+.lobby-auth-card .lobby-input {
+    font-size: clamp(15px, 3.9vw, 18px);
+    padding: clamp(11px, 1.7vh, 14px) clamp(12px, 3vw, 15px);
+}
+
+.lobby-auth-card .lobby-solid-btn {
+    width: 100%;
+    min-height: clamp(44px, 7.4vh, 56px);
+    font-size: clamp(16px, 4.1vw, 20px);
 }
 
 @media (max-width: 1000px) {
@@ -563,5 +597,16 @@
     .queue-status-cancel {
         padding: 4px 10px;
         font-size: 12px;
+    }
+}
+@media (max-height: 640px) {
+    .lobby-auth-page {
+        align-items: start;
+        overflow-y: auto;
+    }
+
+    .lobby-auth-content {
+        margin-top: 8px;
+        padding-bottom: 14px;
     }
 }
