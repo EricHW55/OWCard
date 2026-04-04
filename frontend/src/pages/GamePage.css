@@ -1000,3 +1000,37 @@
         letter-spacing: 0.12em;
     }
 }
+
+
+/* 3D-style field presentation layer (visual only, no mechanic changes). */
+.game-battle--three-d {
+    perspective: 1200px;
+    background:
+            radial-gradient(130% 75% at 50% 48%, rgba(116, 200, 255, 0.14), transparent 60%),
+            linear-gradient(180deg, #161f40 0%, #101731 48%, #0c1228 100%);
+    border: 1px solid rgba(137, 178, 255, 0.18);
+    border-radius: 16px;
+}
+
+.game-battle--three-d .game-board-scale {
+    transform: rotateX(13deg) scale(0.97);
+    transform-origin: 50% 52%;
+}
+
+.field-card-3d,
+.hand-card-3d {
+    transform-style: preserve-3d;
+    will-change: transform, filter;
+}
+
+.field-card-3d:hover {
+    transform: translateY(-5px) rotateX(6deg) rotateY(-6deg);
+    filter: drop-shadow(0 14px 16px rgba(0, 0, 0, 0.42));
+    z-index: 5;
+}
+
+.hand-card-3d:hover {
+    transform: translateY(-9px) rotateX(8deg) rotateY(-8deg);
+    filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.45));
+    z-index: 4;
+}

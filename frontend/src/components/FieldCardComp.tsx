@@ -188,6 +188,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     return (
         <div
             onClick={isDestroying ? undefined : onClick}
+            className="field-card-3d"
             style={{
                 width: 'var(--field-card-width)',
                 height: 'var(--field-card-height)',

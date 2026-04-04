@@ -20,6 +20,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
     return (
         <div
             onClick={onClick}
+            className="hand-card-3d"
             style={{
                 width: 70,
                 height: 98,

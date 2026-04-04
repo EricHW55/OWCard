@@ -67,7 +67,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         <React.Fragment key={index}>{banner}</React.Fragment>
       ))}
 
-      <div className="game-battle">
+      <div className="game-battle game-battle--three-d">
         {killFeed.length > 0 && (
             <div className="game-killfeed" aria-live="polite">
               {killFeed.map((entry) => {
