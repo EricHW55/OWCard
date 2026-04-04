@@ -44,6 +44,10 @@ function getChargeLevel(card: any): number {
 }
 
 function getSkillNameFromCard(card: any, skillKey?: string | null) {
+  const heroKey = getHeroKey(card);
+  if (heroKey === 'kiriko' && skillKey === 'skill_1') {
+    return card?.zone === 'side' ? '쿠나이' : '힐부적';
+  }
   const meta = card?.skill_meta || {};
   if (skillKey && meta?.[skillKey]?.name) return meta[skillKey].name as string;
   if (meta?.skill_1?.name) return meta.skill_1.name as string;
@@ -248,11 +252,11 @@ function collectDamageMap(node: any, out: Record<string, number> = {}): Record<s
     if (prev === undefined || Math.abs(rounded) >= Math.abs(prev)) out[uid] = rounded;
   };
 
-  const uid = node?.target || node?.uid;
-  const damage = Number(node?.final_damage ?? node?.damage ?? node?.amount);
+  const uid = node?.target || node?.target_uid || node?.uid || node?.source_uid;
+  const damage = Number(node?.final_damage ?? node?.raw_damage ?? node?.damage ?? node?.amount);
   if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage);
 
-  const healed = Number(node?.healed ?? node?.heal ?? node?.final_heal);
+  const healed = Number(node?.healed ?? node?.heal ?? node?.final_heal ?? node?.amount_healed);
   if (uid && Number.isFinite(healed) && healed > 0) pushDelta(uid, -healed);
 
   Object.values(node).forEach((value) => {
@@ -662,6 +666,13 @@ export function useOnlineGameController(gameId: string) {
                 floatingDamage: damage,
                 hpTransitionMs: HP_ANIMATION_MS,
                 destroying: removedUidSet.has(uid),
+              };
+            });
+            removedUidSet.forEach((uid) => {
+              if (effectPatch[uid]) return;
+              effectPatch[uid] = {
+                hpTransitionMs: HP_ANIMATION_MS,
+                destroying: true,
               };
             });
             if (Object.keys(effectPatch).length > 0) {
