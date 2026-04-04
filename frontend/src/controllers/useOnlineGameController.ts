@@ -252,7 +252,7 @@ function collectDamageMap(node: any, out: Record<string, number> = {}): Record<s
     if (prev === undefined || Math.abs(rounded) >= Math.abs(prev)) out[uid] = rounded;
   };
 
-  const uid = node?.target || node?.target_uid || node?.uid || node?.source_uid;
+  const uid = node?.target || node?.target_uid || node?.to_uid || node?.uid || node?.source_uid;
   const damage = Number(node?.final_damage ?? node?.raw_damage ?? node?.damage ?? node?.amount);
   if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage);
 
