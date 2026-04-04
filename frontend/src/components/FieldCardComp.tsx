@@ -177,7 +177,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
     else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
-    else if (isExposed) moveBadge = { text: '노출', cls: 'exposed' };
+    else if (isExposed) moveBadge = { text: '무시', cls: 'exposed' };
 
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
         .filter(Boolean)
