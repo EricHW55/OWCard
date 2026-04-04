@@ -17,6 +17,8 @@ export interface FieldPaneConfig {
   placingCard: HandCard | null;
   onPlaceClick: (zone: PlaceZone, slotIndex?: PlaceSlotIndex) => void;
   allowOpponentPlacement?: boolean;
+  canSelectEmptySlot?: (params: { zone: PlaceZone; role: 'tank' | 'dealer' | 'healer'; slotIndex: PlaceSlotIndex; isOpponent: boolean }) => boolean;
+  onEmptySlotSelect?: (params: { zone: PlaceZone; role: 'tank' | 'dealer' | 'healer'; slotIndex: PlaceSlotIndex; isOpponent: boolean }) => void;
 }
 
 export interface GameScreenProps {

@@ -153,7 +153,12 @@ def wrecking_ball_hook(caster: FieldCard, target: FieldCard, game: GameState) ->
 
     my_field = game.get_my_field(caster)
     to_zone = Zone.SIDE if caster.zone == Zone.MAIN else Zone.MAIN
-    moved = my_field.move_card(caster, to_zone, ignore_limits=False)
+    moved = my_field.move_card_with_options(
+        caster,
+        to_zone,
+        ignore_limits=False,
+        ignore_side_limit=(to_zone == Zone.SIDE),
+    )
     if not moved:
         if to_zone == Zone.SIDE:
             return {"success": False, "message": "행동 불가: 사이드 자리가 꽉 찼습니다"}

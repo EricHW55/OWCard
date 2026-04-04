@@ -278,7 +278,12 @@ def symmetra_tp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     from game_engine.field import Zone, Role
     my = game.get_my_field(caster)
     new_zone = Zone.SIDE if target.zone == Zone.MAIN else Zone.MAIN
-    if my.move_card(target, new_zone, ignore_limits=False):
+    if my.move_card_with_options(
+        target,
+        new_zone,
+        ignore_limits=False,
+        ignore_side_limit=(new_zone == Zone.SIDE),
+    ):
         return {"success": True, "skill": "순간이동기", "moved": target.uid, "to": new_zone.value}
     role = target.role if isinstance(target.role, Role) else Role(str(target.role))
     if new_zone == Zone.SIDE:

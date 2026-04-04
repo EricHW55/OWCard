@@ -993,6 +993,58 @@ export function useOnlineGameController(gameId: string) {
     setSelectedHandIdx(index); setSelectedFieldUid(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null);
   }, [my, phase, pendingPassive, selectedHandIdx, addLog]);
 
+  const isHazardWallTargeting =
+      actionMode === 'skill_1'
+      && !!selectedMyFieldCard
+      && getHeroKey(selectedMyFieldCard) === 'hazard';
+
+  const canSelectEmptySlot = useCallback((params: {
+    zone: 'main' | 'side';
+    role: 'tank' | 'dealer' | 'healer';
+    slotIndex: 0 | 1;
+    isOpponent: boolean;
+  }) => {
+    if (!isHazardWallTargeting) return false;
+    if (!params.isOpponent) return false;
+    if (params.zone !== 'main') return false;
+    const cards = opp?.field?.main || [];
+    return !cards.some((c: any) => c.role === params.role && Number(c?.extra?.slot_index ?? 0) === params.slotIndex);
+  }, [isHazardWallTargeting, opp]);
+
+  const handleEmptySlotSelect = useCallback((params: {
+    zone: 'main' | 'side';
+    role: 'tank' | 'dealer' | 'healer';
+    slotIndex: 0 | 1;
+    isOpponent: boolean;
+  }) => {
+    if (!selectedMyFieldCard || !isHazardWallTargeting) return;
+    if (!params.isOpponent || params.zone !== 'main') {
+      showSystemNotice('가시벽', '상대 본대의 빈 공간을 선택하세요', 1300);
+      return;
+    }
+    const roleLabel = params.role === 'tank' ? '탱커' : params.role === 'dealer' ? '딜러' : '힐러';
+    const skillName = getSkillNameFromCard(selectedMyFieldCard, 'skill_1');
+    runAfterSkillAnnouncer({
+      skillName,
+      description: getSkillDescriptionFromCard(selectedMyFieldCard, 'skill_1'),
+      heroKey: getHeroKey(selectedMyFieldCard),
+      imageName: selectedMyFieldCard.name,
+      subtitle: `${roleLabel} ${params.slotIndex + 1}번 칸`,
+      isSpell: false,
+      sendAction: () => send({
+        action: 'use_skill',
+        caster_uid: selectedMyFieldCard.uid,
+        skill_key: 'skill_1',
+        target_zone: 'main',
+        target_role: params.role,
+        target_slot_index: params.slotIndex,
+      }),
+    });
+    addLog(`${selectedMyFieldCard.name} — 가시벽 (${roleLabel} ${params.slotIndex + 1}번 칸)`);
+    setSelectedFieldUid(null);
+    setActionMode(null);
+  }, [selectedMyFieldCard, isHazardWallTargeting, showSystemNotice, runAfterSkillAnnouncer, send, addLog]);
+
   const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
     if (columnChoice) { addLog('위 패널에서 열을 선택하세요'); return; }
     if (actionMode === 'spell' && pendingSpell) {
@@ -1026,6 +1078,10 @@ export function useOnlineGameController(gameId: string) {
     if (actionMode && actionMode !== 'spell' && selectedFieldUid) {
       const caster = allMyField.find((c) => c.uid === selectedFieldUid);
       if (caster) {
+        if (actionMode === 'skill_1' && getHeroKey(caster) === 'hazard') {
+          showSystemNotice('가시벽', '상대 본대의 빈 공간을 클릭하세요', 1500);
+          return;
+        }
         const skillName = getSkillNameFromCard(caster, actionMode);
         runAfterSkillAnnouncer({
           skillName,
@@ -1121,6 +1177,13 @@ export function useOnlineGameController(gameId: string) {
       showSystemNotice(rawSkillName, '열을 선택하세요', 1000);
       return;
     }
+    if (getHeroKey(caster) === 'hazard' && skillKey === 'skill_1') {
+      setColumnChoice(null);
+      setActionMode(skillKey);
+      addLog(`${caster.name} — ${rawSkillName} 준비`);
+      showSystemNotice(rawSkillName, '상대 본대의 빈 공간을 클릭하세요', 1400);
+      return;
+    }
     setColumnChoice(null); setActionMode(skillKey); addLog(`${caster.name} — ${rawSkillName} 준비`); showSystemNotice(rawSkillName, `${caster.name} 준비`, 900);
   }, [selectedMyFieldCard, send, addLog, showSystemNotice, runAfterSkillAnnouncer]);
 
@@ -1194,6 +1257,7 @@ export function useOnlineGameController(gameId: string) {
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,
     duplicateTargetUid, duplicateTargetRole, duplicateTargetName,
+    canSelectEmptySlot, handleEmptySlotSelect,
   };
 }
 

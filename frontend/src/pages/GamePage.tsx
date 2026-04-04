@@ -95,6 +95,8 @@ const GamePage: React.FC = () => {
         cardEffects: vm.cardEffects,
         placingCard: null,
         onPlaceClick: () => {},
+        canSelectEmptySlot: vm.canSelectEmptySlot,
+        onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
       bottomField={{
         field: vm.my.field,
@@ -113,6 +115,8 @@ const GamePage: React.FC = () => {
                     : null))
             : null,
         onPlaceClick: vm.handlePlace,
+        canSelectEmptySlot: vm.canSelectEmptySlot,
+        onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
       contextPanel={
         <OnlineContextPanel

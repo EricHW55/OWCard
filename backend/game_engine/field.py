@@ -407,6 +407,16 @@ class Field:
         card.zone = zone
 
     def move_card(self, card: FieldCard, to_zone: Zone, *, ignore_limits: bool = False) -> bool:
+        return self.move_card_with_options(card, to_zone, ignore_limits=ignore_limits, ignore_side_limit=False)
+
+    def move_card_with_options(
+        self,
+        card: FieldCard,
+        to_zone: Zone,
+        *,
+        ignore_limits: bool = False,
+        ignore_side_limit: bool = False,
+    ) -> bool:
         if card.zone == to_zone:
             return False
 
@@ -419,9 +429,16 @@ class Field:
         else:
             self.side_cards = [c for c in self.side_cards if c.uid != card.uid]
 
-        can_move = True if ignore_limits else (
-            self.can_place_main(card.role) if to_zone == Zone.MAIN else self.can_place_side(card.role)
-        )
+        if ignore_limits:
+            can_move = True
+        elif to_zone == Zone.MAIN:
+            can_move = self.can_place_main(card.role)
+        elif ignore_side_limit:
+            # 스킬 이동 시에는 사이드 인원 제한(2장/탱커 단독 규칙)을 무시하되,
+            # 이동하려는 역할 슬롯이 이미 차있으면 이동할 수 없다.
+            can_move = not any(c.alive and c.role == card.role for c in self.side_cards)
+        else:
+            can_move = self.can_place_side(card.role)
         if not can_move:
             self.main_cards = original_main
             self.side_cards = original_side

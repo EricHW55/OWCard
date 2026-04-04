@@ -15,6 +15,8 @@ interface Props {
     placingCard: HandCardType | null;
     onPlaceClick: (zone: 'main' | 'side', slotIndex?: 0 | 1) => void;
     allowOpponentPlacement?: boolean;
+    canSelectEmptySlot?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => boolean;
+    onEmptySlotSelect?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => void;
 }
 
 const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ highlight, onClick }) => (
@@ -35,6 +37,7 @@ const FieldSection: React.FC<Props> = ({
                                            field, isOpponent, isMyTurn, phase,
                                            selectedUid, canActUids, onCardClick, cardEffects,
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
+                                           canSelectEmptySlot, onEmptySlotSelect,
                                        }) => {
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
     const dealers = (field?.main || []).filter(c => c.role === 'dealer');
@@ -70,10 +73,21 @@ const FieldSection: React.FC<Props> = ({
         for (let i = 0; i < max; i++) {
             const slottedCard = cardBySlot.get(i);
             const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
+            const roleTyped = role as 'tank' | 'dealer' | 'healer';
+            const selectableBySkill = mainSlotIndex !== undefined
+                && !!canSelectEmptySlot?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent });
             if (slottedCard) {
                 slots.push(renderCard(slottedCard));
             } else if (canPlace && placingRole === role) {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
+            } else if (mainSlotIndex !== undefined && selectableBySkill) {
+                slots.push(
+                    <EmptySlot
+                        key={`target-${role}-${i}`}
+                        highlight
+                        onClick={() => onEmptySlotSelect?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent })}
+                    />
+                );
             } else {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} />);
             }
@@ -120,6 +134,7 @@ const FieldSection: React.FC<Props> = ({
                 {mainRows.map(({ role, label, cards, max }, idx) => {
                     const sideDef = sideRowDefs[idx];
                     const canPlaceSide = canPlace && placingRole === sideDef.role;
+                    const canSelectSide = !!canSelectEmptySlot?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent });
                     return (
                         <div key={role} className="field-lane-row">
                             <span className="field-role-label" style={{ color: ROLE_COLOR[role] }}>{label}</span>
@@ -132,8 +147,14 @@ const FieldSection: React.FC<Props> = ({
                                     {sideDef.card ? renderCard(sideDef.card) : (
                                         <EmptySlot
                                             key={`side-${role}`}
-                                            highlight={canPlaceSide}
-                                            onClick={canPlaceSide ? () => onPlaceClick('side') : undefined}
+                                            highlight={canPlaceSide || canSelectSide}
+                                            onClick={
+                                                canPlaceSide
+                                                    ? () => onPlaceClick('side')
+                                                    : canSelectSide
+                                                        ? () => onEmptySlotSelect?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent })
+                                                        : undefined
+                                            }
                                         />
                                     )}
                                 </div>
