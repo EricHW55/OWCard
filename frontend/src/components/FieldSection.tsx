@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
+import type { CardVisualEffect, FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
 import { ROLE_COLOR } from '../types/constants';
 import FieldCardComp from './FieldCardComp';
 
@@ -11,6 +11,7 @@ interface Props {
     selectedUid: string | null;
     canActUids: string[];
     onCardClick: (card: FieldCard) => void;
+    cardEffects?: Record<string, CardVisualEffect>;
     placingCard: HandCardType | null;
     onPlaceClick: (zone: 'main' | 'side', slotIndex?: 0 | 1) => void;
     allowOpponentPlacement?: boolean;
@@ -32,7 +33,7 @@ const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ hi
 
 const FieldSection: React.FC<Props> = ({
                                            field, isOpponent, isMyTurn, phase,
-                                           selectedUid, canActUids, onCardClick,
+                                           selectedUid, canActUids, onCardClick, cardEffects,
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
                                        }) => {
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
@@ -49,6 +50,7 @@ const FieldSection: React.FC<Props> = ({
             key={card.uid} card={card}
             selected={selectedUid === card.uid}
             glowing={canActUids.includes(card.uid)}
+            effect={cardEffects?.[card.uid]}
             onClick={() => onCardClick(card)}
         />
     );

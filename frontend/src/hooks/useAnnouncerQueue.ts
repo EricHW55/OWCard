@@ -14,7 +14,10 @@ export function useAnnouncerQueue() {
   }, []);
 
   const closeAnnouncer = useCallback(() => {
-    setAnnouncerData(() => queueRef.current.shift() || null);
+    setAnnouncerData((prev) => {
+      if (prev?.onDone) prev.onDone();
+      return queueRef.current.shift() || null;
+    });
   }, []);
 
   return {

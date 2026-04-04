@@ -12,6 +12,7 @@ export interface AnnouncerData {
     isSpell?: boolean;
     duration?: number;
     nonBlocking?: boolean;
+    onDone?: () => void;
 }
 
 interface Props {

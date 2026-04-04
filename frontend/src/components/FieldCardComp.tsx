@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { FieldCard } from '../types/game';
+import type { CardVisualEffect, FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 import { getHeroImageSrc } from '../utils/heroImage';
 
@@ -7,6 +7,7 @@ interface Props {
     card: FieldCard;
     selected?: boolean;
     glowing?: boolean;
+    effect?: CardVisualEffect;
     onClick?: () => void;
 }
 
@@ -68,7 +69,7 @@ function getMainDamage(card: FieldCard): string {
     return '0';
 }
 
-const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) => {
+const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
     const [imgError, setImgError] = useState(false);
     const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
     const prevParticleBarrierRef = useRef<{ breakSeq: number }>({ breakSeq: 0 });
@@ -182,10 +183,11 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
         .filter(Boolean)
         .join(', ');
+    const isDestroying = !!effect?.destroying;
 
     return (
         <div
-            onClick={onClick}
+            onClick={isDestroying ? undefined : onClick}
             style={{
                 width: 'var(--field-card-width)',
                 height: 'var(--field-card-height)',
@@ -211,8 +213,29 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                 transform: isAirborne ? 'translateY(-4px)' : undefined,
                 filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
                 transition: 'all 0.25s',
+                animation: isDestroying ? 'destroyFadeOut 0.5s ease forwards' : undefined,
+                pointerEvents: isDestroying ? 'none' : undefined,
             }}
         >
+            {!!effect?.floatingDamage && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: '48%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: '#ff5f7a',
+                        fontWeight: 900,
+                        fontSize: 20,
+                        textShadow: '0 0 6px rgba(0,0,0,0.7)',
+                        pointerEvents: 'none',
+                        zIndex: 8,
+                        animation: 'damagePop 0.7s ease forwards',
+                    }}
+                >
+                    -{effect.floatingDamage}
+                </div>
+            )}
             {hasBarrier && (
                 <div
                     style={{
@@ -398,7 +421,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                         width: `${hpPct}%`,
                         background: hpColor,
                         borderRadius: 2,
-                        transition: 'width 0.3s',
+                        transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
                     }}
                 />
             </div>
@@ -472,6 +495,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, onClick }) =>
                     0% { opacity: .2; transform: scale(.78); }
                     34% { opacity: .95; transform: scale(1.03); }
                     100% { opacity: 0; transform: scale(1.28); }
+                }
+                @keyframes damagePop {
+                    0% { opacity: 0; transform: translate(-50%, -12%); }
+                    18% { opacity: 1; transform: translate(-50%, -50%); }
+                    100% { opacity: 0; transform: translate(-50%, -120%); }
+                }
+                @keyframes destroyFadeOut {
+                    0% { opacity: 1; transform: scale(1); filter: saturate(1); }
+                    100% { opacity: 0; transform: scale(0.94); filter: saturate(.4) blur(1px); }
                 }
             `}</style>
         </div>

@@ -92,6 +92,7 @@ const GamePage: React.FC = () => {
         selectedUid: null,
         canActUids: [],
         onCardClick: (card) => vm.handleFieldClick(card, true),
+        cardEffects: vm.cardEffects,
         placingCard: null,
         onPlaceClick: () => {},
       }}
@@ -103,6 +104,7 @@ const GamePage: React.FC = () => {
         selectedUid: vm.selectedFieldUid,
         canActUids: vm.canActUids,
         onCardClick: (card) => vm.handleFieldClick(card, false),
+        cardEffects: vm.cardEffects,
         placingCard: vm.phase === 'placement' && vm.isMyTurn
             ? (vm.selectedHandCard && !vm.selectedHandCard.is_spell
                 ? vm.selectedHandCard

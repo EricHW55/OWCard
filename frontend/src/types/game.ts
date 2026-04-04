@@ -125,3 +125,9 @@ export interface KillFeedItem {
   createdAt: number;
   duration?: number;
 }
+
+export interface CardVisualEffect {
+  floatingDamage?: number | null;
+  hpTransitionMs?: number;
+  destroying?: boolean;
+}

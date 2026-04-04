@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FieldCard, GameState, HandCard, KillFeedItem } from '../types/game';
+import type { CardVisualEffect, FieldCard, GameState, HandCard, KillFeedItem } from '../types/game';
 import { GameSocket, buildWsUrl } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../utils/ui';
@@ -203,6 +203,21 @@ function collectAllFieldCards(state: any) {
   ];
 }
 
+const HP_ANIMATION_MS = 500;
+const DESTROY_ANIMATION_MS = 500;
+const DAMAGE_FLOAT_MS = 800;
+
+function collectDamageMap(node: any, out: Record<string, number> = {}): Record<string, number> {
+  if (!node || typeof node !== 'object') return out;
+  const uid = node?.target || node?.uid;
+  const damage = Number(node?.final_damage ?? node?.damage ?? node?.amount);
+  if (uid && Number.isFinite(damage) && damage > 0) out[String(uid)] = Math.max(out[String(uid)] || 0, Math.round(damage));
+  Object.values(node).forEach((value) => {
+    if (value && typeof value === 'object') collectDamageMap(value, out);
+  });
+  return out;
+}
+
 export function useOnlineGameController(gameId: string) {
   const session = useMemo(() => getSession(), []);
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
@@ -225,6 +240,8 @@ export function useOnlineGameController(gameId: string) {
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
   const [killFeed, setKillFeed] = useState<KillFeedItem[]>([]);
+  const [renderGs, setRenderGs] = useState<GameState | null>(null);
+  const [cardEffects, setCardEffects] = useState<Record<string, CardVisualEffect>>({});
 
 
   const wsRef = useRef<GameSocket | null>(null);
@@ -235,6 +252,9 @@ export function useOnlineGameController(gameId: string) {
   const phaseStampRef = useRef('');
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
+  const skipMyActionCueRef = useRef(false);
+  const pendingDamageMapRef = useRef<Record<string, number>>({});
+  const uiTimersRef = useRef<number[]>([]);
   const pendingKillContextRef = useRef<{
     killerName: string;
     killerHeroKey?: string;
@@ -267,6 +287,7 @@ export function useOnlineGameController(gameId: string) {
     isSpell?: boolean;
     duration?: number;
     nonBlocking?: boolean;
+    onDone?: () => void;
   }) => {
     if (!props.skillName) return;
     const rawHeroKey = String(props.heroKey || '').toLowerCase();
@@ -281,8 +302,31 @@ export function useOnlineGameController(gameId: string) {
       isSpell: props.isSpell ?? inferredSpell,
       duration: props.duration || 3200,
       nonBlocking: !!props.nonBlocking,
+      onDone: props.onDone,
     });
   }, [enqueueAnnouncer]);
+
+  const runAfterSkillAnnouncer = useCallback((payload: {
+    skillName: string;
+    heroKey?: string;
+    imageName?: string;
+    description?: string;
+    subtitle?: string;
+    isSpell?: boolean;
+    sendAction: () => void;
+  }) => {
+    skipMyActionCueRef.current = true;
+    showSkillUse({
+      skillName: payload.skillName,
+      heroKey: payload.heroKey,
+      imageName: payload.imageName,
+      description: payload.description,
+      subtitle: payload.subtitle,
+      isSpell: payload.isSpell,
+      duration: 2200,
+      onDone: payload.sendAction,
+    });
+  }, [showSkillUse]);
 
   const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
     const context = pendingKillContextRef.current;
@@ -513,6 +557,61 @@ export function useOnlineGameController(gameId: string) {
           }
           showReactivePassiveFromStateDiff(prevState, msg.state);
           setGs(msg.state);
+          setRenderGs((prevRender) => {
+            if (!prevRender) return msg.state;
+            const prevCards = collectAllFieldCards(prevRender);
+            const nextCards = collectAllFieldCards(msg.state);
+            const nextUidSet = new Set(nextCards.map((c: any) => c.uid));
+            const removedCards = prevCards.filter((c: any) => !nextUidSet.has(c.uid));
+            const hasRemoved = removedCards.length > 0;
+            if (!hasRemoved) return msg.state;
+
+            const ghostBySide = (sideKey: 'my_state' | 'opponent_state') => {
+              const baseMain = [...(msg.state as any)?.[sideKey]?.field?.main || []];
+              const baseSide = [...(msg.state as any)?.[sideKey]?.field?.side || []];
+              const prevMain = [...(prevRender as any)?.[sideKey]?.field?.main || []];
+              const prevSide = [...(prevRender as any)?.[sideKey]?.field?.side || []];
+              const aliveMain = new Set(baseMain.map((c: any) => c.uid));
+              const aliveSide = new Set(baseSide.map((c: any) => c.uid));
+              const deadMain = prevMain.filter((c: any) => !aliveMain.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
+              const deadSide = prevSide.filter((c: any) => !aliveSide.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
+              return { main: [...baseMain, ...deadMain], side: [...baseSide, ...deadSide] };
+            };
+
+            const killDelay = window.setTimeout(() => setRenderGs(msg.state), DESTROY_ANIMATION_MS + 50);
+            uiTimersRef.current.push(killDelay);
+            return {
+              ...msg.state,
+              my_state: { ...msg.state.my_state, field: ghostBySide('my_state') },
+              opponent_state: { ...msg.state.opponent_state, field: ghostBySide('opponent_state') },
+            };
+          });
+
+          const damageMap = pendingDamageMapRef.current;
+          const prevAll = collectAllFieldCards(prevState);
+          const nextAll = collectAllFieldCards(msg.state);
+          const nextByUid = new Map(nextAll.map((c: any) => [c.uid, c]));
+          const removedUidSet = new Set(prevAll.map((c: any) => c.uid).filter((uid) => !nextByUid.has(uid)));
+          const effectPatch: Record<string, CardVisualEffect> = {};
+          Object.entries(damageMap).forEach(([uid, damage]) => {
+            effectPatch[uid] = {
+              floatingDamage: damage,
+              hpTransitionMs: HP_ANIMATION_MS,
+              destroying: removedUidSet.has(uid),
+            };
+          });
+          if (Object.keys(effectPatch).length > 0) {
+            setCardEffects((prev) => ({ ...prev, ...effectPatch }));
+            const clearTimer = window.setTimeout(() => {
+              setCardEffects((prev) => {
+                const next = { ...prev };
+                Object.keys(effectPatch).forEach((uid) => delete next[uid]);
+                return next;
+              });
+            }, Math.max(DAMAGE_FLOAT_MS, DESTROY_ANIMATION_MS) + 120);
+            uiTimersRef.current.push(clearTimer);
+          }
+          pendingDamageMapRef.current = {};
           const serverPendingPassive = msg?.state?.my_state?.pending_passive ?? msg?.state?.my_state?.pendingPassive ?? null;
           const serverPendingSpellChoice = msg?.state?.my_state?.pending_spell ?? msg?.state?.my_state?.pendingSpell ?? null;
           if (serverPendingPassive) setLocalPendingPassive(null);
@@ -526,6 +625,7 @@ export function useOnlineGameController(gameId: string) {
         ws.on('action_result', (msg: any) => {
           addLog(`내 행동: ${msg.action}`);
           const result = msg?.result || {};
+          pendingDamageMapRef.current = collectDamageMap(result);
           const latestMyState = gsRef.current?.my_state as any;
           const myHand = latestMyState?.hand || [];
           const myCasterCard = findFieldCardByUid(latestMyState, msg?.caster_uid) || result?.caster || null;
@@ -621,49 +721,54 @@ export function useOnlineGameController(gameId: string) {
           showDeathPassiveNotice(result);
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
-            const casterCard = myCasterCard;
-            const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
-            const isSwiftStrikeReset = !!(result?.swift_strike_reset && usedSkillKey === 'skill_1');
-            if (isSwiftStrikeReset) {
-              const casterName = result?.caster_name || casterCard?.name || actorName || '겐지';
-              showSkillUse({
-                skillName: '질풍참 초기화',
-                description: '적 처치 시 질풍참이 즉시 초기화됩니다. 대상을 다시 선택하세요.',
-                heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
-                imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
-                subtitle: `${casterName} 처치 성공`,
-                isSpell: false,
-                duration: 1000,
-                nonBlocking: true,
-              });
+            if (skipMyActionCueRef.current) {
+              skipMyActionCueRef.current = false;
             } else {
-              showSkillUse({
-                skillName: resolvedSkillName,
-                description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
-                heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
-                imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
-                subtitle: result?.caster_name || casterCard?.name || actorName,
-                isSpell: false,
-                duration: 3200,
-              });
-            }
-            if (isSwiftStrikeReset) {
-              const casterUid = result?.caster_uid || msg?.caster_uid || myCasterCard?.uid || null;
-              const forcedSkillName = resolvedSkillName || '질풍참';
-              setSelectedHandIdx(null);
-              setColumnChoice(null);
-              if (casterUid) setSelectedFieldUid(casterUid);
-              setActionMode('skill_1');
-              addLog(`${forcedSkillName} 초기화: 대상을 다시 선택하세요`);
-              // showSystemNotice(forcedSkillName, '처치 성공! 추가 사용 대상을 선택하세요', 1500);
+              const casterCard = myCasterCard;
+              const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
+              const isSwiftStrikeReset = !!(result?.swift_strike_reset && usedSkillKey === 'skill_1');
+              if (isSwiftStrikeReset) {
+                const casterName = result?.caster_name || casterCard?.name || actorName || '겐지';
+                showSkillUse({
+                  skillName: '질풍참 초기화',
+                  description: '적 처치 시 질풍참이 즉시 초기화됩니다. 대상을 다시 선택하세요.',
+                  heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+                  imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
+                  subtitle: `${casterName} 처치 성공`,
+                  isSpell: false,
+                  duration: 1000,
+                  nonBlocking: true,
+                });
+              } else {
+                showSkillUse({
+                  skillName: resolvedSkillName,
+                  description: getSkillDescriptionFromCard(casterCard, msg?.skill_key || result?.skill_key || result?.skill),
+                  heroKey: getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
+                  imageName: casterCard?.name || result?.caster_name || result?.caster?.name || actorName,
+                  subtitle: result?.caster_name || casterCard?.name || actorName,
+                  isSpell: false,
+                  duration: 3200,
+                });
+              }
+              if (isSwiftStrikeReset) {
+                const casterUid = result?.caster_uid || msg?.caster_uid || myCasterCard?.uid || null;
+                const forcedSkillName = resolvedSkillName || '질풍참';
+                setSelectedHandIdx(null);
+                setColumnChoice(null);
+                if (casterUid) setSelectedFieldUid(casterUid);
+                setActionMode('skill_1');
+                addLog(`${forcedSkillName} 초기화: 대상을 다시 선택하세요`);
+                // showSystemNotice(forcedSkillName, '처치 성공! 추가 사용 대상을 선택하세요', 1500);
+              }
             }
           }
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
-            if (resolvedSkillName) {
+            if (resolvedSkillName && !skipMyActionCueRef.current) {
               const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
               showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(spellCard), heroKey: result?.hero_key || spellCard?.hero_key || '', imageName: spellCard?.name || resolvedSkillName, isSpell: true, duration: 3200 });
             }
+            if (skipMyActionCueRef.current) skipMyActionCueRef.current = false;
           }
           if (msg.action === 'execute_spell' && result?.rescued) showSystemNotice(result.rescued, 'TRASH → 패', 1400);
           if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice(result.drawn_card, '덱 → 패', 1400);
@@ -671,6 +776,7 @@ export function useOnlineGameController(gameId: string) {
         ws.on('opponent_action', (msg: any) => {
           addLog(`상대: ${msg.action}`);
           const result = msg?.result || {};
+          pendingDamageMapRef.current = collectDamageMap(result);
           const oppState = gsRef.current?.opponent_state as any;
           const opponentCasterCard = findFieldCardByUid(oppState, msg?.caster_uid) || result?.caster || null;
           const opponentCasterHeroKey = getHeroKey(opponentCasterCard);
@@ -748,6 +854,8 @@ export function useOnlineGameController(gameId: string) {
       manualCloseRef.current = true;
       document.removeEventListener('visibilitychange', onVisibility);
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+      uiTimersRef.current.forEach((tid) => window.clearTimeout(tid));
+      uiTimersRef.current = [];
       offFns.forEach((off) => { try { off(); } catch {} });
       if (heartbeatRef.current) window.clearInterval(heartbeatRef.current);
       if (localWs) { try { localWs.disconnect(); } catch {} }
@@ -769,8 +877,9 @@ export function useOnlineGameController(gameId: string) {
     if (gs && gs.phase !== 'game_over') send({ action: 'surrender' });
   }, [gs, send]);
 
-  const my = gs?.my_state || null;
-  const opp = gs?.opponent_state || null;
+  const displayState = renderGs || gs;
+  const my = displayState?.my_state || null;
+  const opp = displayState?.opponent_state || null;
   const phase = gs?.phase || 'loading';
   const isMyTurn = !!gs?.is_my_turn;
 
@@ -854,18 +963,33 @@ export function useOnlineGameController(gameId: string) {
         showSystemNotice('복제', `${card.name} 선택 · 빈 위치를 클릭하세요`, 1400);
         return;
       }
-      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
+      const spellCard = my?.hand?.find((c: any) => c.hero_key === pendingSpell);
+      runAfterSkillAnnouncer({
+        skillName: pendingSpellName || spellCard?.name || '스킬 카드',
+        description: getSkillDescriptionFromCard(spellCard, pendingSpellName || undefined),
+        heroKey: pendingSpell || spellCard?.hero_key || '',
+        imageName: spellCard?.name || pendingSpellName || '스킬 카드',
+        subtitle: `${card.name} 대상`,
+        isSpell: true,
+        sendAction: () => send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid }),
+      });
       addLog(`스킬 카드 → ${card.name}`);
-      showSystemNotice(pendingSpellName || '스킬 카드', `${card.name} 대상`, 1200);
       setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); setSelectedHandIdx(null); return;
     }
     if (actionMode && actionMode !== 'spell' && selectedFieldUid) {
       const caster = allMyField.find((c) => c.uid === selectedFieldUid);
       if (caster) {
         const skillName = getSkillNameFromCard(caster, actionMode);
-        send({ action: 'use_skill', caster_uid: caster.uid, skill_key: actionMode, target_uid: card.uid });
+        runAfterSkillAnnouncer({
+          skillName,
+          description: getSkillDescriptionFromCard(caster, actionMode),
+          heroKey: getHeroKey(caster),
+          imageName: caster.name,
+          subtitle: `${card.name} 대상`,
+          isSpell: false,
+          sendAction: () => send({ action: 'use_skill', caster_uid: caster.uid, skill_key: actionMode, target_uid: card.uid }),
+        });
         addLog(`${caster.name} → ${card.name} (${skillName})`);
-        showSystemNotice(skillName, `${caster.name} 사용`, 900);
       }
       setSelectedFieldUid(null); setActionMode(null); return;
     }
@@ -873,12 +997,20 @@ export function useOnlineGameController(gameId: string) {
       if (selectedFieldUid === card.uid) { setDetailCard(card); setSelectedFieldUid(null); }
       else { setSelectedFieldUid(card.uid); setSelectedHandIdx(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); }
     } else setDetailCard(card);
-  }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField]);
+  }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField, my, runAfterSkillAnnouncer]);
 
   const handlePlace = useCallback((zone: 'main' | 'side', slotIndex?: 0 | 1) => {
     if (!my || !isMyTurn || phase !== 'placement') return;
     if (pendingSpell === 'spell_duplicate' && actionMode === 'duplicate_place' && duplicateTargetUid) {
-      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: duplicateTargetUid, zone, slot_index: zone === 'main' ? slotIndex : undefined });
+      runAfterSkillAnnouncer({
+        skillName: pendingSpellName || '복제',
+        description: getSkillDescriptionFromCard({ hero_key: pendingSpell, skill_meta: {}, description: '' }, pendingSpellName || undefined),
+        heroKey: pendingSpell,
+        imageName: pendingSpellName || '복제',
+        subtitle: `${duplicateTargetName || '대상'} 복제`,
+        isSpell: true,
+        sendAction: () => send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: duplicateTargetUid, zone, slot_index: zone === 'main' ? slotIndex : undefined }),
+      });
       addLog(`복제 배치: ${duplicateTargetName || '대상 카드'} → ${zone === 'main' ? '본대' : '사이드'}`);
       setActionMode(null);
       setPendingSpell(null);
@@ -907,7 +1039,7 @@ export function useOnlineGameController(gameId: string) {
     send({ action: 'place_card', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
     setSelectedHandIdx(null);
-  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice, pendingSpell, actionMode, duplicateTargetUid, duplicateTargetName]);
+  }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice, pendingSpell, actionMode, duplicateTargetUid, duplicateTargetName, pendingSpellName, runAfterSkillAnnouncer]);
 
   const prepareSkill = useCallback((skillKey: string) => {
     if (!selectedMyFieldCard) return;
@@ -921,9 +1053,16 @@ export function useOnlineGameController(gameId: string) {
     }
     if (isTargetlessSkill(caster, skillKey)) {
       setActionMode(null); setColumnChoice(null);
-      send({ action: 'use_skill', caster_uid: caster.uid, skill_key: skillKey });
+      runAfterSkillAnnouncer({
+        skillName: rawSkillName,
+        description: getSkillDescriptionFromCard(caster, skillKey),
+        heroKey: getHeroKey(caster),
+        imageName: caster.name,
+        subtitle: `${caster.name} 사용`,
+        isSpell: false,
+        sendAction: () => send({ action: 'use_skill', caster_uid: caster.uid, skill_key: skillKey }),
+      });
       addLog(`${caster.name} — ${rawSkillName} 즉시 사용`);
-      showSystemNotice(rawSkillName, `${caster.name} 사용`, 900);
       setSelectedFieldUid(null);
       return;
     }
@@ -936,7 +1075,7 @@ export function useOnlineGameController(gameId: string) {
       return;
     }
     setColumnChoice(null); setActionMode(skillKey); addLog(`${caster.name} — ${rawSkillName} 준비`); showSystemNotice(rawSkillName, `${caster.name} 준비`, 900);
-  }, [selectedMyFieldCard, send, addLog, showSystemNotice]);
+  }, [selectedMyFieldCard, send, addLog, showSystemNotice, runAfterSkillAnnouncer]);
 
   const runMulligan = useCallback(() => {
     if (selectedMulligan.length === 0) return;
@@ -946,15 +1085,31 @@ export function useOnlineGameController(gameId: string) {
   const skipMulligan = useCallback(() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }, [send]);
   const selectColumn = useCallback((repUid: string, label: string) => {
     if (columnChoice?.source === 'spell' && pendingSpell) {
-      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: repUid });
+      const spellCard = my?.hand?.find((c: any) => c.hero_key === pendingSpell);
+      runAfterSkillAnnouncer({
+        skillName: columnChoice.skillName,
+        description: getSkillDescriptionFromCard(spellCard, columnChoice.skillName),
+        heroKey: pendingSpell || spellCard?.hero_key || '',
+        imageName: spellCard?.name || columnChoice.skillName,
+        subtitle: `${label} 대상`,
+        isSpell: true,
+        sendAction: () => send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: repUid }),
+      });
       addLog(`${columnChoice.skillName} → ${label}`);
     } else if (columnChoice?.source === 'skill' && selectedMyFieldCard && columnChoice.skillKey) {
-      send({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: columnChoice.skillKey, target_uid: repUid });
+      runAfterSkillAnnouncer({
+        skillName: columnChoice.skillName,
+        description: getSkillDescriptionFromCard(selectedMyFieldCard, columnChoice.skillKey),
+        heroKey: getHeroKey(selectedMyFieldCard),
+        imageName: selectedMyFieldCard.name,
+        subtitle: `${label} 대상`,
+        isSpell: false,
+        sendAction: () => send({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: columnChoice.skillKey, target_uid: repUid }),
+      });
       addLog(`${selectedMyFieldCard.name} → ${label} (${columnChoice.skillName})`);
     }
-    showSystemNotice(columnChoice?.skillName || '열 선택', `${label} 선택`, 1200);
     setColumnChoice(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setSelectedHandIdx(null);
-  }, [columnChoice, pendingSpell, selectedMyFieldCard, send, addLog, showSystemNotice]);
+  }, [columnChoice, pendingSpell, selectedMyFieldCard, send, addLog, my, runAfterSkillAnnouncer]);
   const cancelColumnChoice = useCallback(() => { setColumnChoice(null); setPendingSpell(null); setPendingSpellName(null); }, []);
   const cancelPendingSpell = useCallback(() => {
     setActionMode(null);
@@ -983,6 +1138,7 @@ export function useOnlineGameController(gameId: string) {
 
   return {
     session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
+    cardEffects,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,

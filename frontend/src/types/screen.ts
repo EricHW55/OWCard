@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AnnouncerData } from '../components/GameAnnouncer';
-import type { FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
+import type { CardVisualEffect, FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
 
 export type PlaceZone = 'main' | 'side';
 export type PlaceSlotIndex = 0 | 1;
@@ -13,6 +13,7 @@ export interface FieldPaneConfig {
   selectedUid: string | null;
   canActUids: string[];
   onCardClick: (card: FieldCard) => void;
+  cardEffects?: Record<string, CardVisualEffect>;
   placingCard: HandCard | null;
   onPlaceClick: (zone: PlaceZone, slotIndex?: PlaceSlotIndex) => void;
   allowOpponentPlacement?: boolean;
