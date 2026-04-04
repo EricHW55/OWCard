@@ -161,20 +161,24 @@ function buildColumnChoices(field: any): ColumnPreview[] {
   const main = Array.isArray(field?.main) ? field.main : [];
   const side = Array.isArray(field?.side) ? field.side : [];
   const mainTanks = main.filter((c: any) => c?.role === 'tank');
-  const mainDealers = main.filter((c: any) => c?.role === 'dealer');
-  const mainHealers = main.filter((c: any) => c?.role === 'healer');
+  const getByRoleAndSlot = (role: 'dealer' | 'healer', slot: 0 | 1) =>
+      main.find((c: any) => c?.role === role && Number(c?.extra?.slot_index ?? 0) === slot) || null;
   const previews: ColumnPreview[] = [];
   const pickRepresentativeUid = (preferred: Array<any>) => preferred.find((c) => c?.uid)?.uid;
+  const leftDealer = getByRoleAndSlot('dealer', 0);
+  const rightDealer = getByRoleAndSlot('dealer', 1);
+  const leftHealer = getByRoleAndSlot('healer', 0);
+  const rightHealer = getByRoleAndSlot('healer', 1);
 
-  const leftMembers = [mainTanks[0], mainDealers[0], mainHealers[0]].filter(Boolean);
-  const leftRepUid = pickRepresentativeUid([mainDealers[0], mainHealers[0], mainTanks[0]]);
+  const leftMembers = [mainTanks[0], leftDealer, leftHealer].filter(Boolean);
+  const leftRepUid = pickRepresentativeUid([leftDealer, leftHealer, mainTanks[0]]);
   if (leftMembers.length > 0 && leftRepUid) {
     previews.push({ key: 'main_left', label: '본대 왼쪽', repUid: leftRepUid, names: leftMembers.map((c: any) => c.name) });
   }
 
-  const rightMembers = [mainTanks[0], mainDealers[1], mainHealers[1]].filter(Boolean);
-  const hasRightBackline = !!mainDealers[1] || !!mainHealers[1];
-  const rightRepUid = pickRepresentativeUid([mainDealers[1], mainHealers[1], mainTanks[0]]);
+  const rightMembers = [mainTanks[0], rightDealer, rightHealer].filter(Boolean);
+  const hasRightBackline = !!rightDealer || !!rightHealer;
+  const rightRepUid = pickRepresentativeUid([rightDealer, rightHealer, mainTanks[0]]);
   if (hasRightBackline && rightMembers.length > 0 && rightRepUid) {
     previews.push({ key: 'main_right', label: '본대 오른쪽', repUid: rightRepUid, names: rightMembers.map((c: any) => c.name) });
   }
@@ -253,6 +257,9 @@ export function useOnlineGameController(gameId: string) {
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
   const skipMyActionCueRef = useRef(false);
+  const announcerDataRef = useRef(announcerData);
+  const deferredGameStateRef = useRef<any | null>(null);
+  const processGameStateRef = useRef<((msg: any) => void) | null>(null);
   const pendingDamageMapRef = useRef<Record<string, number>>({});
   const uiTimersRef = useRef<number[]>([]);
   const pendingKillContextRef = useRef<{
@@ -324,9 +331,19 @@ export function useOnlineGameController(gameId: string) {
       subtitle: payload.subtitle,
       isSpell: payload.isSpell,
       duration: 2200,
-      onDone: payload.sendAction,
     });
+    payload.sendAction();
   }, [showSkillUse]);
+
+  useEffect(() => {
+    announcerDataRef.current = announcerData;
+    const isBlockingSkillAnnouncer = !!announcerData && announcerData.type === 'skill' && !announcerData.nonBlocking;
+    if (!isBlockingSkillAnnouncer && deferredGameStateRef.current && processGameStateRef.current) {
+      const deferred = deferredGameStateRef.current;
+      deferredGameStateRef.current = null;
+      processGameStateRef.current(deferred);
+    }
+  }, [announcerData]);
 
   const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
     const context = pendingKillContextRef.current;
@@ -549,78 +566,88 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('pong', () => {}),
         ws.on('game_state', (msg: any) => {
-          const prevState = gsRef.current;
-          if (pendingKillContextRef.current?.createdAt) {
-            const pendingUids = pendingKillContextRef.current.fatalUids || [];
-            if (pendingUids.length > 0) pushKillFeedByUids(pendingUids, msg.state);
-            pendingKillContextRef.current = null;
-          }
-          showReactivePassiveFromStateDiff(prevState, msg.state);
-          setGs(msg.state);
-          setRenderGs((prevRender) => {
-            if (!prevRender) return msg.state;
-            const prevCards = collectAllFieldCards(prevRender);
-            const nextCards = collectAllFieldCards(msg.state);
-            const nextUidSet = new Set(nextCards.map((c: any) => c.uid));
-            const removedCards = prevCards.filter((c: any) => !nextUidSet.has(c.uid));
-            const hasRemoved = removedCards.length > 0;
-            if (!hasRemoved) return msg.state;
+          const processGameState = (gameStateMsg: any) => {
+            const prevState = gsRef.current;
+            if (pendingKillContextRef.current?.createdAt) {
+              const pendingUids = pendingKillContextRef.current.fatalUids || [];
+              if (pendingUids.length > 0) pushKillFeedByUids(pendingUids, gameStateMsg.state);
+              pendingKillContextRef.current = null;
+            }
+            showReactivePassiveFromStateDiff(prevState, gameStateMsg.state);
+            setGs(gameStateMsg.state);
+            setRenderGs((prevRender) => {
+              if (!prevRender) return gameStateMsg.state;
+              const prevCards = collectAllFieldCards(prevRender);
+              const nextCards = collectAllFieldCards(gameStateMsg.state);
+              const nextUidSet = new Set(nextCards.map((c: any) => c.uid));
+              const removedCards = prevCards.filter((c: any) => !nextUidSet.has(c.uid));
+              const hasRemoved = removedCards.length > 0;
+              if (!hasRemoved) return gameStateMsg.state;
 
-            const ghostBySide = (sideKey: 'my_state' | 'opponent_state') => {
-              const baseMain = [...(msg.state as any)?.[sideKey]?.field?.main || []];
-              const baseSide = [...(msg.state as any)?.[sideKey]?.field?.side || []];
-              const prevMain = [...(prevRender as any)?.[sideKey]?.field?.main || []];
-              const prevSide = [...(prevRender as any)?.[sideKey]?.field?.side || []];
-              const aliveMain = new Set(baseMain.map((c: any) => c.uid));
-              const aliveSide = new Set(baseSide.map((c: any) => c.uid));
-              const deadMain = prevMain.filter((c: any) => !aliveMain.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
-              const deadSide = prevSide.filter((c: any) => !aliveSide.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
-              return { main: [...baseMain, ...deadMain], side: [...baseSide, ...deadSide] };
-            };
+              const ghostBySide = (sideKey: 'my_state' | 'opponent_state') => {
+                const baseMain = [...(gameStateMsg.state as any)?.[sideKey]?.field?.main || []];
+                const baseSide = [...(gameStateMsg.state as any)?.[sideKey]?.field?.side || []];
+                const prevMain = [...(prevRender as any)?.[sideKey]?.field?.main || []];
+                const prevSide = [...(prevRender as any)?.[sideKey]?.field?.side || []];
+                const aliveMain = new Set(baseMain.map((c: any) => c.uid));
+                const aliveSide = new Set(baseSide.map((c: any) => c.uid));
+                const deadMain = prevMain.filter((c: any) => !aliveMain.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
+                const deadSide = prevSide.filter((c: any) => !aliveSide.has(c.uid)).map((c: any) => ({ ...c, current_hp: 0 }));
+                return { main: [...baseMain, ...deadMain], side: [...baseSide, ...deadSide] };
+              };
 
-            const killDelay = window.setTimeout(() => setRenderGs(msg.state), DESTROY_ANIMATION_MS + 50);
-            uiTimersRef.current.push(killDelay);
-            return {
-              ...msg.state,
-              my_state: { ...msg.state.my_state, field: ghostBySide('my_state') },
-              opponent_state: { ...msg.state.opponent_state, field: ghostBySide('opponent_state') },
-            };
-          });
+              const killDelay = window.setTimeout(() => setRenderGs(gameStateMsg.state), DESTROY_ANIMATION_MS + 50);
+              uiTimersRef.current.push(killDelay);
+              return {
+                ...gameStateMsg.state,
+                my_state: { ...gameStateMsg.state.my_state, field: ghostBySide('my_state') },
+                opponent_state: { ...gameStateMsg.state.opponent_state, field: ghostBySide('opponent_state') },
+              };
+            });
 
-          const damageMap = pendingDamageMapRef.current;
-          const prevAll = collectAllFieldCards(prevState);
-          const nextAll = collectAllFieldCards(msg.state);
-          const nextByUid = new Map(nextAll.map((c: any) => [c.uid, c]));
-          const removedUidSet = new Set(prevAll.map((c: any) => c.uid).filter((uid) => !nextByUid.has(uid)));
-          const effectPatch: Record<string, CardVisualEffect> = {};
-          Object.entries(damageMap).forEach(([uid, damage]) => {
-            effectPatch[uid] = {
-              floatingDamage: damage,
-              hpTransitionMs: HP_ANIMATION_MS,
-              destroying: removedUidSet.has(uid),
-            };
-          });
-          if (Object.keys(effectPatch).length > 0) {
-            setCardEffects((prev) => ({ ...prev, ...effectPatch }));
-            const clearTimer = window.setTimeout(() => {
-              setCardEffects((prev) => {
-                const next = { ...prev };
-                Object.keys(effectPatch).forEach((uid) => delete next[uid]);
-                return next;
-              });
-            }, Math.max(DAMAGE_FLOAT_MS, DESTROY_ANIMATION_MS) + 120);
-            uiTimersRef.current.push(clearTimer);
+            const damageMap = pendingDamageMapRef.current;
+            const prevAll = collectAllFieldCards(prevState);
+            const nextAll = collectAllFieldCards(gameStateMsg.state);
+            const nextByUid = new Map(nextAll.map((c: any) => [c.uid, c]));
+            const removedUidSet = new Set(prevAll.map((c: any) => c.uid).filter((uid) => !nextByUid.has(uid)));
+            const effectPatch: Record<string, CardVisualEffect> = {};
+            Object.entries(damageMap).forEach(([uid, damage]) => {
+              effectPatch[uid] = {
+                floatingDamage: damage,
+                hpTransitionMs: HP_ANIMATION_MS,
+                destroying: removedUidSet.has(uid),
+              };
+            });
+            if (Object.keys(effectPatch).length > 0) {
+              setCardEffects((prev) => ({ ...prev, ...effectPatch }));
+              const clearTimer = window.setTimeout(() => {
+                setCardEffects((prev) => {
+                  const next = { ...prev };
+                  Object.keys(effectPatch).forEach((uid) => delete next[uid]);
+                  return next;
+                });
+              }, Math.max(DAMAGE_FLOAT_MS, DESTROY_ANIMATION_MS) + 120);
+              uiTimersRef.current.push(clearTimer);
+            }
+            pendingDamageMapRef.current = {};
+            const serverPendingPassive = gameStateMsg?.state?.my_state?.pending_passive ?? gameStateMsg?.state?.my_state?.pendingPassive ?? null;
+            const serverPendingSpellChoice = gameStateMsg?.state?.my_state?.pending_spell ?? gameStateMsg?.state?.my_state?.pendingSpell ?? null;
+            if (serverPendingPassive) setLocalPendingPassive(null);
+            if (serverPendingSpellChoice) setLocalPendingSpellChoice(null);
+            if (!serverPendingPassive && !serverPendingSpellChoice && gameStateMsg?.state?.phase !== 'placement') {
+              setLocalPendingPassive(null);
+              setLocalPendingSpellChoice(null);
+              setColumnChoice(null);
+            }
+          };
+          processGameStateRef.current = processGameState;
+          const activeAnnouncer = announcerDataRef.current;
+          const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
+          if (isBlockingSkillAnnouncer) {
+            deferredGameStateRef.current = msg;
+            return;
           }
-          pendingDamageMapRef.current = {};
-          const serverPendingPassive = msg?.state?.my_state?.pending_passive ?? msg?.state?.my_state?.pendingPassive ?? null;
-          const serverPendingSpellChoice = msg?.state?.my_state?.pending_spell ?? msg?.state?.my_state?.pendingSpell ?? null;
-          if (serverPendingPassive) setLocalPendingPassive(null);
-          if (serverPendingSpellChoice) setLocalPendingSpellChoice(null);
-          if (!serverPendingPassive && !serverPendingSpellChoice && msg?.state?.phase !== 'placement') {
-            setLocalPendingPassive(null);
-            setLocalPendingSpellChoice(null);
-            setColumnChoice(null);
-          }
+          processGameState(msg);
         }),
         ws.on('action_result', (msg: any) => {
           addLog(`내 행동: ${msg.action}`);

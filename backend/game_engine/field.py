@@ -587,17 +587,22 @@ class Field:
                 if side_card:
                     result.append(side_card)
             return result
+        
+        def slot_index_of(fc: FieldCard) -> int:
+            try:
+                return 1 if int(fc.extra.get("slot_index", 0)) == 1 else 0
+            except Exception:
+                return 0
 
         def alive_main(role: Role) -> list[FieldCard]:
             return sorted(
                 [c for c in self._alive(self.main_cards) if c.role == role],
-                key=lambda c: int(c.extra.get("slot_index", 0)),
+                key=slot_index_of,
             )
 
-        if card.role == Role.TANK:
-            column_index = 0
-        else:
-            column_index = int(card.extra.get("slot_index", 0))
+        # 탱커를 대표 대상으로 넘기는 경우에도 slot_index를 해석해 좌/우 열을 보존한다.
+        # (기본값은 0=좌측)
+        column_index = slot_index_of(card)
 
         result: list[FieldCard] = []
         tank_cards = alive_main(Role.TANK)
@@ -606,7 +611,7 @@ class Field:
             result.append(tank_cards[0])
         for role in (Role.DEALER, Role.HEALER):
             role_cards = alive_main(role)
-            target = next((c for c in role_cards if int(c.extra.get("slot_index", 0)) == column_index), None)
+            target = next((c for c in role_cards if slot_index_of(c) == column_index), None)
             if target:
                 result.append(target)
         return result
