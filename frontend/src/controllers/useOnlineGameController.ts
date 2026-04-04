@@ -213,9 +213,22 @@ const DAMAGE_FLOAT_MS = 800;
 
 function collectDamageMap(node: any, out: Record<string, number> = {}): Record<string, number> {
   if (!node || typeof node !== 'object') return out;
+
+  const pushDelta = (uidValue: unknown, delta: number) => {
+    if (!uidValue || !Number.isFinite(delta) || delta === 0) return;
+    const uid = String(uidValue);
+    const rounded = Math.round(delta);
+    const prev = out[uid];
+    if (prev === undefined || Math.abs(rounded) >= Math.abs(prev)) out[uid] = rounded;
+  };
+
   const uid = node?.target || node?.uid;
   const damage = Number(node?.final_damage ?? node?.damage ?? node?.amount);
-  if (uid && Number.isFinite(damage) && damage > 0) out[String(uid)] = Math.max(out[String(uid)] || 0, Math.round(damage));
+  if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage);
+
+  const healed = Number(node?.healed ?? node?.heal ?? node?.final_heal);
+  if (uid && Number.isFinite(healed) && healed > 0) pushDelta(uid, -healed);
+
   Object.values(node).forEach((value) => {
     if (value && typeof value === 'object') collectDamageMap(value, out);
   });
@@ -299,6 +312,13 @@ export function useOnlineGameController(gameId: string) {
     if (!props.skillName) return;
     const rawHeroKey = String(props.heroKey || '').toLowerCase();
     const inferredSpell = rawHeroKey.startsWith('spell_');
+    if (!props.nonBlocking) {
+      announcerDataRef.current = {
+        type: 'skill',
+        title: props.skillName,
+        nonBlocking: false,
+      } as any;
+    }
     enqueueAnnouncer({
       type: 'skill',
       title: props.skillName,

@@ -217,14 +217,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 pointerEvents: isDestroying ? 'none' : undefined,
             }}
         >
-            {!!effect?.floatingDamage && (
+            {effect?.floatingDamage !== undefined && effect?.floatingDamage !== null && effect.floatingDamage !== 0 && (
                 <div
                     style={{
                         position: 'absolute',
                         top: '48%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        color: '#ff5f7a',
+                        color: effect.floatingDamage > 0 ? '#ff5f7a' : '#37d67a',
                         fontWeight: 900,
                         fontSize: 20,
                         textShadow: '0 0 6px rgba(0,0,0,0.7)',
@@ -233,7 +233,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         animation: 'damagePop 0.7s ease forwards',
                     }}
                 >
-                    -{effect.floatingDamage}
+                    {effect.floatingDamage > 0 ? '-' : '+'}{Math.abs(effect.floatingDamage)}
                 </div>
             )}
             {hasBarrier && (
