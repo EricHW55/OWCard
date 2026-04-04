@@ -514,7 +514,7 @@ class GameEngine:
                 ps.pending_passive = passive_result["needs_choice"]
         return passive_result
 
-    def _place_from_hand_free(self, ps: PlayerState, hand_index: int, zone: str, *, trigger_passive: bool = True) -> dict:
+    def _place_from_hand_free(self, ps: PlayerState, hand_index: int, zone: str, *, trigger_passive: bool = True, slot_index: Optional[int] = None) -> dict:
         if hand_index < 0 or hand_index >= len(ps.hand):
             return {"error": "Invalid hand index"}
         card_data = ps.hand[hand_index]
@@ -523,7 +523,7 @@ class GameEngine:
         target_zone = Zone(zone)
         hero_name = card_data.get("hero_key", card_data["name"].lower())
         fc = self._build_field_card(card_data, target_zone, placed_this_turn=True)
-        if not ps.field.place_card(fc, target_zone):
+        if not ps.field.place_card(fc, target_zone, preferred_slot=slot_index if target_zone == Zone.MAIN else None):
             return {"error": f"Cannot place {card_data['role']} in {zone}"}
         ps.hand.pop(hand_index)
         result = {
@@ -643,6 +643,7 @@ class GameEngine:
 
     def resolve_passive_choice(self, player_id: int, *, trash_index: Optional[int] = None,
                                hand_index: Optional[int] = None, zone: Optional[str] = None,
+                               slot_index: Optional[int] = None,
                                skip: bool = False) -> dict:
         ps = self.players.get(player_id)
         if not ps:
@@ -688,7 +689,7 @@ class GameEngine:
             if selected.get("role") == "tank":
                 return {"error": "탱커는 제트팩 캣으로 견인할 수 없습니다"}
             ps.pending_passive = None
-            result = self._place_from_hand_free(ps, hand_index, zone, trigger_passive=True)
+            result = self._place_from_hand_free(ps, hand_index, zone, trigger_passive=True, slot_index=slot_index)
             if "error" in result:
                 ps.pending_passive = pending
                 return result
@@ -699,7 +700,7 @@ class GameEngine:
 
     # ── 배치 ──────────────────────────────────
 
-    def place_card(self, player_id: int, hand_index: int, zone: str) -> dict:
+    def place_card(self, player_id: int, hand_index: int, zone: str, slot_index: Optional[int] = None) -> dict:
         if player_id != self.current_player_id or self.phase != GamePhase.PLACEMENT:
             return {"error": "Not your turn / wrong phase"}
 
@@ -775,7 +776,7 @@ class GameEngine:
         target_zone = Zone(zone)
         hero_name = card_data.get("hero_key", card_data["name"].lower())
         fc = self._build_field_card(card_data, target_zone, placed_this_turn=True)
-        if not ps.field.place_card(fc, target_zone):
+        if not ps.field.place_card(fc, target_zone, preferred_slot=slot_index if target_zone == Zone.MAIN else None):
             return {"error": f"Cannot place {card_data['role']} in {zone}"}
 
         ps.hand.pop(hand_index)

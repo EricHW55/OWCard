@@ -303,7 +303,7 @@ export function useSoloGameController() {
     }
   }, [players, phase]);
 
-  const placeCard = useCallback((zone: 'main' | 'side') => {
+  const placeCard = useCallback((zone: 'main' | 'side', slotIndex?: 0 | 1) => {
     if (!players || !activePlayer || phase !== 'placement' || selectedHandIdx === null) return;
     const card = activePlayer.hand[selectedHandIdx];
     if (!card || card.is_spell) return;
@@ -320,7 +320,13 @@ export function useSoloGameController() {
       return;
     }
 
-    const nextFieldCard = { ...toFieldCard(card, activeSide), zone };
+    const nextFieldCard = {
+      ...toFieldCard(card, activeSide),
+      zone,
+      extra: {
+        slot_index: zone === 'main' ? (slotIndex ?? 0) : 0,
+      },
+    };
 
     setPlayers((prev) => {
       if (!prev) return prev;

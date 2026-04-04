@@ -368,19 +368,21 @@ class Field:
             occupied.add(slot)
         return occupied
 
-    def _next_main_slot(self, role: Role) -> int | None:
+    def _next_main_slot(self, role: Role, preferred_slot: int | None = None) -> int | None:
         if role == Role.TANK:
             return 0 if 0 not in self._occupied_main_slots(role) else None
+        if preferred_slot in (0, 1):
+            return preferred_slot if preferred_slot not in self._occupied_main_slots(role) else None
         for slot in (0, 1):
             if slot not in self._occupied_main_slots(role):
                 return slot
         return None
 
-    def place_card(self, card: FieldCard, zone: Zone) -> bool:
+    def place_card(self, card: FieldCard, zone: Zone, preferred_slot: int | None = None) -> bool:
         if zone == Zone.MAIN:
             if not self.can_place_main(card.role):
                 return False
-            slot_index = self._next_main_slot(card.role)
+            slot_index = self._next_main_slot(card.role, preferred_slot=preferred_slot)
             if slot_index is None:
                 return False
             card.extra["slot_index"] = slot_index

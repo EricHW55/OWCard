@@ -12,7 +12,7 @@ interface Props {
     canActUids: string[];
     onCardClick: (card: FieldCard) => void;
     placingCard: HandCardType | null;
-    onPlaceClick: (zone: 'main' | 'side') => void;
+    onPlaceClick: (zone: 'main' | 'side', slotIndex?: 0 | 1) => void;
     allowOpponentPlacement?: boolean;
 }
 
@@ -68,7 +68,8 @@ const FieldSection: React.FC<Props> = ({
         for (let i = 0; i < max; i++) {
             const slottedCard = cardBySlot.get(i);
             if (slottedCard) {
-                slots.push(renderCard(slottedCard));
+                const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
+                slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
             } else if (canPlace && placingRole === role) {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main')} />);
             } else {

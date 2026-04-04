@@ -173,7 +173,12 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     elif action == "skip_mulligan":
         result = engine.skip_mulligan(player_id)
     elif action == "place_card":
-        result = engine.place_card(player_id, data.get("hand_index", 0), data.get("zone", "main"))
+        result = engine.place_card(
+            player_id,
+            data.get("hand_index", 0),
+            data.get("zone", "main"),
+            data.get("slot_index"),
+        )
     elif action == "end_placement":
         result = engine.end_placement(player_id)
     elif action == "basic_attack":
@@ -197,6 +202,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
             trash_index=data.get("trash_index"),
             hand_index=data.get("hand_index"),
             zone=data.get("zone"),
+            slot_index=data.get("slot_index"),
             skip=bool(data.get("skip", False)),
         )
     elif action == "get_state":

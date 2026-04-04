@@ -3,6 +3,7 @@ import type { AnnouncerData } from '../components/GameAnnouncer';
 import type { FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
 
 export type PlaceZone = 'main' | 'side';
+export type PlaceSlotIndex = 0 | 1;
 
 export interface FieldPaneConfig {
   field: FieldState;
@@ -13,7 +14,7 @@ export interface FieldPaneConfig {
   canActUids: string[];
   onCardClick: (card: FieldCard) => void;
   placingCard: HandCard | null;
-  onPlaceClick: (zone: PlaceZone) => void;
+  onPlaceClick: (zone: PlaceZone, slotIndex?: PlaceSlotIndex) => void;
   allowOpponentPlacement?: boolean;
 }
 

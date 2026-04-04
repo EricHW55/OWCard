@@ -875,10 +875,10 @@ export function useOnlineGameController(gameId: string) {
     } else setDetailCard(card);
   }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField]);
 
-  const handlePlace = useCallback((zone: 'main' | 'side') => {
+  const handlePlace = useCallback((zone: 'main' | 'side', slotIndex?: 0 | 1) => {
     if (!my || !isMyTurn || phase !== 'placement') return;
     if (pendingSpell === 'spell_duplicate' && actionMode === 'duplicate_place' && duplicateTargetUid) {
-      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: duplicateTargetUid, zone });
+      send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: duplicateTargetUid, zone, slot_index: zone === 'main' ? slotIndex : undefined });
       addLog(`복제 배치: ${duplicateTargetName || '대상 카드'} → ${zone === 'main' ? '본대' : '사이드'}`);
       setActionMode(null);
       setPendingSpell(null);
@@ -899,12 +899,12 @@ export function useOnlineGameController(gameId: string) {
       return;
     }
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
-      send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone });
+      send({ action: 'resolve_passive_choice', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
       addLog(`${card.name} → ${zoneLabel} 추가 배치`);
       setSelectedHandIdx(null);
       return;
     }
-    send({ action: 'place_card', hand_index: selectedHandIdx, zone });
+    send({ action: 'place_card', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
     addLog(`${card.name} → ${zoneLabel} ${card.is_spell ? '사용' : '배치'}`);
     setSelectedHandIdx(null);
   }, [my, selectedHandIdx, isMyTurn, phase, pendingPassive, send, addLog, showSystemNotice, pendingSpell, actionMode, duplicateTargetUid, duplicateTargetName]);
