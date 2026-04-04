@@ -226,8 +226,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         transform: 'translate(-50%, -50%)',
                         color: 'transparent',
                         backgroundImage: effect.floatingDamage > 0
-                            ? 'linear-gradient(180deg, #ffe8ee 0%, #ff9bb0 24%, #ff5e79 52%, #d81c45 100%)'
-                            : 'linear-gradient(180deg, #ebfff3 0%, #b2ffd1 24%, #5ce79a 52%, #1baf5b 100%)',
+                            ? 'linear-gradient(180deg, #ffffff 0%, #ffeef2 28%, #ffc8d6 60%, #ff9ab2 100%)'
+                            : 'linear-gradient(180deg, #ffffff 0%, #f0fff6 28%, #cbffe2 60%, #9ef1c2 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
                         fontWeight: 1000,
@@ -236,10 +236,10 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         fontFamily: '"Arial Black", "Montserrat", "Inter", "Noto Sans KR", "Pretendard", sans-serif',
                         fontStyle: 'italic',
                         letterSpacing: '-1.2px',
-                        WebkitTextStroke: '4px #1b1b1f',
+                        WebkitTextStroke: '2.6px #2b2c31',
                         textShadow: effect.floatingDamage > 0
-                            ? '0 4px 0 #0c0c0f, 0 8px 16px rgba(0,0,0,0.38), 0 0 14px rgba(255, 76, 124, 0.33)'
-                            : '0 4px 0 #0c0c0f, 0 8px 16px rgba(0,0,0,0.38), 0 0 14px rgba(71, 224, 133, 0.33)',
+                            ? '0 2px 0 rgba(28, 30, 36, 0.72), 0 6px 12px rgba(0,0,0,0.24), 0 0 12px rgba(255, 172, 196, 0.45)'
+                            : '0 2px 0 rgba(28, 30, 36, 0.72), 0 6px 12px rgba(0,0,0,0.24), 0 0 12px rgba(155, 248, 198, 0.45)',
                         pointerEvents: 'none',
                         zIndex: 8,
                         animation: 'damageFloatTrajectory 0.78s linear forwards',
