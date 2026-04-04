@@ -221,16 +221,25 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 <div
                     style={{
                         position: 'absolute',
-                        top: '78%',
+                        top: '76%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        color: effect.floatingDamage > 0 ? '#ff5f7a' : '#37d67a',
+                        color: 'transparent',
+                        backgroundImage: effect.floatingDamage > 0
+                            ? 'linear-gradient(180deg, #ffe8ee 0%, #ff9bb0 24%, #ff5e79 52%, #d81c45 100%)'
+                            : 'linear-gradient(180deg, #ebfff3 0%, #b2ffd1 24%, #5ce79a 52%, #1baf5b 100%)',
+                        backgroundClip: 'text',
+                        WebkitBackgroundClip: 'text',
                         fontWeight: 1000,
-                        fontSize: 24,
+                        fontSize: 54,
                         lineHeight: 1,
-                        fontFamily: '"Montserrat", "Inter", "Noto Sans KR", "Pretendard", sans-serif',
-                        letterSpacing: '-0.2px',
-                        textShadow: '0 1px 0 rgba(0,0,0,0.52), 0 0 10px rgba(0,0,0,0.7)',
+                        fontFamily: '"Arial Black", "Montserrat", "Inter", "Noto Sans KR", "Pretendard", sans-serif',
+                        fontStyle: 'italic',
+                        letterSpacing: '-1.2px',
+                        WebkitTextStroke: '4px #1b1b1f',
+                        textShadow: effect.floatingDamage > 0
+                            ? '0 4px 0 #0c0c0f, 0 8px 16px rgba(0,0,0,0.38), 0 0 14px rgba(255, 76, 124, 0.33)'
+                            : '0 4px 0 #0c0c0f, 0 8px 16px rgba(0,0,0,0.38), 0 0 14px rgba(71, 224, 133, 0.33)',
                         pointerEvents: 'none',
                         zIndex: 8,
                         animation: 'damageFloatTrajectory 0.78s linear forwards',
