@@ -221,16 +221,18 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 <div
                     style={{
                         position: 'absolute',
-                        top: '48%',
+                        top: '78%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         color: effect.floatingDamage > 0 ? '#ff5f7a' : '#37d67a',
-                        fontWeight: 900,
-                        fontSize: 20,
-                        textShadow: '0 0 6px rgba(0,0,0,0.7)',
+                        fontWeight: 950,
+                        fontSize: 21,
+                        fontFamily: '"Montserrat", "Noto Sans KR", "Pretendard", sans-serif',
+                        letterSpacing: '0.3px',
+                        textShadow: '0 0 8px rgba(0,0,0,0.72)',
                         pointerEvents: 'none',
                         zIndex: 8,
-                        animation: 'damagePop 0.7s ease forwards',
+                        animation: 'damageFloatTrajectory 1.35s cubic-bezier(0.22, 0.7, 0.3, 1) forwards',
                     }}
                 >
                     {effect.floatingDamage > 0 ? '-' : '+'}{Math.abs(effect.floatingDamage)}
@@ -496,11 +498,32 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     34% { opacity: .95; transform: scale(1.03); }
                     100% { opacity: 0; transform: scale(1.28); }
                 }
-                @keyframes damagePop {
-                    0% { opacity: 0; transform: translate(-50%, -12%); }
-                    18% { opacity: 1; transform: translate(-50%, -50%); }
-                    100% { opacity: 0; transform: translate(-50%, -120%); }
-                }
+                @keyframes damageFloatTrajectory {
+                    0% {
+                        opacity: .22;
+                        filter: blur(2.2px);
+                        transform: translate(-50%, 0%);
+                    }
+                    34% {
+                        opacity: .96;
+                        filter: blur(.25px);
+                        transform: translate(-50%, -60%);
+                    }
+                    52% {
+                        opacity: 1;
+                        filter: blur(0);
+                        transform: translate(-50%, -74%);
+                    }
+                    70% {
+                        opacity: .95;
+                        filter: blur(0);
+                        transform: translate(-50%, -74%);
+                    }
+                    100% {
+                        opacity: 0;
+                        filter: blur(1.9px);
+                        transform: translate(-50%, -146%);
+                    }
                 @keyframes destroyFadeOut {
                     0% { opacity: 1; transform: scale(1); filter: saturate(1); }
                     100% { opacity: 0; transform: scale(0.94); filter: saturate(.4) blur(1px); }
