@@ -226,20 +226,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         transform: 'translate(-50%, -50%)',
                         color: 'transparent',
                         backgroundImage: effect.floatingDamage > 0
-                            ? 'linear-gradient(180deg, #ffffff 0%, #ffeef2 28%, #ffc8d6 60%, #ff9ab2 100%)'
-                            : 'linear-gradient(180deg, #ffffff 0%, #f0fff6 28%, #cbffe2 60%, #9ef1c2 100%)',
+                            ? 'linear-gradient(180deg, #fff6f8 0%, #ffd8e2 46%, #ffb7c8 100%)'
+                            : 'linear-gradient(180deg, #f8fff9 0%, #daf7e3 46%, #b8ebc8 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
                         fontWeight: 1000,
                         fontSize: 54,
                         lineHeight: 1,
                         fontFamily: '"Arial Black", "Montserrat", "Inter", "Noto Sans KR", "Pretendard", sans-serif',
-                        fontStyle: 'italic',
-                        letterSpacing: '-1.2px',
-                        WebkitTextStroke: '2.6px #2b2c31',
-                        textShadow: effect.floatingDamage > 0
-                            ? '0 2px 0 rgba(28, 30, 36, 0.72), 0 6px 12px rgba(0,0,0,0.24), 0 0 12px rgba(255, 172, 196, 0.45)'
-                            : '0 2px 0 rgba(28, 30, 36, 0.72), 0 6px 12px rgba(0,0,0,0.24), 0 0 12px rgba(155, 248, 198, 0.45)',
+                        letterSpacing: '-0.8px',
+                        WebkitTextStroke: '3px #1f2430',
+                        textShadow: '0 1px 0 rgba(255,255,255,0.18)',
                         pointerEvents: 'none',
                         zIndex: 8,
                         animation: 'damageFloatTrajectory 0.78s linear forwards',
