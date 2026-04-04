@@ -48,6 +48,7 @@ const HERO_ID_ALIAS: Record<string, string> = {
     sojourn: 'sojourn',
     junkrat: 'junkrat',
     genji: 'genji',
+    anran: 'anran',
     vendetta: 'vendetta',
 
     ana: 'ana',
@@ -72,6 +73,7 @@ const HERO_ID_ALIAS: Record<string, string> = {
 
 const HERO_NAME_ALIAS: Record<string, string> = {
     아나: 'ana',
+    안란: 'anran',
     애쉬: 'ashe',
     바티스트: 'baptiste',
     바스티온: 'bastion',

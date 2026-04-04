@@ -231,6 +231,28 @@ def ashe_dynamite(caster: FieldCard, target: FieldCard, game: GameState) -> dict
         c.add_status(Burn(damage_per_turn=1, duration=3, source_uid=caster.uid))
     return {"success": True, "skill": "다이너마이트", "burned": len(targets)}
 
+# ── 안란 ──────────────────────────────────
+@register_skill("anran", "skill_1")
+def anran_fan_flames(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    base = game.get_skill_damage(caster, "skill_1")
+    dmg = base * 2 if target.has_status("burn") else base
+    result = target.take_damage(dmg)
+    return {"success": True, "skill": "불난 데 부채질", "damage": dmg, "damage_log": result}
+
+@register_skill("anran", "skill_2")
+def anran_inferno_dash(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
+    target.add_status(Burn(
+        damage_per_turn=int(caster.extra.get("burn_damage", 1)),
+        duration=int(caster.extra.get("burn_duration", 3)),
+        source_uid=caster.uid,
+    ))
+    return {"success": True, "skill": "맹염 질주", "damage_log": result, "applied_burn": True}
+
 # ── 솔져:76 ──────────────────────────────
 @register_skill("soldier76", "skill_1")
 def soldier76_biotic(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
