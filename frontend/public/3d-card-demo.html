@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2D 카드 3D 느낌 데모</title>
+    <style>
+        :root {
+            --bg: radial-gradient(circle at top, #1a274f 0%, #0d1226 45%, #080b17 100%);
+            --panel: rgba(255, 255, 255, 0.08);
+            --line: rgba(255, 255, 255, 0.2);
+            --text: #edf2ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Pretendard, Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .wrap {
+            width: min(1020px, 100%);
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 320px 1fr;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .controls {
+            padding: 20px;
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 14px;
+            color: #d7def8;
+        }
+
+        input[type='file'],
+        input[type='range'] {
+            width: 100%;
+        }
+
+        .hint {
+            font-size: 13px;
+            opacity: 0.9;
+            line-height: 1.45;
+        }
+
+        .board {
+            min-height: 640px;
+            padding: 30px;
+            display: grid;
+            place-items: center;
+            perspective: 1200px;
+        }
+
+        .card {
+            position: relative;
+            width: min(72vw, 360px);
+            aspect-ratio: 0.72;
+            transform-style: preserve-3d;
+            transition: transform 140ms ease-out;
+            cursor: pointer;
+            border-radius: 24px;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg) !important;
+        }
+
+        .face {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            overflow: hidden;
+            backface-visibility: hidden;
+            transform-style: preserve-3d;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow:
+                    0 26px 60px rgba(0, 0, 0, 0.55),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+        }
+
+        .face img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .front::after {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            transform: translateX(var(--shine-x, 0%)) rotate(25deg);
+            background: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0) 40%,
+                    rgba(255, 255, 255, 0.18) 50%,
+                    rgba(255, 255, 255, 0) 60%
+            );
+            pointer-events: none;
+        }
+
+        .back {
+            transform: rotateY(180deg);
+        }
+
+        .fallback {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 22px;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+            background:
+                    radial-gradient(circle at 22% 20%, rgba(126, 238, 255, 0.5), transparent 35%),
+                    radial-gradient(circle at 80% 75%, rgba(192, 147, 255, 0.45), transparent 40%),
+                    linear-gradient(145deg, #2a3471 15%, #1f1f3f 55%, #141934 100%);
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border-radius: 999px;
+            padding: 10px 14px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 900px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+
+            .board {
+                min-height: 520px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <section class="panel controls">
+        <h2>2D 카드 → 3D 느낌 데모</h2>
+        <p class="hint">
+            이미지를 올리면 카드가 입체적으로 기울고, 클릭하면 뒤집힙니다.<br />
+            즉, 2D 일러스트만 있어도 웹에서 충분히 3D 같은 인상을 줄 수 있습니다.
+        </p>
+
+        <label>
+            앞면 이미지
+            <input id="frontInput" type="file" accept="image/*" />
+        </label>
+
+        <label>
+            뒷면 이미지 (선택)
+            <input id="backInput" type="file" accept="image/*" />
+        </label>
+
+        <label>
+            회전 강도: <span id="strengthText">14</span>°
+            <input id="strength" type="range" min="4" max="28" value="14" />
+        </label>
+
+        <div class="row">
+            <button id="flipBtn" type="button">카드 뒤집기</button>
+            <button id="resetBtn" type="button">각도 리셋</button>
+        </div>
+    </section>
+
+    <section class="panel board" id="board">
+        <article class="card" id="card" aria-label="3D card demo">
+            <div class="face front">
+                <img id="frontImg" alt="카드 앞면" hidden />
+                <div class="fallback">FRONT<br />이미지 업로드</div>
+            </div>
+            <div class="face back">
+                <img id="backImg" alt="카드 뒷면" hidden />
+                <div class="fallback">BACK<br />선택 업로드</div>
+            </div>
+        </article>
+    </section>
+</div>
+
+<script>
+    const board = document.getElementById('board');
+    const card = document.getElementById('card');
+    const strengthInput = document.getElementById('strength');
+    const strengthText = document.getElementById('strengthText');
+    const frontInput = document.getElementById('frontInput');
+    const backInput = document.getElementById('backInput');
+    const frontImg = document.getElementById('frontImg');
+    const backImg = document.getElementById('backImg');
+    const flipBtn = document.getElementById('flipBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let rotateX = 0;
+    let rotateY = 0;
+    let strength = Number(strengthInput.value);
+
+    const applyTransform = () => {
+        if (card.classList.contains('is-flipped')) {
+            return;
+        }
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    };
+
+    const setImage = (input, imgElement) => {
+        const [file] = input.files || [];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            imgElement.src = reader.result;
+            imgElement.hidden = false;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    board.addEventListener('pointermove', (event) => {
+        const rect = board.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width;
+        const y = (event.clientY - rect.top) / rect.height;
+
+        rotateY = (x - 0.5) * strength * 2;
+        rotateX = (0.5 - y) * strength * 1.6;
+
+        const shine = `${(x - 0.5) * 120}%`;
+        card.style.setProperty('--shine-x', shine);
+
+        applyTransform();
+    });
+
+    board.addEventListener('pointerleave', () => {
+        rotateX = 0;
+        rotateY = 0;
+        applyTransform();
+    });
+
+    frontInput.addEventListener('change', () => setImage(frontInput, frontImg));
+    backInput.addEventListener('change', () => setImage(backInput, backImg));
+
+    strengthInput.addEventListener('input', () => {
+        strength = Number(strengthInput.value);
+        strengthText.textContent = strength;
+    });
+
+    const toggleFlip = () => {
+        card.classList.toggle('is-flipped');
+    };
+
+    card.addEventListener('click', toggleFlip);
+    flipBtn.addEventListener('click', toggleFlip);
+
+    resetBtn.addEventListener('click', () => {
+        card.classList.remove('is-flipped');
+        rotateX = 0;
+        rotateY = 0;
+        applyTransform();
+    });
+</script>
+</body>
+</html>

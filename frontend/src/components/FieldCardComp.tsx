@@ -226,8 +226,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         transform: 'translate(-50%, -50%)',
                         color: 'transparent',
                         backgroundImage: effect.floatingDamage > 0
-                            ? 'linear-gradient(180deg, #fff6f8 0%, #ffd8e2 46%, #ffb7c8 100%)'
-                            : 'linear-gradient(180deg, #f8fff9 0%, #daf7e3 46%, #b8ebc8 100%)',
+                            ? 'linear-gradient(180deg, #fff4f7 0%, #ffc9d8 44%, #ff96b0 100%)'
+                            : 'linear-gradient(180deg, #f5fff8 0%, #c6f3d5 44%, #86dfab 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
                         fontWeight: 1000,
