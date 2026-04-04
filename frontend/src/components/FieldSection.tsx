@@ -54,10 +54,21 @@ const FieldSection: React.FC<Props> = ({
     );
 
     const renderRow = (cards: FieldCard[], role: string, max: number) => {
+        const cardBySlot = new Map<number, FieldCard>();
+        cards.forEach((card, idx) => {
+            const raw = card?.extra?.slot_index;
+            const parsed = Number.isInteger(raw) ? Number(raw) : idx;
+            const slot = parsed >= 0 && parsed < max ? parsed : idx;
+            if (!cardBySlot.has(slot)) {
+                cardBySlot.set(slot, card);
+            }
+        });
+
         const slots = [];
         for (let i = 0; i < max; i++) {
-            if (i < cards.length) {
-                slots.push(renderCard(cards[i]));
+            const slottedCard = cardBySlot.get(i);
+            if (slottedCard) {
+                slots.push(renderCard(slottedCard));
             } else if (canPlace && placingRole === role) {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main')} />);
             } else {

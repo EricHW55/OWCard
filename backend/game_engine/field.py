@@ -359,14 +359,36 @@ class Field:
         total_count = self._count_role(self.main_cards, role) + self._count_role(self.side_cards, role)
         return total_count < total_limits[role]
 
+    def _occupied_main_slots(self, role: Role) -> set[int]:
+        occupied: set[int] = set()
+        for card in self.main_cards:
+            if card.role != role:
+                continue
+            slot = int(card.extra.get("slot_index", 0))
+            occupied.add(slot)
+        return occupied
+
+    def _next_main_slot(self, role: Role) -> int | None:
+        if role == Role.TANK:
+            return 0 if 0 not in self._occupied_main_slots(role) else None
+        for slot in (0, 1):
+            if slot not in self._occupied_main_slots(role):
+                return slot
+        return None
+
     def place_card(self, card: FieldCard, zone: Zone) -> bool:
         if zone == Zone.MAIN:
             if not self.can_place_main(card.role):
                 return False
+            slot_index = self._next_main_slot(card.role)
+            if slot_index is None:
+                return False
+            card.extra["slot_index"] = slot_index
             self.main_cards.append(card)
         else:
             if not self.can_place_side(card.role):
                 return False
+            card.extra["slot_index"] = 0
             self.side_cards.append(card)
         card.zone = zone
         return True
@@ -374,8 +396,11 @@ class Field:
     def force_place_card(self, card: FieldCard, zone: Zone) -> None:
         """자리 제한을 무시하고 강제로 배치한다. (복제/특수 소환 전용)"""
         if zone == Zone.MAIN:
+            slot_index = self._next_main_slot(card.role)
+            card.extra["slot_index"] = 0 if slot_index is None else slot_index
             self.main_cards.append(card)
         else:
+            card.extra["slot_index"] = 0
             self.side_cards.append(card)
         card.zone = zone
 
@@ -402,14 +427,25 @@ class Field:
             return False
 
         if to_zone == Zone.MAIN:
+            slot_index = self._next_main_slot(card.role)
+            if slot_index is None:
+                self.main_cards = original_main
+                self.side_cards = original_side
+                card.zone = original_zone
+                return False
+            card.extra["slot_index"] = slot_index
             self.main_cards.append(card)
         else:
+            card.extra["slot_index"] = 0
             self.side_cards.append(card)
         card.zone = to_zone
         return True
 
     def _main_layers(self) -> list[list[FieldCard]]:
-        alive = sorted(self._alive(self.main_cards), key=lambda c: ROLE_ORDER[c.role])
+        alive = sorted(
+            self._alive(self.main_cards),
+            key=lambda c: (ROLE_ORDER[c.role], int(c.extra.get("slot_index", 0))),
+        )
         layers: list[list[FieldCard]] = []
         cur_role = None
         for c in alive:
@@ -551,17 +587,15 @@ class Field:
             return result
 
         def alive_main(role: Role) -> list[FieldCard]:
-            return [c for c in self._alive(self.main_cards) if c.role == role]
+            return sorted(
+                [c for c in self._alive(self.main_cards) if c.role == role],
+                key=lambda c: int(c.extra.get("slot_index", 0)),
+            )
 
         if card.role == Role.TANK:
             column_index = 0
         else:
-            same_role_cards = alive_main(card.role)
-            column_index = 0
-            for idx, c in enumerate(same_role_cards):
-                if c.uid == card.uid:
-                    column_index = idx
-                    break
+            column_index = int(card.extra.get("slot_index", 0))
 
         result: list[FieldCard] = []
         tank_cards = alive_main(Role.TANK)
@@ -570,8 +604,9 @@ class Field:
             result.append(tank_cards[0])
         for role in (Role.DEALER, Role.HEALER):
             role_cards = alive_main(role)
-            if column_index < len(role_cards):
-                result.append(role_cards[column_index])
+            target = next((c for c in role_cards if int(c.extra.get("slot_index", 0)) == column_index), None)
+            if target:
+                result.append(target)
         return result
 
     def get_role_row(self, role: Role, *, include_side: bool = True) -> list[FieldCard]:
