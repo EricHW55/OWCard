@@ -157,6 +157,32 @@ function getHeroSkillBlockReason(card: any, skillKey: string): string | null {
   return null;
 }
 
+function getSymmetraTeleportBlockReason(caster: any, target: any, myField: any): string | null {
+  if (getHeroKey(caster) !== 'symmetra') return null;
+  if (!target || !myField) return '행동 불가';
+  const role = String(target?.role || '');
+  const nextZone = target?.zone === 'main' ? 'side' : 'main';
+  const sideCards = Array.isArray(myField?.side) ? myField.side : [];
+  if (nextZone === 'side') {
+    const hasSameRoleInSide = sideCards.some((c: any) => c?.uid !== target?.uid && c?.alive !== false && c?.role === role);
+    if (!hasSameRoleInSide) return null;
+    if (role === 'tank') return '행동 불가: 사이드 자리가 꽉 찼습니다';
+    return `행동 불가: 사이드 ${role} 자리가 꽉 찼습니다`;
+  }
+  const mainCards = Array.isArray(myField?.main) ? myField.main : [];
+  const occupiedSlots = new Set(
+      mainCards
+          .filter((c: any) => c?.uid !== target?.uid && c?.role === role && c?.alive !== false)
+          .map((c: any) => Number(c?.extra?.slot_index ?? 0)),
+  );
+  const isMainBlocked = role === 'tank'
+      ? occupiedSlots.has(0)
+      : occupiedSlots.has(0) && occupiedSlots.has(1);
+  if (!isMainBlocked) return null;
+  if (role === 'tank') return '행동 불가: 본대 탱커 자리가 꽉 찼습니다';
+  return `행동 불가: 본대 ${role} 자리가 꽉 찼습니다`;
+}
+
 function buildColumnChoices(field: any): ColumnPreview[] {
   const main = Array.isArray(field?.main) ? field.main : [];
   const side = Array.isArray(field?.side) ? field.side : [];
@@ -1080,6 +1106,16 @@ export function useOnlineGameController(gameId: string) {
         if (actionMode === 'skill_1' && getHeroKey(caster) === 'hazard') {
           showSystemNotice('가시벽', '상대 본대의 빈 공간을 클릭하세요', 1500);
           return;
+        }
+        if (actionMode === 'skill_1' && !isOpponent && getHeroKey(caster) === 'symmetra') {
+          const blockedReason = getSymmetraTeleportBlockReason(caster, card, my?.field);
+          if (blockedReason) {
+            showSystemNotice('행동 불가', blockedReason, 1800);
+            addLog(`오류: ${blockedReason}`);
+            setActionMode(null);
+            setSelectedFieldUid(null);
+            return;
+          }
         }
         const skillName = getSkillNameFromCard(caster, actionMode);
         runAfterSkillAnnouncer({
