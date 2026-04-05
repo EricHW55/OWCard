@@ -1,8 +1,8 @@
 .game-page {
-    --field-card-width: clamp(58px, min(8.2vmin, 7.6vh), 90px);
+    --field-card-width: clamp(72px, min(10.6vmin, 10.2vh), 116px);
     --field-card-height: calc(var(--field-card-width) * 1.48);
     --field-card-radius: clamp(6px, calc(var(--field-card-width) * 0.11), 10px);
-    --field-lane-gap: clamp(2px, calc(var(--field-card-width) * 0.05), 5px);
+    --field-lane-gap: clamp(3px, calc(var(--field-card-width) * 0.07), 8px);
     height: 100dvh;
     min-height: 100dvh;
     display: flex;
@@ -19,14 +19,29 @@
 }
 
 .game-topbar {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    z-index: 12;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
-    background: #0d1225;
-    border-bottom: 1px solid #2a3560;
-    flex-shrink: 0;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.game-topbar-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 11px;
+    background: rgba(9, 15, 34, 0.82);
+    border: 1px solid rgba(67, 89, 144, 0.52);
+    backdrop-filter: blur(3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.34);
+    pointer-events: auto;
 }
 
 .game-topbar-left,
@@ -40,6 +55,9 @@
     font-size: 10px;
     color: #8a94b8;
     white-space: nowrap;
+    max-width: 40vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .game-round-pill,
@@ -105,7 +123,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 2px 4px;
+    padding: 36px 4px 2px;
     gap: 4px;
     -webkit-overflow-scrolling: touch;
     position: relative;
@@ -156,7 +174,7 @@
 .game-board-scale {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     height: 100%;
     transform-origin: top center;
 }
@@ -164,34 +182,21 @@
 .game-midline {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 1px 0;
+    gap: 0;
+    padding: 0;
     flex-shrink: 0;
+    margin: 2px 0 1px;
 }
 
 .game-midline-bar {
     flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #3a4a78, transparent);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(149, 176, 240, 0.35), transparent);
 }
 
-.game-midline-dots {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+.game-midline-bar.active {
+    background: linear-gradient(90deg, transparent, rgba(211, 230, 255, 0.58), transparent);
 }
-
-.game-midline-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #2a3560;
-    border: 2px solid #3a4a78;
-}
-
-.game-midline-dot.active { background: #fff; }
-.game-midline-dot.red { background: #ff3355; opacity: 0.3; }
-.game-midline-dot.blue { background: #44aaff; opacity: 0.3; }
 
 .game-bottom-panel {
     background: #0d1225;
@@ -487,21 +492,21 @@
 .field-section {
     flex: 1;
     min-height: 0;
-    border: 1px solid #1a2340;
-    border-radius: 8px;
-    background: #0f1628;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     display: flex;
     flex-direction: column;
-    --field-row-gap: clamp(2px, calc(var(--field-card-width) * 0.045), 5px);
+    --field-row-gap: clamp(3px, calc(var(--field-card-width) * 0.06), 8px);
     --field-edge-gap: clamp(0px, calc(var(--field-card-width) * 0.02), 2px);
     justify-content: flex-start;
-    padding: var(--field-edge-gap) 6px;
+    padding: var(--field-edge-gap) 2px;
     gap: 0;
 }
 
 .field-section-title {
-    font-size: 8px;
-    color: #2a3a5a;
+    font-size: 7px;
+    color: rgba(148, 171, 222, 0.35);
     letter-spacing: 1px;
     font-weight: 700;
     margin-bottom: 0px;
@@ -518,6 +523,16 @@
     padding-block: var(--field-edge-gap);
 }
 
+.field-section.opponent .field-lanes {
+    justify-content: flex-end;
+    padding-bottom: clamp(3px, 0.8vh, 8px);
+}
+
+.field-section.player .field-lanes {
+    justify-content: flex-start;
+    padding-top: clamp(3px, 0.8vh, 8px);
+}
+
 .field-lane-row {
     display: flex;
     align-items: center;
@@ -531,11 +546,12 @@
 }
 
 .field-role-label {
-    width: 24px;
+    width: 20px;
     flex-shrink: 0;
     text-align: right;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
+    opacity: 0.9;
 }
 
 .field-lane-track {
@@ -561,8 +577,8 @@
 .field-main-side-divider {
     width: 1px;
     height: calc(var(--field-card-height) * 0.88);
-    background: linear-gradient(180deg, transparent, #2b3e6b, transparent);
-    opacity: 0.8;
+    background: linear-gradient(180deg, transparent, rgba(78, 103, 156, 0.45), transparent);
+    opacity: 0.5;
     flex-shrink: 0;
 }
 
@@ -577,20 +593,20 @@
     width: var(--field-card-width);
     height: var(--field-card-height);
     border-radius: var(--field-card-radius);
-    border: 2px dashed #1a2340;
-    background: transparent;
+    border: 2px dashed rgba(81, 122, 205, 0.45);
+    background: rgba(43, 74, 152, 0.06);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: clamp(9px, calc(var(--field-card-width) * 0.13), 12px);
-    color: #3a4a78;
+    color: rgba(130, 161, 230, 0.75);
     cursor: default;
     flex-shrink: 0;
 }
 
 .field-empty-slot.highlight {
     border-color: #ff9b30;
-    background: rgba(255,155,48,0.08);
+    background: rgba(255,155,48,0.12);
     cursor: pointer;
 }
 
@@ -606,19 +622,24 @@
 
 @media (max-width: 768px) {
     .game-topbar {
-        flex-wrap: wrap;
-        justify-content: space-between;
-        padding: 5px 8px;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        align-items: flex-start;
+    }
+
+    .game-topbar-chip {
+        padding: 4px 6px;
+        gap: 4px;
     }
 
     .game-topbar-center {
-        order: 3;
-        width: 100%;
         font-size: 9px;
+        max-width: 34vw;
     }
 
     .game-battle {
-        padding: 2px 4px;
+        padding: 32px 4px 2px;
         gap: 2px;
     }
 
@@ -702,6 +723,10 @@
 @media (max-width: 480px) {
     .game-page {
         overflow-y: auto;
+    }
+
+    .game-topbar-center {
+        display: none;
     }
 
     .game-board-scale {
@@ -1006,14 +1031,14 @@
 .game-battle--three-d {
     perspective: 1200px;
     background:
-            radial-gradient(130% 75% at 50% 48%, rgba(116, 200, 255, 0.14), transparent 60%),
-            linear-gradient(180deg, #161f40 0%, #101731 48%, #0c1228 100%);
-    border: 1px solid rgba(137, 178, 255, 0.18);
+            radial-gradient(140% 86% at 50% 50%, rgba(116, 200, 255, 0.14), rgba(30, 54, 104, 0.08) 62%, transparent 80%),
+            linear-gradient(180deg, #1a2550 0%, #162144 48%, #121b37 100%);
+    border: 1px solid rgba(137, 178, 255, 0.22);
     border-radius: 16px;
 }
 
 .game-battle--three-d .game-board-scale {
-    transform: rotateX(13deg) scale(0.97);
+    transform: rotateX(7deg) scale(0.99);
     transform-origin: 50% 52%;
 }
 

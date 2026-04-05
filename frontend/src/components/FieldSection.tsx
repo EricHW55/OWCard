@@ -128,7 +128,7 @@ const FieldSection: React.FC<Props> = ({
         ];
 
     return (
-        <div className="field-section">
+        <div className={`field-section ${isOpponent ? 'opponent' : 'player'}`}>
             <div className="field-section-title">{isOpponent ? '상대 본대' : '나의 본대'}</div>
             <div className="field-lanes">
                 {mainRows.map(({ role, label, cards, max }, idx) => {

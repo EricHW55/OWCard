@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Coin Toss Demo</title>
+    <style>
+        :root {
+            --coin-size: min(52vw, 280px);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background:
+                    radial-gradient(120% 70% at 50% 20%, #2f3555 0%, #171b2d 55%, #0b0d15 100%);
+            color: #f5f7ff;
+            font-family: Inter, Pretendard, system-ui, sans-serif;
+            padding: 20px;
+        }
+        .layout {
+            width: min(920px, 100%);
+            display: grid;
+            gap: 18px;
+            grid-template-columns: 300px 1fr;
+        }
+        .panel {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 18px;
+            backdrop-filter: blur(6px);
+        }
+        .controls {
+            padding: 18px;
+            display: grid;
+            align-content: start;
+            gap: 12px;
+        }
+        .controls h2 { margin: 0 0 4px; font-size: 20px; }
+        .controls p { margin: 0; font-size: 13px; color: #cad2f8; line-height: 1.45; }
+        label { display: grid; gap: 6px; font-size: 13px; color: #dae1ff; }
+        select, button {
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            background: rgba(0, 0, 0, 0.25);
+            color: #fff;
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+        .row { display: flex; gap: 8px; }
+        .status {
+            margin-top: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffd874;
+        }
+        .stage {
+            min-height: 560px;
+            display: grid;
+            place-items: center;
+            perspective: 1100px;
+            position: relative;
+            overflow: hidden;
+        }
+        .shadow {
+            position: absolute;
+            width: calc(var(--coin-size) * 0.72);
+            height: calc(var(--coin-size) * 0.18);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,0,0,0.55), rgba(0,0,0,0.08) 70%, transparent 100%);
+            transform: translateY(calc(var(--coin-size) * 0.42));
+            filter: blur(2px);
+        }
+        .coin-wrap {
+            width: var(--coin-size);
+            aspect-ratio: 1;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .coin {
+            position: absolute;
+            inset: 0;
+            transform-style: preserve-3d;
+        }
+        .face {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            overflow: hidden;
+            box-shadow:
+                    0 18px 36px rgba(0,0,0,0.45),
+                    inset 0 0 0 2px rgba(255, 216, 120, 0.45);
+        }
+        .face img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .front { transform: translateZ(6px); }
+        .back { transform: rotateY(180deg) translateZ(6px); }
+        .rim {
+            position: absolute;
+            inset: 4%;
+            border-radius: 50%;
+            border: 9px solid rgba(215, 162, 52, 0.7);
+            transform: translateZ(0);
+            filter: drop-shadow(0 0 10px rgba(255, 197, 84, 0.35));
+        }
+        .shine {
+            position: absolute;
+            inset: -40% auto auto -30%;
+            width: 60%;
+            height: 180%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0));
+            transform: rotate(25deg);
+            pointer-events: none;
+        }
+        @media (max-width: 860px) {
+            .layout { grid-template-columns: 1fr; }
+            .stage { min-height: 460px; }
+        }
+    </style>
+</head>
+<body>
+<main class="layout">
+    <section class="panel controls">
+        <h2>3D 코인토스 데모</h2>
+        <p>`public/coin/front.png` 와 `public/coin/back.png`를 사용합니다.</p>
+
+        <label>
+            결과 지정
+            <select id="targetFace">
+                <option value="front">앞면</option>
+                <option value="back">뒷면</option>
+            </select>
+        </label>
+
+        <div class="row">
+            <button id="tossBtn" type="button">코인 토스</button>
+            <button id="resetBtn" type="button">리셋</button>
+        </div>
+
+        <div class="status" id="statusText">대기 중 · 현재 앞면</div>
+    </section>
+
+    <section class="panel stage" id="stage">
+        <div class="shadow" id="coinShadow"></div>
+        <div class="coin-wrap" id="coinWrap">
+            <div class="coin" id="coin">
+                <div class="face front">
+                    <img src="./coin/front.png" alt="코인 앞면" />
+                    <div class="shine"></div>
+                </div>
+                <div class="face back">
+                    <img src="./coin/back.png" alt="코인 뒷면" />
+                    <div class="shine"></div>
+                </div>
+                <div class="rim" aria-hidden="true"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    const coin = document.getElementById('coin');
+    const coinWrap = document.getElementById('coinWrap');
+    const coinShadow = document.getElementById('coinShadow');
+    const tossBtn = document.getElementById('tossBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const targetFace = document.getElementById('targetFace');
+    const statusText = document.getElementById('statusText');
+
+    let currentFace = 'front';
+    let isTossing = false;
+
+    const setFace = (face) => {
+        currentFace = face;
+        const base = face === 'front' ? 0 : 180;
+        coin.style.transform = `rotateY(${base}deg)`;
+        statusText.textContent = `대기 중 · 현재 ${face === 'front' ? '앞면' : '뒷면'}`;
+    };
+
+    const toss = () => {
+        if (isTossing) return;
+        isTossing = true;
+        tossBtn.disabled = true;
+
+        const target = targetFace.value;
+        const targetBase = target === 'front' ? 0 : 180;
+        const spins = 8 + Math.floor(Math.random() * 3);
+        const finalY = spins * 180 + targetBase;
+
+        coin.style.transition = 'none';
+        coinWrap.style.transition = 'none';
+        coinShadow.style.transition = 'none';
+        coinWrap.style.transform = 'translateY(0px) rotateX(0deg)';
+        coinShadow.style.transform = 'translateY(calc(var(--coin-size) * 0.42)) scale(1)';
+
+        requestAnimationFrame(() => {
+            coin.style.transition = 'transform 1900ms cubic-bezier(0.2, 0.85, 0.2, 1)';
+            coinWrap.style.transition = 'transform 1900ms cubic-bezier(0.2, 0.85, 0.2, 1)';
+            coinShadow.style.transition = 'transform 1900ms ease-out, opacity 1900ms ease-out';
+
+            coin.style.transform = `rotateY(${finalY}deg)`;
+            coinWrap.style.transform = 'translateY(-120px) rotateX(25deg)';
+            coinShadow.style.transform = 'translateY(calc(var(--coin-size) * 0.52)) scale(0.72)';
+            coinShadow.style.opacity = '0.45';
+
+            statusText.textContent = '토스 중...';
+        });
+
+        window.setTimeout(() => {
+            coinWrap.style.transition = 'transform 500ms cubic-bezier(0.22, 0.61, 0.36, 1)';
+            coinShadow.style.transition = 'transform 500ms ease, opacity 500ms ease';
+            coinWrap.style.transform = 'translateY(0px) rotateX(0deg)';
+            coinShadow.style.transform = 'translateY(calc(var(--coin-size) * 0.42)) scale(1)';
+            coinShadow.style.opacity = '1';
+        }, 1400);
+
+        window.setTimeout(() => {
+            currentFace = target;
+            statusText.textContent = `완료 · 결과 ${target === 'front' ? '앞면' : '뒷면'}`;
+            tossBtn.disabled = false;
+            isTossing = false;
+        }, 1950);
+    };
+
+    tossBtn.addEventListener('click', toss);
+    resetBtn.addEventListener('click', () => {
+        if (isTossing) return;
+        setFace('front');
+    });
+
+    setFace('front');
+</script>
+</body>
+</html>

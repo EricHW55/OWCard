@@ -57,10 +57,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
-      <div className="game-topbar">
-        <div className="game-topbar-left">{topbarLeft}</div>
-        <div className="game-topbar-center">{topbarCenter}</div>
-        <div className="game-topbar-right">{topbarRight}</div>
+      <div className="game-topbar" aria-label="게임 상태">
+        <div className="game-topbar-left game-topbar-chip">{topbarLeft}</div>
+        <div className="game-topbar-center game-topbar-chip">{topbarCenter}</div>
+        <div className="game-topbar-right game-topbar-chip">{topbarRight}</div>
       </div>
 
       {banners.map((banner, index) => (
@@ -87,13 +87,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
           <FieldSection {...topField} />
 
           <div className="game-midline">
-            <div className="game-midline-bar" />
-            <div className="game-midline-dots">
-              <div className={`game-midline-dot ${midlineDotActive ? 'active' : ''}`} />
-              <div className="game-midline-dot red" />
-              <div className="game-midline-dot blue" />
-            </div>
-            <div className="game-midline-bar" />
+            <div className={`game-midline-bar ${midlineDotActive ? 'active' : ''}`} />
           </div>
 
           <FieldSection {...bottomField} />
