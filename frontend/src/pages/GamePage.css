@@ -339,11 +339,14 @@
 
 .game-hand-row {
     display: flex;
-    gap: 5px;
-    padding: 4px 8px;
-    overflow-x: auto;
+    gap: 0;
+    padding: 6px 20px 2px;
+    overflow-x: visible;
+    overflow-y: visible;
     justify-content: center;
+    align-items: flex-end;
     -webkit-overflow-scrolling: touch;
+    min-height: 118px;
 }
 
 .game-bottombar {
@@ -525,7 +528,8 @@
 
 .field-section.opponent .field-lanes {
     justify-content: flex-end;
-    padding-bottom: clamp(3px, 0.8vh, 8px);
+    padding-top: 0;
+    padding-bottom: clamp(2px, 0.35vh, 4px);
 }
 
 .field-section.player .field-lanes {

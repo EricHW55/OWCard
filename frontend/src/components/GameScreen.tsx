@@ -30,6 +30,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 }) => {
   const [showLogModal, setShowLogModal] = React.useState(false);
   const killTimerRef = React.useRef<Record<string, number>>({});
+  const focusedHandIndex = handCards.findIndex((_, index) => isHandSelected(index));
 
   React.useEffect(() => {
     if (!onDismissKillFeedItem) return;
@@ -103,6 +104,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
               key={`${card.id}-${index}`}
               card={card}
               selected={isHandSelected(index)}
+              index={index}
+              total={handCards.length}
+              focusedIndex={focusedHandIndex}
               onClick={() => onHandClick(card, index)}
             />
           ))}

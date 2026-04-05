@@ -1,21 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import type { HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { getHeroImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
 
 interface Props {
     card: HandCard;
     selected?: boolean;
     onClick?: () => void;
+    index: number;
+    total: number;
+    focusedIndex: number;
 }
 
-const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
+const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, focusedIndex }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
+    const fallbackChain = [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)];
+    const [imageStep, setImageStep] = useState(0);
     const [imgError, setImgError] = useState(false);
+    const currentImageSrc = fallbackChain[imageStep];
+    const hasFocused = focusedIndex >= 0;
+    const relative = index - Math.max(0, focusedIndex);
+    const fanProgress = total <= 1 ? 0 : index / (total - 1) - 0.5;
+    const baseRotate = fanProgress * 18;
+    const spreadOffset = hasFocused ? Math.sign(relative) * Math.min(Math.abs(relative) * 7, 28) : 0;
+    const cardLift = selected ? -14 : 0;
+    const cardScale = selected ? 1.14 : 1;
 
     useEffect(() => {
+        setImageStep(0);
         setImgError(false);
-    }, [card.id, card.hero_key, card.name, card.is_spell]);
+    }, [card.id, card.hero_key, card.name, card.is_spell, card.role]);
 
     return (
         <div
@@ -35,8 +49,11 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
                 cursor: 'pointer',
                 flexShrink: 0,
                 boxShadow: selected ? '0 0 14px rgba(255,155,48,0.5)' : 'none',
-                transform: selected ? 'translateY(-8px)' : 'none',
-                transition: 'all 0.2s',
+                marginInline: '-9px',
+                zIndex: selected ? 300 : 100 + index,
+                transform: `translateX(${spreadOffset}px) translateY(${cardLift}px) rotate(${baseRotate}deg) scale(${cardScale})`,
+                transformOrigin: 'center 130%',
+                transition: 'transform 0.22s ease, box-shadow 0.22s ease',
             }}
         >
             <div
@@ -81,15 +98,21 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick }) => {
                         border: '1px solid #2a3560',
                     }}
                 >
-                    {!imgError ? (
+                    {!imgError && currentImageSrc ? (
                         <img
-                            src={getHeroImageSrc(card as any)}
+                            src={currentImageSrc}
                             alt={card.name}
-                            onError={() => setImgError(true)}
+                            onError={() => {
+                                if (imageStep + 1 < fallbackChain.length) {
+                                    setImageStep((prev) => prev + 1);
+                                } else {
+                                    setImgError(true);
+                                }
+                            }}
                             style={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'cover',
+                                objectFit: 'cover'
                             }}
                         />
                     ) : (

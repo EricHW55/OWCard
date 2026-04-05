@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { getHeroImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
 
 interface Props {
     card: FieldCard;
@@ -70,13 +70,16 @@ function getMainDamage(card: FieldCard): string {
 }
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
+    const fallbackChain = [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)];
+    const [imageStep, setImageStep] = useState(0);
     const [imgError, setImgError] = useState(false);
     const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
     const prevParticleBarrierRef = useRef<{ breakSeq: number }>({ breakSeq: 0 });
 
     useEffect(() => {
+        setImageStep(0);
         setImgError(false);
-    }, [card.uid, card.name]);
+    }, [card.uid, card.name, card.role]);
 
     const color = ROLE_COLOR[card.role] || '#888';
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
@@ -386,9 +389,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             >
                 {!imgError ? (
                     <img
-                        src={getHeroImageSrc(card as any)}
+                        src={fallbackChain[imageStep]}
                         alt={card.name}
-                        onError={() => setImgError(true)}
+                        onError={() => {
+                            if (imageStep + 1 < fallbackChain.length) {
+                                setImageStep((prev) => prev + 1);
+                            } else {
+                                setImgError(true);
+                            }
+                        }}
                         style={{
                             width: '100%',
                             height: '100%',

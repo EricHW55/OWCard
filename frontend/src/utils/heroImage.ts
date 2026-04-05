@@ -3,6 +3,7 @@ type CardLike = {
     hero_key?: string | number | null;
     name?: string | number | null;
     is_spell?: boolean;
+    role?: 'tank' | 'dealer' | 'healer' | string | null;
 };
 
 const HERO_ID_ALIAS: Record<string, string> = {
@@ -251,7 +252,7 @@ const HERO_NAME_ALIAS_NORMALIZED = buildNormalizedAliasMap(HERO_NAME_ALIAS);
 const SPELL_ALIAS_NORMALIZED = buildNormalizedAliasMap(SPELL_ALIAS);
 const KNOWN_HERO_KEYS = new Set<string>(Object.values(HERO_ID_ALIAS));
 
-function resolveHeroKey(card: CardLike): string | null {
+export function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
         pickString(card.hero_key),
         pickString(card.name),
@@ -275,7 +276,7 @@ function resolveHeroKey(card: CardLike): string | null {
     return null;
 }
 
-function resolveSpellKey(card: CardLike): string | null {
+export function resolveSpellKey(card: CardLike): string | null {
     const candidates = [
         pickString(card.hero_key),
         pickString(card.name),
@@ -308,6 +309,28 @@ export function getCardImageSrc(card: CardLike): string {
 
     const heroKey = resolveHeroKey(card);
     return heroKey ? `/heroes/${heroKey}.png` : '/heroes/_unknown.png';
+}
+
+function getCardArtRoleFolder(card: CardLike): string {
+    if (card.is_spell) return 'spells';
+    if (card.role === 'tank') return 'tanks';
+    if (card.role === 'dealer') return 'dealers';
+    if (card.role === 'healer') return 'healers';
+    return 'dealers';
+}
+
+export function getCardArtCandidates(card: CardLike): string[] {
+    if (!card) return [];
+    const roleFolder = getCardArtRoleFolder(card);
+    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroKey(card);
+    if (!key) return [];
+
+    const normalizedKey = key === 'hana_song' ? 'songhana' : key;
+    return [
+        `/cards/${roleFolder}/${normalizedKey}.png`,
+        `/cards/${roleFolder}/${normalizedKey}.jpg`,
+        `/cards/${roleFolder}/${normalizedKey}.jpeg`,
+    ];
 }
 
 // 기존 코드 호환용
