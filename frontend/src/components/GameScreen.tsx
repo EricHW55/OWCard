@@ -59,7 +59,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
       <div className="game-topbar" aria-label="게임 상태">
         <div className="game-topbar-left game-topbar-chip">{topbarLeft}</div>
-        <div className="game-topbar-center game-topbar-chip">{topbarCenter}</div>
+        {topbarCenter ? <div className="game-topbar-center game-topbar-chip">{topbarCenter}</div> : null}
         <div className="game-topbar-right game-topbar-chip">{topbarRight}</div>
       </div>
 

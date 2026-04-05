@@ -73,10 +73,12 @@ const GamePage: React.FC = () => {
           <span className="game-phase-pill">{phaseLabel(vm.phase)}</span>
         </>
       }
-      topbarCenter={<>상대: {vm.opp.username || '상대'} · 패:{vm.opp.hand_count} · 덱:{vm.opp.draw_pile_count}</>}
       topbarRight={
         <>
           <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{vm.isMyTurn ? '● 내 턴' : '○ 상대 턴'}</div>
+          <div className="game-opponent-meta-inline">
+            상대: {vm.opp.username || '상대'} · 패:{vm.opp.hand_count} · 덱:{vm.opp.draw_pile_count}
+          </div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
           <button onClick={handleSurrender} disabled={isGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isGameOver ? 0.5 : 1 }}>항복</button>
           <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>

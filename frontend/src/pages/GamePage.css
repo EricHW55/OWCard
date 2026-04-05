@@ -107,6 +107,15 @@
 .game-turn-indicator.mine { color: #22dd77; }
 .game-turn-indicator.theirs { color: #ff3355; }
 
+.game-opponent-meta-inline {
+    font-size: 10px;
+    color: #8a94b8;
+    white-space: nowrap;
+    max-width: min(34vw, 260px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .game-reconnect-banner {
     flex-shrink: 0;
     padding: 6px 12px;
@@ -123,7 +132,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 36px 4px 2px;
+    padding: 36px 4px 8px;
     gap: 4px;
     -webkit-overflow-scrolling: touch;
     position: relative;
@@ -504,15 +513,6 @@
     gap: 0;
 }
 
-.field-section-title {
-    font-size: 7px;
-    color: rgba(148, 171, 222, 0.35);
-    letter-spacing: 1px;
-    font-weight: 700;
-    margin-bottom: 0px;
-    /*margin-bottom: calc(var(--field-row-gap) * 0.8);*/
-}
-
 .field-lanes {
     flex: 1;
     min-height: 0;
@@ -531,6 +531,7 @@
 .field-section.player .field-lanes {
     justify-content: flex-start;
     padding-top: clamp(3px, 0.8vh, 8px);
+    padding-bottom: clamp(14px, 2.4vh, 26px);
 }
 
 .field-lane-row {
@@ -543,15 +544,6 @@
 
 .field-lane-row + .field-lane-row {
     margin-top: var(--field-row-gap);
-}
-
-.field-role-label {
-    width: 20px;
-    flex-shrink: 0;
-    text-align: right;
-    font-size: 9px;
-    font-weight: 700;
-    opacity: 0.9;
 }
 
 .field-lane-track {
@@ -633,13 +625,18 @@
         gap: 4px;
     }
 
+    .game-opponent-meta-inline {
+        max-width: min(28vw, 170px);
+        font-size: 9px;
+    }
+
     .game-topbar-center {
         font-size: 9px;
         max-width: 34vw;
     }
 
     .game-battle {
-        padding: 32px 4px 2px;
+        padding: 32px 4px 8px;
         gap: 2px;
     }
 
@@ -762,6 +759,10 @@
 
     .game-context-subtext {
         font-size: 8px;
+    }
+
+    .game-opponent-meta-inline {
+        display: none;
     }
 
     .mercy-choice-grid {

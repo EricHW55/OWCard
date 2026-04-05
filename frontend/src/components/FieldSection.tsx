@@ -1,6 +1,5 @@
 import React from 'react';
 import type { CardVisualEffect, FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
-import { ROLE_COLOR } from '../types/constants';
 import FieldCardComp from './FieldCardComp';
 
 interface Props {
@@ -129,15 +128,13 @@ const FieldSection: React.FC<Props> = ({
 
     return (
         <div className={`field-section ${isOpponent ? 'opponent' : 'player'}`}>
-            <div className="field-section-title">{isOpponent ? '상대 본대' : '나의 본대'}</div>
             <div className="field-lanes">
-                {mainRows.map(({ role, label, cards, max }, idx) => {
+                {mainRows.map(({ role, cards, max }, idx) => {
                     const sideDef = sideRowDefs[idx];
                     const canPlaceSide = canPlace && placingRole === sideDef.role;
                     const canSelectSide = !!canSelectEmptySlot?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent });
                     return (
                         <div key={role} className="field-lane-row">
-                            <span className="field-role-label" style={{ color: ROLE_COLOR[role] }}>{label}</span>
                             <div className="field-lane-track">
                                 <div className={`field-main-slot-wrap ${max === 1 ? 'single' : ''}`}>
                                     {renderRow(cards, role, max)}
