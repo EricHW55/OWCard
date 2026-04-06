@@ -67,6 +67,7 @@ const FieldSection: React.FC<Props> = ({
     const bootstrapRef = useRef(false);
     const cinematicTimersRef = useRef<number[]>([]);
     const [placementCinematics, setPlacementCinematics] = useState<PlacementCinematic[]>([]);
+    const [hiddenFieldCardUids, setHiddenFieldCardUids] = useState<Set<string>>(new Set());
 
     const allFieldCards = useMemo(() => [...(field?.main || []), ...(field?.side || [])], [field?.main, field?.side]);
 
@@ -119,10 +120,22 @@ const FieldSection: React.FC<Props> = ({
             });
 
             if (scenes.length > 0) {
+                const newcomerUids = new Set(scenes.map((scene) => scene.uid));
+                setHiddenFieldCardUids((prev) => {
+                    const next = new Set(prev);
+                    newcomerUids.forEach((uid) => next.add(uid));
+                    return next;
+                });
                 setPlacementCinematics((prev) => [...prev, ...scenes]);
                 scenes.forEach((scene) => {
                     const timerId = window.setTimeout(() => {
                         setPlacementCinematics((prev) => prev.filter((item) => item.id !== scene.id));
+                        setHiddenFieldCardUids((prev) => {
+                            if (!prev.has(scene.uid)) return prev;
+                            const next = new Set(prev);
+                            next.delete(scene.uid);
+                            return next;
+                        });
                     }, 1220);
                     cinematicTimersRef.current.push(timerId);
                 });
@@ -134,20 +147,22 @@ const FieldSection: React.FC<Props> = ({
     }, [allFieldCards]);
 
 
-    const renderCard = (card: FieldCard) => (
+    const renderCard = (card: FieldCard, hidden = false) => (
         <div
             key={card.uid}
-            className="field-card-slot-anchor"
+            className={`field-card-slot-anchor ${hidden ? 'is-placement-hidden' : ''}`}
             ref={(node) => {
                 cardRefMap.current[card.uid] = node;
             }}
         >
             <FieldCardComp
                 card={card}
-                selected={selectedUid === card.uid}
-                glowing={canActUids.includes(card.uid)}
+                selected={!hidden && selectedUid === card.uid}
+                glowing={!hidden && canActUids.includes(card.uid)}
                 effect={cardEffects?.[card.uid]}
-                onClick={() => onCardClick(card)}
+                onClick={() => {
+                    if (!hidden) onCardClick(card);
+                }}
             />
         </div>
     );
@@ -171,7 +186,7 @@ const FieldSection: React.FC<Props> = ({
             const selectableBySkill = mainSlotIndex !== undefined
                 && !!canSelectEmptySlot?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent });
             if (slottedCard) {
-                slots.push(renderCard(slottedCard));
+                slots.push(renderCard(slottedCard, hiddenFieldCardUids.has(slottedCard.uid)));
             } else if (canPlace && placingRole === role) {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
             } else if (mainSlotIndex !== undefined && selectableBySkill) {
@@ -236,7 +251,7 @@ const FieldSection: React.FC<Props> = ({
                                 </div>
                                 <div className="field-main-side-divider" aria-hidden />
                                 <div className="field-side-slot-wrap">
-                                    {sideDef.card ? renderCard(sideDef.card) : (
+                                    {sideDef.card ? renderCard(sideDef.card, hiddenFieldCardUids.has(sideDef.card.uid)) : (
                                         <EmptySlot
                                             key={`side-${role}`}
                                             highlight={canPlaceSide || canSelectSide}

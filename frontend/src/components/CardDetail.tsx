@@ -101,6 +101,12 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `
 ${desc}` : ''}`;
     }).join('');
+    const cardArtSkillRows = skillEntries.map(([key, meta]) => ({
+        key,
+        title: meta?.name ?? skillSectionLabel(key),
+        value: formatDamage(damages[key]),
+        desc: meta?.description || '',
+    })).filter((item) => item.title || item.value || item.desc);
 
     return (
         <div
@@ -207,6 +213,45 @@ ${desc}` : ''}`;
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: 8,
+                                right: 8,
+                                bottom: 8,
+                                borderRadius: 11,
+                                background: 'rgba(247, 250, 255, 0.9)',
+                                border: '1px solid rgba(255,255,255,0.92)',
+                                boxShadow: '0 10px 22px rgba(0,0,0,0.26)',
+                                padding: '8px 10px',
+                                color: '#232a3f',
+                                maxHeight: '38%',
+                                overflowY: 'auto',
+                                backdropFilter: 'blur(1px)',
+                            }}
+                        >
+                            {cardArtSkillRows.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                                    {cardArtSkillRows.map((skill) => (
+                                        <div key={skill.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            <div style={{ fontSize: 11, fontWeight: 800, lineHeight: 1.3 }}>
+                                                {skill.title}
+                                                {skill.value ? ` ${skill.value}` : ''}
+                                            </div>
+                                            {!!skill.desc && (
+                                                <div style={{ fontSize: 9, lineHeight: 1.35, color: '#455071' }}>
+                                                    {skill.desc}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: 10, lineHeight: 1.35, color: '#4e5879' }}>
+                                    {fallbackDescription || '스킬 설명 없음'}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 

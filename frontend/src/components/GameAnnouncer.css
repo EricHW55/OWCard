@@ -82,7 +82,7 @@
     transform-style: preserve-3d;
     transform-origin: center center;
     will-change: transform, opacity, filter;
-    animation: skillCardCinematic var(--announcer-duration, 3000ms) cubic-bezier(.2, .88, .2, 1) forwards;
+    animation: skillCardCinematic var(--announcer-duration, 3000ms) ease-in-out forwards;
 }
 
 .skill-card-frame {
@@ -371,38 +371,33 @@
 @keyframes skillCardCinematic {
     0% {
         opacity: 0;
-        transform: translateY(42px) scale(0.56) rotateX(9deg) rotateY(0deg) rotateZ(0deg);
-        filter: blur(10px);
+        transform: translateY(36px) scale(0.62) rotateX(7deg) rotateY(0deg) rotateZ(0deg);
+        filter: blur(8px);
     }
     20% {
         opacity: 1;
-        transform: translateY(-2px) scale(1.06) rotateX(2deg) rotateY(0deg) rotateZ(0deg);
+        transform: translateY(-1px) scale(1.03) rotateX(1.2deg) rotateY(-1.5deg) rotateZ(0deg);
         filter: blur(0);
     }
-    34% {
+    56% {
         opacity: 1;
-        transform: translateY(0) scale(1) rotateX(0deg) rotateY(-8deg) rotateZ(-0.8deg);
-        filter: blur(0);
-    }
-    52% {
-        opacity: 1;
-        transform: translateY(0) scale(1) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
-        filter: blur(0);
-    }
-    70% {
-        opacity: 1;
-        transform: translateY(0) scale(1) rotateX(0deg) rotateY(8deg) rotateZ(0.8deg);
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(-8deg) rotateZ(0deg);
         filter: blur(0);
     }
     82% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(8deg) rotateZ(0deg);
+        filter: blur(0);
+    }
+    92% {
         opacity: 1;
         transform: translateY(0) scale(1) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(0);
     }
     100% {
         opacity: 0;
-        transform: translateY(-8px) scale(0.92) rotateX(2deg) rotateY(0deg) rotateZ(0deg);
-        filter: blur(2px);
+        transform: translateY(-7px) scale(0.94) rotateX(1deg) rotateY(0deg) rotateZ(0deg);
+        filter: blur(1.8px);
     }
 }
 
@@ -455,7 +450,7 @@
     }
 
     .skill-card-stage {
-        animation-timing-function: cubic-bezier(.18, .9, .26, 1);
+        animation-timing-function: ease-in-out;
     }
 
     .skill-card-frame {
