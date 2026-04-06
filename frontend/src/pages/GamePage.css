@@ -728,13 +728,18 @@
     }
     88% {
         opacity: 1;
-        transform: translate(-50%, -50%) perspective(1200px) translate3d(calc(var(--from-center-x) * 0.18), calc(var(--from-center-y) * 0.18), 0) scale(1.08) rotateY(720deg);
+        transform: translate(-50%, -50%) perspective(1200px) translate3d(calc(var(--from-center-x) * 0.06), calc(var(--from-center-y) * 0.06), 0) scale(1.04) rotateY(720deg);
+        filter: blur(0);
+    }
+    92% {
+        opacity: 1;
+        transform: translate(-50%, -50%) perspective(1200px) translate3d(0, 0, 0) scale(1) rotateY(720deg);
         filter: blur(0);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) perspective(1200px) translate3d(0, 0, 0) scale(0.84) rotateY(720deg);
-        filter: blur(1.2px);
+        transform: translate(-50%, -50%) perspective(1200px) translate3d(0, 0, 0) scale(1) rotateY(720deg);
+        filter: blur(0.9px);
     }
 }
 
@@ -953,8 +958,8 @@
 }
 
 @media (max-width: 860px) {
-    .game-board-scale {
-        zoom: 0.9;
+    .game-page {
+        --field-card-width: clamp(68px, min(12.2vw, 9.5vh), 96px);
     }
 
     .game-hand-row {
@@ -1002,8 +1007,8 @@
         gap: 2px;
     }
 
-    .game-board-scale {
-        zoom: 0.82;
+    .game-page {
+        --field-card-width: clamp(62px, min(13.8vw, 8.8vh), 88px);
     }
 
     .game-context-stack {
@@ -1055,7 +1060,6 @@
         padding: 4px 6px;
         gap: 4px;
         justify-content: center;
-        zoom: 0.92;
     }
 
     .game-bottombar {
@@ -1108,16 +1112,12 @@
         font-size: 10px;
     }
 
-    .game-page {
-        overflow-y: auto;
-    }
-
     .game-topbar-center {
         display: none;
     }
 
-    .game-board-scale {
-        zoom: 0.74;
+    .game-page {
+        --field-card-width: clamp(56px, min(16.6vw, 8vh), 78px);
     }
 
     .game-context-stack {
@@ -1132,10 +1132,6 @@
 
     .game-context-actions {
         flex-wrap: wrap;
-    }
-
-    .game-hand-row {
-        zoom: 0.84;
     }
 
     .game-reconnect-banner,
@@ -1177,35 +1173,6 @@
     100% {
         transform: translate3d(11vw, -1.2vh, 0) scale(1.4) rotate(1.6deg);
         opacity: 1;
-    }
-}
-
-@supports not (zoom: 1) {
-    @media (max-width: 768px) {
-        .game-board-scale {
-            transform: scale(0.82);
-            width: 121.9512%;
-            margin-bottom: -18%;
-        }
-        .game-hand-row {
-            transform: scale(0.92);
-            transform-origin: left top;
-            width: 108.6957%;
-            margin-bottom: -8%;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .game-board-scale {
-            transform: scale(0.74);
-            width: 135.1352%;
-            margin-bottom: -26%;
-        }
-        .game-hand-row {
-            transform: scale(0.84);
-            width: 119.0477%;
-            margin-bottom: -14%;
-        }
     }
 }
 
@@ -1446,6 +1413,12 @@
 .game-battle--three-d .game-board-scale {
     transform: rotateX(7deg) scale(0.99);
     transform-origin: 50% 52%;
+}
+
+@media (max-width: 768px) {
+    .game-battle--three-d .game-board-scale {
+        transform: none;
+    }
 }
 
 .field-card-3d,
