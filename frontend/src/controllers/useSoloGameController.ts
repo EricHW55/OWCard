@@ -590,7 +590,13 @@ export function useSoloGameController() {
       ? Object.entries(selectedMyFieldCard.skill_meta || {})
           .filter(([key]) => key.startsWith('skill_'))
           .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
-          .map(([key, meta]) => ({ key, name: (meta as any)?.name || key, onCooldown: false, cdLeft: 0 }))
+          .map(([key, meta]) => ({
+            key,
+            name: (meta as any)?.name || key,
+            description: (meta as any)?.description || '',
+            onCooldown: false,
+            cdLeft: 0,
+          }))
     : [];
 
   const showContextPanel =
