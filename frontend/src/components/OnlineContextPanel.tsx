@@ -100,6 +100,18 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   pendingSpellChoice,
   onResolveSpellChoice,
 }) => {
+  const [skillButtonsVisible, setSkillButtonsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    if (fieldSkills.length === 0) {
+      setSkillButtonsVisible(false);
+      return;
+    }
+    setSkillButtonsVisible(false);
+    const timerId = window.setTimeout(() => setSkillButtonsVisible(true), 620);
+    return () => window.clearTimeout(timerId);
+  }, [fieldSkills]);
+
   if (!show) return null;
 
   return (
@@ -121,26 +133,19 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
 
       {fieldSkills.length > 0 && (
           <div className="game-skill-select-overlay" role="dialog" aria-modal="true" aria-label="스킬 선택">
-            <div className="game-skill-select-panel">
+            <div className="game-skill-cinematic-stage">
               <div className="game-skill-select-card-wrap">
-                <div className="game-skill-select-card">
+                <div className="game-skill-select-card cinematic-enter">
                   {selectedFieldImage ? <img src={selectedFieldImage} alt={selectedFieldName || '선택 카드'} /> : <div className="game-skill-select-card-fallback">{selectedFieldName || 'CARD'}</div>}
-                </div>
               </div>
-              <div className="game-skill-select-content">
-                <div className="game-context-head game-context-head-wrap">
-                  <span className="game-toolbar-title">{selectedFieldName}</span>
-                  <span className="game-context-subtext">
-                  사용할 스킬을 고르세요
-                    {selectedHeroKey === 'sojourn' ? ` · 현재 차징 ${selectedChargeLevel ?? 0}/3` : ''}
-                </span>
-                </div>
+              </div>
+              <div className={`game-skill-select-content center-only ${skillButtonsVisible ? 'show' : ''}`}>
                 <div className="game-skill-choice-list">
                   {fieldSkills.map((skill) => (
                       <button
                           key={skill.key}
                           disabled={skill.onCooldown}
-                          className={`game-skill-choice-box ${actionMode === skill.key ? 'selected' : ''}`}
+                          className={`game-skill-choice-box beam ${actionMode === skill.key ? 'selected' : ''}`}
                           onClick={() => onPrepareSkill(skill.key)}
                       >
                         <span className="game-skill-choice-name">✦ {skill.name}</span>
@@ -149,11 +154,15 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
                     </span>
                       </button>
                   ))}
-                </div>
-                <div className="game-context-actions">
+              </div>
+                <div className="game-context-actions center-actions">
                   <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
                 </div>
-                {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
+                {actionMode && actionMode !== 'spell' && <div className="game-context-subtext center-hint">→ 아군 또는 상대 카드를 클릭</div>}
+              </div>
+              <div className="game-skill-hero-caption">
+                <span className="game-toolbar-title">{selectedFieldName}</span>
+                {selectedHeroKey === 'sojourn' && <span className="game-context-subtext">현재 차징 {selectedChargeLevel ?? 0}/3</span>}
               </div>
           </div>
         </div>

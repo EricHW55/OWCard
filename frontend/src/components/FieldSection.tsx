@@ -99,9 +99,8 @@ const FieldSection: React.FC<Props> = ({
 
                 const targetCenterX = rect.left + rect.width / 2;
                 const targetCenterY = rect.top + rect.height / 2;
-                const viewport = window.visualViewport;
-                const viewportCenterX = (viewport?.offsetLeft ?? 0) + (viewport?.width ?? window.innerWidth) / 2;
-                const viewportCenterY = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) / 2;
+                const viewportCenterX = window.innerWidth / 2;
+                const viewportCenterY = window.innerHeight / 2;
 
                 return [{
                     id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
