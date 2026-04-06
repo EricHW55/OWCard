@@ -92,7 +92,16 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
 
     const extraHpStatus = statuses.find(s => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
-    const fontScale = viewportWidth < 390 ? 0.92 : viewportWidth < 520 ? 0.97 : viewportWidth >= 1400 ? 1.06 : 1;
+    const fontScale =
+        viewportWidth < 390
+            ? 0.92
+            : viewportWidth < 520
+                ? 0.97
+                : viewportWidth >= 1440
+                    ? 1.16
+                    : viewportWidth >= 1024
+                        ? 1.1
+                        : 1;
     const scaledPx = (base: number, min = 8, max = 18) => Math.max(min, Math.min(max, Number((base * fontScale).toFixed(2))));
 
     const handleTiltMove = (clientX: number, clientY: number, rect: DOMRect) => {
@@ -261,7 +270,7 @@ ${desc}` : ''}`;
                                         <div key={skill.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                             <div
                                                 style={{
-                                                    fontSize: scaledPx(11.5, 10.5, 12.5),
+                                                    fontSize: scaledPx(12.6, 11, 14),
                                                     fontWeight: 800,
                                                     lineHeight: 1.3,
                                                     color: '#0b0b0b',
@@ -275,7 +284,7 @@ ${desc}` : ''}`;
                                             {!!skill.desc && (
                                                 <div
                                                     style={{
-                                                        fontSize: scaledPx(9.5, 8.5, 10.5),
+                                                        fontSize: scaledPx(10.7, 9, 12),
                                                         lineHeight: 1.35,
                                                         color: '#0b0b0b',
                                                         WebkitTextStroke: '0.7px rgba(255,255,255,0.96)',
@@ -291,7 +300,7 @@ ${desc}` : ''}`;
                             ) : (
                                 <div
                                     style={{
-                                        fontSize: scaledPx(10.5, 9.5, 11.5),
+                                        fontSize: scaledPx(11.4, 10, 12.8),
                                         lineHeight: 1.35,
                                         color: '#0b0b0b',
                                         WebkitTextStroke: '0.72px rgba(255,255,255,0.96)',
@@ -457,14 +466,14 @@ ${desc}` : ''}`;
                     </>
                 )}
 
-                {!hasCardArt && statuses.length > 0 && (
+                {statuses.length > 0 && (
                     <>
                         <div
                             style={{
                                 fontSize: scaledPx(10, 9, 11),
                                 color: '#5a6488',
                                 fontWeight: 700,
-                                marginTop: 8,
+                                marginTop: hasCardArt ? 4 : 8,
                                 marginBottom: 4,
                             }}
                         >
