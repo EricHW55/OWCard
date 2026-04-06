@@ -127,6 +127,11 @@ const LobbyPage: React.FC = () => {
         return preloadPromiseRef.current;
     }, []);
 
+    useEffect(() => {
+        // 로비 진입 시점에 선행 로드해서 게임 진입 시 코인 토스 첫 프레임 깨짐을 줄인다.
+        void ensureGameImageWarmup();
+    }, [ensureGameImageWarmup]);
+
     const applyDeckToRoom = useCallback((roomId: string, selectedDeckId?: number) => {
         const chosenDeckId = selectedDeckId ?? deckId;
         send({ action: 'set_deck', room_id: roomId, deck_id: chosenDeckId });
@@ -350,7 +355,7 @@ const LobbyPage: React.FC = () => {
             setQueueing(false);
             setQueueStartedAt(null);
             addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
-            ensureGameImageWarmup().finally(() => {
+            ensureGameImageWarmup().then(() => {
                 navigate(`/game/${msg.game_id}`);
             });
         });
@@ -359,7 +364,7 @@ const LobbyPage: React.FC = () => {
             setQueueing(false);
             setQueueStartedAt(null);
             addLog(`게임 시작: ${msg.game_id}`);
-            ensureGameImageWarmup().finally(() => {
+            ensureGameImageWarmup().then(() => {
                 navigate(`/game/${msg.game_id}`);
             });
         });
