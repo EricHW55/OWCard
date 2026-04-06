@@ -72,7 +72,8 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const cooldowns: Record<string, number> = fc?.skill_cooldowns ?? {};
     const statuses = fc?.statuses ?? [];
     const currentCardArt = cardArtChain[imageStep];
-    const hasCardArt = !imgError && !!currentCardArt && currentCardArt.startsWith('/cards/');
+    const hasAnyImage = !imgError && !!currentCardArt;
+    const hasCardArt = hasAnyImage && currentCardArt.startsWith('/cards/');
 
     const skillEntries = Object.entries(skills).sort(
         ([a], [b]) => skillOrder(a) - skillOrder(b)
@@ -99,6 +100,13 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         const desc = meta?.description || '';
         return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `\n${desc}` : ''}`;
     }).join('\n\n');
+    const cardArtDescription = skillEntries
+            .slice(0, 2)
+            .map(([, meta]) => meta?.description || '')
+            .filter(Boolean)
+            .join('\n\n')
+        || fallbackDescription
+        || '설명 없음';
 
     return (
         <div
@@ -292,11 +300,47 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                                 background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.6) 42%, rgba(250,250,250,0.78) 100%)',
                                 color: '#13203f',
                                 whiteSpace: 'pre-wrap',
-                                fontSize: 11,
-                                lineHeight: 1.34,
+                                fontSize: 14,
+                                lineHeight: 1.45,
                                 fontWeight: 700,
                             }}
                         >
+                            {cardArtDescription}
+                        </div>
+                    </div>
+                )}
+
+                {!hasCardArt && hasAnyImage && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            background: '#111832',
+                            border: '1px solid #2a3560',
+                            borderRadius: 10,
+                            padding: 8,
+                            marginBottom: 12,
+                        }}
+                    >
+                        <img
+                            src={currentCardArt}
+                            alt={card.name}
+                            onError={() => {
+                                if (imageStep + 1 < cardArtChain.length) setImageStep((prev) => prev + 1);
+                                else setImgError(true);
+                            }}
+                            style={{
+                                width: 68,
+                                height: 68,
+                                borderRadius: 8,
+                                objectFit: 'cover',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                background: '#0d1225',
+                                flexShrink: 0,
+                            }}
+                        />
+                        <div style={{ fontSize: 10, color: '#9aa6ce', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
                             {skillSummary || fallbackDescription || '스킬 설명 없음'}
                         </div>
                     </div>
