@@ -103,7 +103,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   const [skillButtonsVisible, setSkillButtonsVisible] = React.useState(false);
   const [selectedImageStep, setSelectedImageStep] = React.useState(0);
   const selectedFieldImage = selectedFieldImageCandidates[selectedImageStep] || null;
-  const showSkillOverlay = fieldSkills.length > 0 && !actionMode;
+  const showSkillOverlay = fieldSkills.length > 0 && !actionMode && !columnChoice;
 
   React.useEffect(() => {
     if (!showSkillOverlay) {
