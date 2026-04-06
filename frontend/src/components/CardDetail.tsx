@@ -225,10 +225,23 @@ ${desc}` : ''}`;
                         <div
                             style={{
                                 position: 'absolute',
+                                inset: 0,
+                                pointerEvents: 'none',
+                                background:
+                                    'linear-gradient(118deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.22) 49%, rgba(255,255,255,0.05) 62%, rgba(255,255,255,0) 78%)',
+                                transform: `translate3d(${tilt.ry * 1.8}px, ${tilt.rx * -1.8}px, 14px)`,
+                                transition: 'transform 120ms ease-out',
+                                mixBlendMode: 'screen',
+                                opacity: 0.5,
+                            }}
+                        />
+                        <div
+                            style={{
+                                position: 'absolute',
                                 left: '7.5%',
                                 right: '7.5%',
-                                top: '66.2%',
-                                bottom: '6.8%',
+                                top: '64.8%',
+                                bottom: '8.2%',
                                 padding: '8px 10px 12px',
                                 color: '#0b0b0b',
                                 overflowY: 'auto',
@@ -248,11 +261,11 @@ ${desc}` : ''}`;
                                         <div key={skill.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                             <div
                                                 style={{
-                                                    fontSize: scaledPx(11, 10, 12),
+                                                    fontSize: scaledPx(11.5, 10.5, 12.5),
                                                     fontWeight: 800,
                                                     lineHeight: 1.3,
                                                     color: '#0b0b0b',
-                                                    WebkitTextStroke: '1px rgba(255,255,255,0.95)',
+                                                    WebkitTextStroke: '0.75px rgba(255,255,255,0.95)',
                                                     paintOrder: 'stroke fill',
                                                 }}
                                             >
@@ -262,10 +275,10 @@ ${desc}` : ''}`;
                                             {!!skill.desc && (
                                                 <div
                                                     style={{
-                                                        fontSize: scaledPx(9, 8, 10),
+                                                        fontSize: scaledPx(9.5, 8.5, 10.5),
                                                         lineHeight: 1.35,
                                                         color: '#0b0b0b',
-                                                        WebkitTextStroke: '0.85px rgba(255,255,255,0.96)',
+                                                        WebkitTextStroke: '0.7px rgba(255,255,255,0.96)',
                                                         paintOrder: 'stroke fill',
                                                     }}
                                                 >
@@ -278,10 +291,10 @@ ${desc}` : ''}`;
                             ) : (
                                 <div
                                     style={{
-                                        fontSize: scaledPx(10, 9, 11),
+                                        fontSize: scaledPx(10.5, 9.5, 11.5),
                                         lineHeight: 1.35,
                                         color: '#0b0b0b',
-                                        WebkitTextStroke: '0.9px rgba(255,255,255,0.96)',
+                                        WebkitTextStroke: '0.72px rgba(255,255,255,0.96)',
                                         paintOrder: 'stroke fill',
                                     }}
                                 >
