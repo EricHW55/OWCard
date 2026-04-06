@@ -30,12 +30,12 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
 
     useEffect(() => {
         if (!data) return;
-        const displayTime = data.duration || (data.type === 'skill' ? 2600 : 1500);
+        const displayTime = data.duration || (data.type === 'skill' ? 2000 : 1500);
         const timer = window.setTimeout(() => onClose(), displayTime);
         return () => window.clearTimeout(timer);
     }, [data, onClose]);
 
-    const displayTime = data?.duration || (data?.type === 'skill' ? 2600 : 1500);
+    const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);
 
     const imageSrc = useMemo(() => {
         if (!data || data.type !== 'skill') return '';

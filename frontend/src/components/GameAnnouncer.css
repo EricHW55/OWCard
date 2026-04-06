@@ -80,6 +80,8 @@
 
 .skill-card-stage {
     transform-style: preserve-3d;
+    transform-origin: center center;
+    will-change: transform, opacity, filter;
     animation: skillCardCinematic var(--announcer-duration, 3000ms) cubic-bezier(.2, .88, .2, 1) forwards;
 }
 
@@ -369,31 +371,37 @@
 @keyframes skillCardCinematic {
     0% {
         opacity: 0;
-        transform: translateY(62px) scale(0.62) rotateX(16deg) rotateY(-8deg) rotateZ(-1deg);
+        transform: translateY(42px) scale(0.56) rotateX(9deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(10px);
     }
-    24% {
+    20% {
         opacity: 1;
-        transform: translateY(-6px) scale(1.2) rotateX(1deg) rotateY(-1deg) rotateZ(0deg);
+        transform: translateY(-2px) scale(1.06) rotateX(2deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(0);
     }
-    48% {
+    34% {
         opacity: 1;
-        transform: translateY(-2px) scale(1.08) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(-8deg) rotateZ(-0.8deg);
         filter: blur(0);
     }
-    72% {
+    52% {
         opacity: 1;
-        transform: translateY(-3px) scale(1.03) rotateX(8deg) rotateY(-12deg) rotateZ(2deg);
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(0);
     }
-    90% {
+    70% {
         opacity: 1;
-        transform: translateY(-1px) scale(1.01) rotateX(9deg) rotateY(-11deg) rotateZ(2deg);
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(8deg) rotateZ(0.8deg);
+        filter: blur(0);
+    }
+    82% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+        filter: blur(0);
     }
     100% {
         opacity: 0;
-        transform: translateY(8px) scale(0.95) rotateX(9deg) rotateY(-10deg) rotateZ(2deg);
+        transform: translateY(-8px) scale(0.92) rotateX(2deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(2px);
     }
 }
@@ -401,19 +409,23 @@
 @keyframes skillCardGloss {
     0% {
         opacity: 0;
-        transform: translate3d(-54%, -22%, 44px) rotateZ(10deg);
+        transform: translate3d(-66%, -24%, 44px) rotateZ(10deg);
     }
     24% {
-        opacity: 0.95;
-        transform: translate3d(-16%, -18%, 44px) rotateZ(8deg);
+        opacity: 0.8;
+        transform: translate3d(-22%, -16%, 44px) rotateZ(8deg);
     }
-    62% {
-        opacity: 0.62;
-        transform: translate3d(14%, -8%, 44px) rotateZ(5deg);
+    52% {
+        opacity: 0.22;
+        transform: translate3d(8%, -8%, 44px) rotateZ(5deg);
+    }
+    68% {
+        opacity: 0.72;
+        transform: translate3d(28%, -6%, 44px) rotateZ(3deg);
     }
     100% {
         opacity: 0;
-        transform: translate3d(44%, 6%, 44px) rotateZ(3deg);
+        transform: translate3d(54%, 8%, 44px) rotateZ(2deg);
     }
 }
 
