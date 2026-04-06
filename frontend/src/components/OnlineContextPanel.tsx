@@ -130,15 +130,15 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
               <button
                 key={skill.key}
                 disabled={skill.onCooldown}
+                className={`skill-choice-chip ${actionMode === skill.key ? 'selected' : ''}`}
                 onClick={() => onPrepareSkill(skill.key)}
                 style={{
                   ...BTN_SM,
                   opacity: skill.onCooldown ? 0.4 : 1,
-                  background: actionMode === skill.key ? '#ff9b3040' : '#243055',
-                  border: actionMode === skill.key ? '1px solid #ff9b30' : '1px solid #3a4a78',
                 }}
               >
-                ✦ {skill.name}{skill.onCooldown ? ` (${skill.cdLeft}턴)` : ''}
+                <span className="skill-choice-chip-name">✦ {skill.name}</span>
+                <span className="skill-choice-chip-meta">{skill.onCooldown ? `${skill.cdLeft}턴 후 사용` : '탭해서 사용 준비'}</span>
               </button>
             ))}
             <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
@@ -156,13 +156,10 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
             <div className="game-context-actions game-context-actions-wrap">
               <button
                   onClick={() => onPrepareSkill(actionMode)}
-                  style={{
-                    ...BTN_SM,
-                    background: '#ff9b3040',
-                    border: '1px solid #ff9b30',
-                  }}
+                  className="skill-choice-chip selected" style={{ ...BTN_SM }}
               >
-                ✦ {actionModeLabel || actionMode}
+                <span className="skill-choice-chip-name">✦ {actionModeLabel || actionMode}</span>
+                <span className="skill-choice-chip-meta">탭해서 사용 준비</span>
               </button>
               <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
             </div>

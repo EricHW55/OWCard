@@ -68,14 +68,12 @@ const SoloContextPanel: React.FC<Props> = ({
             {fieldSkills.map((skill) => (
                 <button
                     key={skill.key}
-                    style={{
-                      ...BTN_SM,
-                      background: actionMode === skill.key ? '#ff9b3040' : BTN_SM.background,
-                      border: actionMode === skill.key ? '1px solid #ff9b30' : BTN_SM.border,
-                    }}
+                    className={`skill-choice-chip ${actionMode === skill.key ? 'selected' : ''}`}
+                    style={{ ...BTN_SM }}
                     onClick={() => onPrepareSkill(skill.key)}
                 >
-                ✦ {skill.name}
+                  <span className="skill-choice-chip-name">✦ {skill.name}</span>
+                  <span className="skill-choice-chip-meta">탭해서 사용 준비</span>
               </button>
             ))}
             <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onCancelSkillSelection}>취소</button>

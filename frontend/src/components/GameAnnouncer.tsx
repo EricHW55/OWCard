@@ -97,6 +97,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                         <div className="skill-card-side-trim left" />
                         <div className="skill-card-side-trim right" />
                         <div className="skill-card-inner-outline" />
+                        <div className="skill-card-gloss" />
 
                         <div className="skill-card-top-emblem">{data.isSpell ? '✦ 스킬 카드' : '영웅 스킬'}</div>
 

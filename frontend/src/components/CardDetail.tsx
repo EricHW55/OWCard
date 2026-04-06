@@ -98,15 +98,9 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const skillSummary = skillEntries.slice(0, 2).map(([key, meta]) => {
         const damage = formatDamage(damages[key]);
         const desc = meta?.description || '';
-        return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `\n${desc}` : ''}`;
-    }).join('\n\n');
-    const cardArtDescription = skillEntries
-            .slice(0, 2)
-            .map(([, meta]) => meta?.description || '')
-            .filter(Boolean)
-            .join('\n\n')
-        || fallbackDescription
-        || '설명 없음';
+        return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `
+${desc}` : ''}`;
+    }).join('');
 
     return (
         <div
@@ -135,43 +129,45 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                     boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
                 }}
             >
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 10,
-                        marginBottom: 10,
-                    }}
-                >
-                    <span
+                {!hasCardArt && (
+                    <div
                         style={{
-                            fontSize: 18,
-                            fontWeight: 900,
-                            color: '#e8ecf8',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 10,
+                            marginBottom: 10,
                         }}
                     >
-                        {card.name}
-                    </span>
+                        <span
+                            style={{
+                                fontSize: 18,
+                                fontWeight: 900,
+                                color: '#e8ecf8',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {card.name}
+                        </span>
 
-                    <span
-                        style={{
-                            padding: '2px 10px',
-                            borderRadius: 20,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background: `${color}20`,
-                            color,
-                            border: `1px solid ${color}44`,
-                            flexShrink: 0,
-                        }}
-                    >
-                        {isSpell ? '✦ 스킬카드' : `${ROLE_ICON[role]} ${ROLE_LABEL[role]}`}
-                    </span>
-                </div>
+                        <span
+                            style={{
+                                padding: '2px 10px',
+                                borderRadius: 20,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                background: `${color}20`,
+                                color,
+                                border: `1px solid ${color}44`,
+                                flexShrink: 0,
+                            }}
+                        >
+                            {isSpell ? '✦ 스킬카드' : `${ROLE_ICON[role]} ${ROLE_LABEL[role]}`}
+                        </span>
+                    </div>
+                )}
 
                 {hasCardArt && (
                     <div
@@ -211,102 +207,6 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
-                        {!isSpell && maxHp > 0 && (
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    left: 8,
-                                    right: 8,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    pointerEvents: 'none',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        width: 54,
-                                        height: 54,
-                                        borderRadius: '50%',
-                                        border: '3px solid rgba(49,40,58,0.85)',
-                                        background: 'radial-gradient(circle at 30% 30%, rgba(220,220,255,0.95), rgba(165,165,204,0.92) 65%, rgba(120,120,160,0.9))',
-                                        color: '#0e1020',
-                                        fontWeight: 900,
-                                        fontSize: 16,
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                        boxShadow: '0 6px 14px rgba(0,0,0,0.32)',
-                                    }}
-                                >
-                                    {Math.max(0, hp)}
-                                </div>
-                                <div
-                                    style={{
-                                        flex: 1,
-                                        height: 28,
-                                        borderRadius: 14,
-                                        border: '2px solid rgba(128,104,84,0.75)',
-                                        background: 'linear-gradient(180deg, rgba(244,240,255,0.78), rgba(204,196,220,0.72))',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: 3,
-                                        gap: barrierHp > 0 ? 3 : 0,
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            height: '100%',
-                                            width: `${Math.max(
-                                                0,
-                                                Math.min(
-                                                    100,
-                                                    (hp / Math.max(1, maxHp)) * (barrierHp > 0 ? 74 : 100)
-                                                )
-                                            )}%`,
-                                            background: '#04b953',
-                                            borderRadius: 8,
-                                            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2)',
-                                        }}
-                                    />
-                                    {barrierHp > 0 && (
-                                        <div
-                                            style={{
-                                                height: '100%',
-                                                width: `${Math.max(
-                                                    0,
-                                                    Math.min(
-                                                        26,
-                                                        (barrierHp / Math.max(1, barrierMax || barrierHp)) * 26
-                                                    )
-                                                )}%`,
-                                                background: '#4f7fd5',
-                                                borderRadius: 8,
-                                                boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2)',
-                                            }}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                minHeight: '34%',
-                                padding: '12px 12px 10px',
-                                background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.6) 42%, rgba(250,250,250,0.78) 100%)',
-                                color: '#13203f',
-                                whiteSpace: 'pre-wrap',
-                                fontSize: 14,
-                                lineHeight: 1.45,
-                                fontWeight: 700,
-                            }}
-                        >
-                            {cardArtDescription}
-                        </div>
                     </div>
                 )}
 
@@ -346,17 +246,18 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                     </div>
                 )}
 
-                {!isSpell && (
+                {!isSpell && !hasCardArt && (
                     <div
                         style={{
                             display: 'grid',
                             gridTemplateColumns:
-                                barrierHp > 0 || extraHp > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                                barrierHp > 0 || extraHp > 0 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
                             gap: 4,
                             marginBottom: 12,
                         }}
                     >
                         {([
+                            ['체력', `${Math.max(0, hp)}/${Math.max(1, maxHp)}`, '#22dd77'],
                             ['사거리', rng === 99 ? '∞' : rng, '#ffaa22'],
                             ...(barrierHp > 0 ? [['방벽', `${barrierHp}/${barrierMax}`, '#22cc88']] : []),
                             ...(extraHp > 0 ? [['추가HP', `+${extraHp}`, '#ffdd44']] : []),
@@ -377,7 +278,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                     </div>
                 )}
 
-                {skillEntries.length > 0 && (
+                {!hasCardArt && skillEntries.length > 0 && (
                     <>
                         <div style={{ fontSize: 10, color: '#5a6488', fontWeight: 700, marginBottom: 6 }}>
                             스킬 설명
@@ -461,7 +362,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                     </>
                 )}
 
-                {statuses.length > 0 && (
+                {!hasCardArt && statuses.length > 0 && (
                     <>
                         <div
                             style={{
