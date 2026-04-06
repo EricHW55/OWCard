@@ -8,7 +8,7 @@ import { getCardArtCandidates, getCardImageSrc, preloadImageAssets } from '../ut
 import './GamePage.css';
 
 type CoinFace = 'front' | 'back';
-type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'done';
+type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'clearing' | 'done';
 
 const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
@@ -20,6 +20,7 @@ const GamePage: React.FC = () => {
   const hasShownCoinTossRef = React.useRef(false);
   const spinTimerRef = React.useRef<number | null>(null);
   const doneTimerRef = React.useRef<number | null>(null);
+  const clearTimerRef = React.useRef<number | null>(null);
 
   const coinFace: CoinFace = React.useMemo(() => {
     if (!vm.gs || !session) return 'front';
@@ -56,14 +57,18 @@ const GamePage: React.FC = () => {
     spinTimerRef.current = window.setTimeout(() => {
       setCoinTossStage('result');
     }, 2000);
+    clearTimerRef.current = window.setTimeout(() => {
+      setCoinTossStage('clearing');
+    }, 4000);
     doneTimerRef.current = window.setTimeout(() => {
       setCoinTossStage('done');
-    }, 3500);
+    }, 4500);
   }, [vm.gs, session, coinFace]);
 
   React.useEffect(() => {
     return () => {
       if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
+      if (clearTimerRef.current !== null) window.clearTimeout(clearTimerRef.current);
       if (doneTimerRef.current !== null) window.clearTimeout(doneTimerRef.current);
     };
   }, []);
@@ -124,9 +129,9 @@ const GamePage: React.FC = () => {
           <div className="game-coin-toss-overlay" aria-live="polite" aria-label="선후공 코인 토스">
             <div className="game-coin-toss-stage">
               {coinTossStage === 'result' && (
-                  <div className="game-coin-toss-result-text">{coinFace === 'front' ? '앞면' : '뒷면'}</div>
+                  <div className="game-coin-toss-result-text">{coinFace === 'front' ? '선공' : '후공'}</div>
               )}
-              <div className={`game-coin-toss-coin-wrap ${coinTossStage === 'spinning' ? 'spinning' : 'settled'}`}>
+              <div className={`game-coin-toss-coin-wrap ${coinTossStage === 'spinning' ? 'spinning' : 'settled'} ${coinTossStage === 'clearing' ? 'hidden' : ''}`}>
                 <div className="game-coin-toss-shadow" />
                 <div
                     className="game-coin-toss-coin"
@@ -144,7 +149,7 @@ const GamePage: React.FC = () => {
           </div>
       )}
     <GameScreen
-      announcerData={vm.announcerData}
+      announcerData={coinTossStage === 'done' ? vm.announcerData : null}
       onCloseAnnouncer={vm.closeAnnouncer}
       topbarLeft={
         <>

@@ -54,6 +54,11 @@
     width: min(38vw, 220px);
     height: min(38vw, 220px);
     transform-style: preserve-3d;
+    transition: opacity 240ms ease;
+}
+
+.game-coin-toss-coin-wrap.hidden {
+    opacity: 0;
 }
 
 .game-coin-toss-coin-wrap.spinning {
