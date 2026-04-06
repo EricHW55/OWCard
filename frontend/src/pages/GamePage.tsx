@@ -22,17 +22,20 @@ const GamePage: React.FC = () => {
   const doneTimerRef = React.useRef<number | null>(null);
   const clearTimerRef = React.useRef<number | null>(null);
 
-  const coinFace: CoinFace = React.useMemo(() => {
-    if (!vm.gs || !session) return 'front';
-    const firstPlayerId = vm.gs.first_player ?? vm.gs.current_player;
-    const isFirstPlayer = firstPlayerId != null
-        ? Number(firstPlayerId) === Number(session.player_id)
-        : vm.gs.is_my_turn;
-    return isFirstPlayer ? 'front' : 'back';
+  const isFirstPlayer = React.useMemo(() => {
+    if (!vm.gs || !session || vm.gs.first_player == null) return null;
+    return Number(vm.gs.first_player) === Number(session.player_id);
   }, [vm.gs, session]);
+
+  const coinFace: CoinFace = React.useMemo(() => {
+    if (!vm.gs) return 'front';
+    if (vm.gs.coin_result === 'tails') return 'back';
+    return 'front';
+  }, [vm.gs]);
 
   React.useEffect(() => {
     if (!vm.gs || !session || hasShownCoinTossRef.current) return;
+    if (vm.gs.first_player == null || vm.gs.coin_result == null) return;
     hasShownCoinTossRef.current = true;
     setCoinTossStage('spinning');
     setCoinRotationDeg(0);
@@ -130,7 +133,7 @@ const GamePage: React.FC = () => {
           <div className="game-coin-toss-overlay" aria-live="polite" aria-label="선후공 코인 토스">
             <div className="game-coin-toss-stage">
               {coinTossStage === 'result' && (
-                  <div className="game-coin-toss-result-text">{coinFace === 'front' ? '선공' : '후공'}</div>
+                  <div className="game-coin-toss-result-text">{isFirstPlayer ? '선공' : '후공'}</div>
               )}
               <div className={`game-coin-toss-coin-wrap ${coinTossStage === 'spinning' ? 'spinning' : 'settled'} ${coinTossStage === 'clearing' ? 'hidden' : ''}`}>
                 <div className="game-coin-toss-shadow" />

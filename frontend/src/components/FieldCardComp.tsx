@@ -192,41 +192,13 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
 
     return (
         <div
-            onClick={isDestroying ? undefined : onClick}
-            className="field-card-3d"
             style={{
                 width: 'var(--field-card-width)',
                 height: 'var(--field-card-height)',
-                borderRadius: 'var(--field-card-radius)',
                 position: 'relative',
                 overflow: 'visible',
                 isolation: 'isolate',
-                border: `2px solid ${borderColor}`,
-                background: usingFullCardArt
-                    ? '#070b16'
-                    : selected
-                    ? 'rgba(255,155,48,0.15)'
-                    : glowing
-                        ? 'rgba(102,221,255,0.08)'
-                        : `${color}12`,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: usingFullCardArt
-                    ? 0
-                    : 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
-                cursor: 'pointer',
                 flexShrink: 0,
-                opacity: isHidden ? 0.45 : 1,
-                boxShadow: finalShadow || 'none',
-                transform: isAirborne ? 'translateY(-4px)' : undefined,
-                filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
-                transition: 'all 0.25s',
-                animation: isDestroying ? 'destroyFlipFadeOut 0.75s cubic-bezier(0.22, 0.84, 0.2, 1) forwards' : undefined,
-                pointerEvents: isDestroying ? 'none' : undefined,
-                transformStyle: 'preserve-3d',
-                willChange: isDestroying ? 'transform, filter, opacity' : undefined,
             }}
         >
             {isDestroying && (
@@ -262,6 +234,42 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     {effect.floatingDamage > 0 ? '-' : '+'}{Math.abs(effect.floatingDamage)}
                 </div>
             )}
+            <div
+                onClick={isDestroying ? undefined : onClick}
+                className="field-card-3d"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 'var(--field-card-radius)',
+                    position: 'relative',
+                    overflow: 'visible',
+                    border: `2px solid ${borderColor}`,
+                    background: usingFullCardArt
+                        ? '#070b16'
+                        : selected
+                            ? 'rgba(255,155,48,0.15)'
+                            : glowing
+                                ? 'rgba(102,221,255,0.08)'
+                                : `${color}12`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: usingFullCardArt
+                        ? 0
+                        : 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
+                    cursor: 'pointer',
+                    opacity: isHidden ? 0.45 : 1,
+                    boxShadow: finalShadow || 'none',
+                    transform: isAirborne ? 'translateY(-4px)' : undefined,
+                    filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
+                    transition: 'all 0.25s',
+                    animation: isDestroying ? 'destroyFlipFadeOut 0.75s cubic-bezier(0.22, 0.84, 0.2, 1) forwards' : undefined,
+                    pointerEvents: isDestroying ? 'none' : undefined,
+                    transformStyle: 'preserve-3d',
+                    willChange: isDestroying ? 'transform, filter, opacity' : undefined,
+                }}
+            >
             {hasBarrier && (
                 <div
                     style={{
@@ -654,6 +662,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     }
                 }
             `}</style>
+            </div>
         </div>
     );
 };

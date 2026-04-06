@@ -250,7 +250,7 @@
 
 .game-killfeed {
     position: absolute;
-    top: 8px;
+    top: 44px;
     right: 8px;
     z-index: 8;
     display: flex;

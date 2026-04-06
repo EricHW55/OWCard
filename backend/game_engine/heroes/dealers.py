@@ -228,7 +228,7 @@ def ashe_dynamite(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     zone = target.zone if target else Zone.MAIN
     targets = enemy.get_row(zone)
     for c in targets:
-        c.add_status(Burn(damage_per_turn=1, duration=3, source_uid=caster.uid))
+        c.add_status(Burn(damage_per_turn=2, duration=3, source_uid=caster.uid))
     return {"success": True, "skill": "다이너마이트", "burned": len(targets)}
 
 # ── 안란 ──────────────────────────────────
