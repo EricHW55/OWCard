@@ -87,7 +87,11 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
                 // <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
                 // <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}
                 //      onClick={handleSkip} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleSkip()}>
-                <div className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`} style={animationStyle}>
+                <div
+                    className={`announcer-skill-card ${data.isSpell ? 'spell' : 'hero'}`}
+                    style={{ ...animationStyle, ['--announcer-duration' as string]: `${displayTime}ms` }}
+                >
+                    <div className="skill-card-stage">
                     <div className="skill-card-frame">
                         <div className="skill-card-top-trim" />
                         <div className="skill-card-side-trim left" />
@@ -123,6 +127,7 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
 
                         {!data.nonBlocking && <div className="announcer-skip-hint skill">클릭하여 건너뛰기</div>}
                         <div className="skill-card-bottom-trim" />
+                    </div>
                     </div>
                 </div>
             )}

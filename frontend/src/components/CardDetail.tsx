@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldCard, HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON, ROLE_LABEL } from '../types/constants';
-import { getHeroImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
 
 interface Props {
     card: FieldCard | HandCard | null;
@@ -39,9 +39,13 @@ function skillSectionLabel(key: string) {
 
 const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const [imgError, setImgError] = useState(false);
+    const [imageStep, setImageStep] = useState(0);
+    const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
 
     useEffect(() => {
         setImgError(false);
+        setImageStep(0);
+        setTilt({ rx: 0, ry: 0 });
     }, [card]);
 
     if (!card) return null;
@@ -62,6 +66,9 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         ('skill_damages' in card ? card.skill_damages : {}) || {};
     const cooldowns: Record<string, number> = fc?.skill_cooldowns ?? {};
     const statuses = fc?.statuses ?? [];
+    const cardArtChain = useMemo(() => [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)], [card]);
+    const currentCardArt = cardArtChain[imageStep];
+    const hasCardArt = !imgError && !!currentCardArt && currentCardArt.startsWith('/cards/');
 
     const skillEntries = Object.entries(skills).sort(
         ([a], [b]) => skillOrder(a) - skillOrder(b)
@@ -73,6 +80,21 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
 
     const extraHpStatus = statuses.find(s => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
+
+    const handleTiltMove = (clientX: number, clientY: number, rect: DOMRect) => {
+        const px = (clientX - rect.left) / rect.width;
+        const py = (clientY - rect.top) / rect.height;
+        const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+        const ry = clamp((px - 0.5) * 2) * 12;
+        const rx = clamp((0.5 - py) * 2) * 10;
+        setTilt({ rx, ry });
+    };
+
+    const skillSummary = skillEntries.slice(0, 2).map(([key, meta]) => {
+        const damage = formatDamage(damages[key]);
+        const desc = meta?.description || '';
+        return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `\n${desc}` : ''}`;
+    }).join('\n\n');
 
     return (
         <div
@@ -171,6 +193,65 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                         {isSpell ? '✦ 스킬카드' : `${ROLE_ICON[role]} ${ROLE_LABEL[role]}`}
                     </span>
                 </div>
+
+                {hasCardArt && (
+                    <div
+                        onPointerMove={(e) => {
+                            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                            handleTiltMove(e.clientX, e.clientY, rect);
+                        }}
+                        onPointerLeave={() => setTilt({ rx: 0, ry: 0 })}
+                        onTouchMove={(e) => {
+                            const t = e.touches[0];
+                            if (!t) return;
+                            const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                            handleTiltMove(t.clientX, t.clientY, rect);
+                        }}
+                        onTouchEnd={() => setTilt({ rx: 0, ry: 0 })}
+                        style={{
+                            width: '100%',
+                            aspectRatio: '0.72',
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            marginBottom: 12,
+                            position: 'relative',
+                            background: '#0d1225',
+                            border: '1px solid rgba(255,255,255,0.18)',
+                            transformStyle: 'preserve-3d',
+                            transform: `perspective(900px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
+                            transition: 'transform 120ms ease-out',
+                            boxShadow: '0 16px 24px rgba(0,0,0,0.42)',
+                        }}
+                    >
+                        <img
+                            src={currentCardArt}
+                            alt={card.name}
+                            onError={() => {
+                                if (imageStep + 1 < cardArtChain.length) setImageStep((prev) => prev + 1);
+                                else setImgError(true);
+                            }}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                minHeight: '34%',
+                                padding: '12px 12px 10px',
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.6) 42%, rgba(250,250,250,0.78) 100%)',
+                                color: '#13203f',
+                                whiteSpace: 'pre-wrap',
+                                fontSize: 11,
+                                lineHeight: 1.34,
+                                fontWeight: 700,
+                            }}
+                        >
+                            {skillSummary || fallbackDescription || '스킬 설명 없음'}
+                        </div>
+                    </div>
+                )}
 
                 {!isSpell && (
                     <div

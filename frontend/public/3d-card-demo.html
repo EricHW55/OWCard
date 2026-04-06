@@ -141,6 +141,12 @@
                     radial-gradient(circle at 22% 20%, rgba(126, 238, 255, 0.5), transparent 35%),
                     radial-gradient(circle at 80% 75%, rgba(192, 147, 255, 0.45), transparent 40%),
                     linear-gradient(145deg, #2a3471 15%, #1f1f3f 55%, #141934 100%);
+            transition: opacity 0.3s ease;
+        }
+
+        .fallback.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .row {
@@ -202,11 +208,11 @@
         <article class="card" id="card" aria-label="3D card demo">
             <div class="face front">
                 <img id="frontImg" alt="카드 앞면" hidden />
-                <div class="fallback">FRONT<br />이미지 업로드</div>
+                <div class="fallback" id="frontFallback">FRONT<br />이미지 업로드</div>
             </div>
             <div class="face back">
                 <img id="backImg" alt="카드 뒷면" hidden />
-                <div class="fallback">BACK<br />선택 업로드</div>
+                <div class="fallback" id="backFallback">BACK<br />선택 업로드</div>
             </div>
         </article>
     </section>
@@ -221,6 +227,8 @@
     const backInput = document.getElementById('backInput');
     const frontImg = document.getElementById('frontImg');
     const backImg = document.getElementById('backImg');
+    const frontFallback = document.getElementById('frontFallback');
+    const backFallback = document.getElementById('backFallback');
     const flipBtn = document.getElementById('flipBtn');
     const resetBtn = document.getElementById('resetBtn');
 
@@ -235,13 +243,14 @@
         card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
     };
 
-    const setImage = (input, imgElement) => {
+    const setImage = (input, imgElement, fallbackElement) => {
         const [file] = input.files || [];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
             imgElement.src = reader.result;
             imgElement.hidden = false;
+            fallbackElement.classList.add('hidden');
         };
         reader.readAsDataURL(file);
     };
@@ -266,8 +275,8 @@
         applyTransform();
     });
 
-    frontInput.addEventListener('change', () => setImage(frontInput, frontImg));
-    backInput.addEventListener('change', () => setImage(backInput, backImg));
+    frontInput.addEventListener('change', () => setImage(frontInput, frontImg, frontFallback));
+    backInput.addEventListener('change', () => setImage(backInput, backImg, backFallback));
 
     strengthInput.addEventListener('input', () => {
         strength = Number(strengthInput.value);

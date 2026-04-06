@@ -73,8 +73,14 @@
     cursor: pointer;
     user-select: none;
     width: min(82vw, 320px);
-    animation: skillCardPop 3.2s ease-in-out forwards;
+    perspective: 1400px;
+    transform-style: preserve-3d;
     filter: drop-shadow(0 24px 46px rgba(0, 0, 0, 0.52));
+}
+
+.skill-card-stage {
+    transform-style: preserve-3d;
+    animation: skillCardCinematic var(--announcer-duration, 3000ms) cubic-bezier(.2, .88, .2, 1) forwards;
 }
 
 .skill-card-frame {
@@ -347,6 +353,34 @@
     }
 }
 
+@keyframes skillCardCinematic {
+    0% {
+        opacity: 0;
+        transform: translateY(220px) scale(0.24) rotateZ(-720deg) rotateX(38deg) rotateY(-30deg);
+        filter: blur(9px);
+    }
+    22% {
+        opacity: 1;
+        transform: translateY(0) scale(1.08) rotateZ(-8deg) rotateX(2deg) rotateY(0deg);
+        filter: blur(0);
+    }
+    35% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1) rotateZ(0deg) rotateX(0deg) rotateY(0deg);
+        filter: blur(0);
+    }
+    76% {
+        opacity: 1;
+        transform: translateY(-4px) scale(1.01) rotateX(8deg) rotateY(-11deg) rotateZ(5deg);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.94) rotateX(12deg) rotateY(-10deg) rotateZ(4deg);
+        filter: blur(2px);
+    }
+}
+
 @media (max-width: 768px) {
     .game-announcer-overlay {
         padding: 14px;
@@ -370,6 +404,10 @@
         cursor: pointer;
         user-select: none;
         width: min(84vw, 286px);
+    }
+
+    .skill-card-stage {
+        animation-timing-function: cubic-bezier(.18, .9, .26, 1);
     }
 
     .skill-card-frame {

@@ -187,6 +187,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         .filter(Boolean)
         .join(', ');
     const isDestroying = !!effect?.destroying;
+    const currentImageSrc = fallbackChain[imageStep];
+    const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/cards/');
 
     return (
         <div
@@ -200,7 +202,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 overflow: 'visible',
                 isolation: 'isolate',
                 border: `2px solid ${borderColor}`,
-                background: selected
+                background: usingFullCardArt
+                    ? '#070b16'
+                    : selected
                     ? 'rgba(255,155,48,0.15)'
                     : glowing
                         ? 'rgba(102,221,255,0.08)'
@@ -209,7 +213,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
+                padding: usingFullCardArt
+                    ? 0
+                    : 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
                 cursor: 'pointer',
                 flexShrink: 0,
                 opacity: isHidden ? 0.45 : 1,
@@ -362,20 +368,47 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 </>
             )}
 
+            {usingFullCardArt && (
+                <img
+                    src={currentImageSrc}
+                    alt={card.name}
+                    onError={() => {
+                        if (imageStep + 1 < fallbackChain.length) {
+                            setImageStep((prev) => prev + 1);
+                        } else {
+                            setImgError(true);
+                        }
+                    }}
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: 'calc(var(--field-card-radius) - 1px)',
+                    }}
+                />
+            )}
+
             <div
                 style={{
+                    position: 'relative',
+                    zIndex: 2,
                     fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.125), 11px)',
                     fontWeight: 700,
-                    color,
+                    color: usingFullCardArt ? '#f4f8ff' : color,
                     textAlign: 'center',
                     lineHeight: 1.1,
                     paddingTop: moveBadge ? 10 : 0,
+                    paddingBottom: usingFullCardArt ? 2 : 0,
+                    textShadow: usingFullCardArt ? '0 2px 4px rgba(0,0,0,0.9)' : undefined,
                 }}
             >
                 {card.name}
             </div>
 
-            <div
+            {!usingFullCardArt && (
+                <div
                 style={{
                     width: 'calc(var(--field-card-width) * 0.45)',
                     height: 'calc(var(--field-card-width) * 0.45)',
@@ -408,15 +441,21 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     <span style={{ fontSize: 16 }}>{ROLE_ICON[card.role]}</span>
                 )}
             </div>
+            )}
 
             <div
                 style={{
+                    position: 'relative',
+                    zIndex: 2,
                     display: 'flex',
                     gap: 2,
                     fontSize: 'clamp(7px, calc(var(--field-card-width) * 0.11), 10px)',
                     fontWeight: 700,
                     flexWrap: 'wrap',
                     justifyContent: 'center',
+                    padding: usingFullCardArt ? '2px 4px' : undefined,
+                    borderRadius: usingFullCardArt ? 8 : undefined,
+                    background: usingFullCardArt ? 'rgba(6,10,20,0.6)' : undefined,
                 }}
             >
                 <span style={{ color: '#ff9b30' }}>✦{mainDmg}</span>
@@ -427,11 +466,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
 
             <div
                 style={{
+                    position: 'relative',
+                    zIndex: 2,
                     width: '90%',
                     height: 'clamp(3px, calc(var(--field-card-width) * 0.05), 5px)',
-                    background: '#0a0e1a',
+                    background: usingFullCardArt ? 'rgba(10,14,26,0.75)' : '#0a0e1a',
                     borderRadius: 2,
                     overflow: 'hidden',
+                    marginBottom: usingFullCardArt ? 'calc(var(--field-card-width) * 0.05)' : 0,
                 }}
             >
                 <div

@@ -628,7 +628,7 @@
     }
 
     .game-hand-row {
-        justify-content: flex-start;
+        justify-content: center;
     }
 }
 
@@ -712,7 +712,7 @@
     .game-hand-row {
         padding: 4px 6px;
         gap: 4px;
-        justify-content: flex-start;
+        justify-content: center;
         zoom: 0.92;
     }
 
