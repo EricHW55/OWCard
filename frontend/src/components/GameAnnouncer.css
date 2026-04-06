@@ -369,31 +369,31 @@
 @keyframes skillCardCinematic {
     0% {
         opacity: 0;
-        transform: translateY(220px) scale(0.2) rotateY(-720deg) rotateX(36deg) rotateZ(-8deg);
+        transform: translateY(62px) scale(0.62) rotateX(16deg) rotateY(-8deg) rotateZ(-1deg);
         filter: blur(10px);
     }
-    22% {
+    24% {
         opacity: 1;
-        transform: translateY(0) scale(1.16) rotateY(0deg) rotateX(-4deg) rotateZ(0deg);
+        transform: translateY(-6px) scale(1.2) rotateX(1deg) rotateY(-1deg) rotateZ(0deg);
         filter: blur(0);
     }
-    44% {
+    48% {
         opacity: 1;
-        transform: translateY(-2px) scale(1.08) rotateY(0deg) rotateX(-6deg) rotateZ(-1deg);
+        transform: translateY(-2px) scale(1.08) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
         filter: blur(0);
     }
     72% {
         opacity: 1;
-        transform: translateY(-4px) scale(1.03) rotateX(9deg) rotateY(-13deg) rotateZ(3deg);
+        transform: translateY(-3px) scale(1.03) rotateX(8deg) rotateY(-12deg) rotateZ(2deg);
         filter: blur(0);
     }
     90% {
         opacity: 1;
-        transform: translateY(-2px) scale(1.01) rotateX(10deg) rotateY(-10deg) rotateZ(2deg);
+        transform: translateY(-1px) scale(1.01) rotateX(9deg) rotateY(-11deg) rotateZ(2deg);
     }
     100% {
         opacity: 0;
-        transform: translateY(8px) scale(0.93) rotateX(13deg) rotateY(-8deg) rotateZ(2deg);
+        transform: translateY(8px) scale(0.95) rotateX(9deg) rotateY(-10deg) rotateZ(2deg);
         filter: blur(2px);
     }
 }

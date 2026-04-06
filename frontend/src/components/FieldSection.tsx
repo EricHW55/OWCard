@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
 import FieldCardComp from './FieldCardComp';
+import { getCardImageSrc } from '../utils/heroImage';
 
 interface Props {
     field: FieldState;
@@ -16,6 +17,20 @@ interface Props {
     allowOpponentPlacement?: boolean;
     canSelectEmptySlot?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => boolean;
     onEmptySlotSelect?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => void;
+}
+
+interface PlacementCinematic {
+    id: string;
+    uid: string;
+    imageSrc: string;
+    targetRect: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+    };
+    fromCenterX: number;
+    fromCenterY: number;
 }
 
 const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ highlight, onClick }) => (
@@ -47,14 +62,94 @@ const FieldSection: React.FC<Props> = ({
     const canPlace = !!placingCard && isMyTurn && phase === 'placement' && (!isOpponent || allowOpponentPlacement);
     const placingRole = placingCard?.role;
 
+    const cardRefMap = useRef<Record<string, HTMLDivElement | null>>({});
+    const knownCardUidsRef = useRef<Set<string>>(new Set());
+    const bootstrapRef = useRef(false);
+    const cinematicTimersRef = useRef<number[]>([]);
+    const [placementCinematics, setPlacementCinematics] = useState<PlacementCinematic[]>([]);
+
+    const allFieldCards = useMemo(() => [...(field?.main || []), ...(field?.side || [])], [field?.main, field?.side]);
+
+    useEffect(() => {
+        return () => {
+            cinematicTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+            cinematicTimersRef.current = [];
+        };
+    }, []);
+
+    useEffect(() => {
+        const currentUidSet = new Set(allFieldCards.map((card) => card.uid));
+        if (!bootstrapRef.current) {
+            knownCardUidsRef.current = currentUidSet;
+            bootstrapRef.current = true;
+            return;
+        }
+
+        const newcomers = allFieldCards.filter((card) => !knownCardUidsRef.current.has(card.uid));
+        if (newcomers.length === 0) {
+            knownCardUidsRef.current = currentUidSet;
+            return;
+        }
+
+        const rafId = window.requestAnimationFrame(() => {
+            const scenes: PlacementCinematic[] = newcomers.flatMap((card) => {
+                const targetNode = cardRefMap.current[card.uid];
+                if (!targetNode) return [];
+                const rect = targetNode.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return [];
+
+                const targetCenterX = rect.left + rect.width / 2;
+                const targetCenterY = rect.top + rect.height / 2;
+                const viewportCenterX = window.innerWidth / 2;
+                const viewportCenterY = window.innerHeight / 2;
+
+                return [{
+                    id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+                    uid: card.uid,
+                    imageSrc: getCardImageSrc({ hero_key: card.hero_key, name: card.name }),
+                    targetRect: {
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                    },
+                    fromCenterX: viewportCenterX - targetCenterX,
+                    fromCenterY: viewportCenterY - targetCenterY,
+                }];
+            });
+
+            if (scenes.length > 0) {
+                setPlacementCinematics((prev) => [...prev, ...scenes]);
+                scenes.forEach((scene) => {
+                    const timerId = window.setTimeout(() => {
+                        setPlacementCinematics((prev) => prev.filter((item) => item.id !== scene.id));
+                    }, 1220);
+                    cinematicTimersRef.current.push(timerId);
+                });
+            }
+        });
+
+        knownCardUidsRef.current = currentUidSet;
+        return () => window.cancelAnimationFrame(rafId);
+    }, [allFieldCards]);
+
+
     const renderCard = (card: FieldCard) => (
-        <FieldCardComp
-            key={card.uid} card={card}
-            selected={selectedUid === card.uid}
-            glowing={canActUids.includes(card.uid)}
-            effect={cardEffects?.[card.uid]}
-            onClick={() => onCardClick(card)}
-        />
+        <div
+            key={card.uid}
+            className="field-card-slot-anchor"
+            ref={(node) => {
+                cardRefMap.current[card.uid] = node;
+            }}
+        >
+            <FieldCardComp
+                card={card}
+                selected={selectedUid === card.uid}
+                glowing={canActUids.includes(card.uid)}
+                effect={cardEffects?.[card.uid]}
+                onClick={() => onCardClick(card)}
+            />
+        </div>
     );
 
     const renderRow = (cards: FieldCard[], role: string, max: number) => {
@@ -160,6 +255,26 @@ const FieldSection: React.FC<Props> = ({
                     );
                 })}
             </div>
+            {placementCinematics.length > 0 && (
+                <div className="field-placement-cinematic-layer" aria-hidden>
+                    {placementCinematics.map((scene) => (
+                        <div
+                            key={scene.id}
+                            className="field-placement-cinematic-card"
+                            style={{
+                                left: `${scene.targetRect.left}px`,
+                                top: `${scene.targetRect.top}px`,
+                                width: `${scene.targetRect.width}px`,
+                                height: `${scene.targetRect.height}px`,
+                                ['--from-center-x' as string]: `${scene.fromCenterX}px`,
+                                ['--from-center-y' as string]: `${scene.fromCenterY}px`,
+                            }}
+                        >
+                            <img src={scene.imageSrc} alt="" />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
