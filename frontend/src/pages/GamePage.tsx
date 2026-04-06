@@ -4,7 +4,7 @@ import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
 import useOnlineGameController from '../controllers/useOnlineGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
-import { getCardImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getCardImageSrc } from '../utils/heroImage';
 import './GamePage.css';
 
 const GamePage: React.FC = () => {
@@ -131,7 +131,7 @@ const GamePage: React.FC = () => {
           onSkipMulligan={vm.skipMulligan}
           selectedFieldName={vm.selectedMyFieldCard?.name}
           selectedHeroKey={vm.selectedHeroKey}
-          selectedFieldImage={vm.selectedMyFieldCard ? getCardImageSrc(vm.selectedMyFieldCard) : null}
+          selectedFieldImageCandidates={vm.selectedMyFieldCard ? [...getCardArtCandidates(vm.selectedMyFieldCard), getCardImageSrc(vm.selectedMyFieldCard)] : []}
           selectedChargeLevel={vm.selectedChargeLevel}
           fieldSkills={vm.fieldSkills}
           actionMode={vm.actionMode}

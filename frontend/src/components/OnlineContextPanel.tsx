@@ -35,7 +35,7 @@ export interface OnlineContextPanelProps {
 
   selectedFieldName?: string;
   selectedHeroKey?: string;
-  selectedFieldImage?: string | null;
+  selectedFieldImageCandidates?: string[];
   selectedChargeLevel?: number;
   fieldSkills: FieldSkill[];
   actionMode: string | null;
@@ -75,7 +75,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   onSkipMulligan,
   selectedFieldName,
   selectedHeroKey,
-  selectedFieldImage,
+  selectedFieldImageCandidates = [],
   selectedChargeLevel,
   fieldSkills,
   actionMode,
@@ -101,16 +101,23 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   onResolveSpellChoice,
 }) => {
   const [skillButtonsVisible, setSkillButtonsVisible] = React.useState(false);
+  const [selectedImageStep, setSelectedImageStep] = React.useState(0);
+  const selectedFieldImage = selectedFieldImageCandidates[selectedImageStep] || null;
+  const showSkillOverlay = fieldSkills.length > 0 && !actionMode;
 
   React.useEffect(() => {
-    if (fieldSkills.length === 0) {
+    if (!showSkillOverlay) {
       setSkillButtonsVisible(false);
       return;
     }
     setSkillButtonsVisible(false);
     const timerId = window.setTimeout(() => setSkillButtonsVisible(true), 620);
     return () => window.clearTimeout(timerId);
-  }, [fieldSkills]);
+  }, [showSkillOverlay, fieldSkills.length]);
+
+  React.useEffect(() => {
+    setSelectedImageStep(0);
+  }, [selectedFieldName, selectedFieldImageCandidates]);
 
   if (!show) return null;
 
@@ -131,12 +138,21 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         </div>
       )}
 
-      {fieldSkills.length > 0 && (
-          <div className="game-skill-select-overlay" role="dialog" aria-modal="true" aria-label="스킬 선택">
-            <div className="game-skill-cinematic-stage">
+      {showSkillOverlay && (
+          <div className="game-skill-select-overlay" role="dialog" aria-modal="true" aria-label="스킬 선택" onClick={onCancelSkillSelection}>
+            <div className="game-skill-cinematic-stage" onClick={(e) => e.stopPropagation()}>
               <div className="game-skill-select-card-wrap">
                 <div className="game-skill-select-card cinematic-enter">
-                  {selectedFieldImage ? <img src={selectedFieldImage} alt={selectedFieldName || '선택 카드'} /> : <div className="game-skill-select-card-fallback">{selectedFieldName || 'CARD'}</div>}
+                  {selectedFieldImage
+                      ? <img
+                          src={selectedFieldImage}
+                          alt={selectedFieldName || '선택 카드'}
+                          onError={() => setSelectedImageStep((prev) => {
+                            if (prev + 1 >= selectedFieldImageCandidates.length) return prev;
+                            return prev + 1;
+                          })}
+                      />
+                      : <div className="game-skill-select-card-fallback">{selectedFieldName || 'CARD'}</div>}
               </div>
               </div>
               <div className={`game-skill-select-content center-only ${skillButtonsVisible ? 'show' : ''}`}>
@@ -146,7 +162,10 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
                           key={skill.key}
                           disabled={skill.onCooldown}
                           className={`game-skill-choice-box beam ${actionMode === skill.key ? 'selected' : ''}`}
-                          onClick={() => onPrepareSkill(skill.key)}
+                          onClick={() => {
+                            onPrepareSkill(skill.key);
+                            setSkillButtonsVisible(false);
+                          }}
                       >
                         <span className="game-skill-choice-name">✦ {skill.name}</span>
                         <span className="game-skill-choice-desc">
@@ -168,7 +187,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         </div>
       )}
 
-      {actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && fieldSkills.length === 0 && (
+      {actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && (
           <div className="game-context-panel">
             <div className="game-context-head game-context-head-wrap">
               <span className="game-toolbar-title">{selectedFieldName || '영웅'}</span>

@@ -976,15 +976,15 @@
     }
 
     .game-skill-cinematic-stage {
-        min-height: min(58vh, 460px);
+        min-height: min(74vh, 620px);
     }
 
     .game-skill-select-card {
-        width: min(190px, 46vw);
+        width: min(220px, 48vw);
     }
 
     .game-skill-select-content.center-only {
-        width: min(360px, 90vw);
+        width: min(390px, 88vw);
     }
 
     .game-opponent-meta-inline {
@@ -1085,7 +1085,11 @@
     }
 
     .game-skill-cinematic-stage {
-        min-height: min(52vh, 360px);
+        min-height: min(72vh, 560px);
+    }
+
+    .game-skill-select-card {
+        width: min(206px, 56vw);
     }
 
     .game-skill-select-card.cinematic-enter {
@@ -1163,15 +1167,15 @@
 
 @keyframes skillHeroCardMoveInMobile {
     0% {
-        transform: translate3d(-4vw, 1vh, 0) scale(1.04) rotate(-2deg);
+        transform: translate3d(-5vw, 1.6vh, 0) scale(1.04) rotate(-2deg);
         opacity: 0.66;
     }
     62% {
-        transform: translate3d(7vw, -1vh, 0) scale(1.33) rotate(2deg);
+        transform: translate3d(13vw, -1.4vh, 0) scale(1.48) rotate(2deg);
         opacity: 1;
     }
     100% {
-        transform: translate3d(6vw, -1vh, 0) scale(1.24) rotate(1.6deg);
+        transform: translate3d(11vw, -1.2vh, 0) scale(1.4) rotate(1.6deg);
         opacity: 1;
     }
 }
