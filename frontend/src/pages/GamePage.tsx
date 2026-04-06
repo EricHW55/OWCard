@@ -18,6 +18,8 @@ const GamePage: React.FC = () => {
   const [coinTossStage, setCoinTossStage] = React.useState<CoinTossStage>('hidden');
   const [coinRotationDeg, setCoinRotationDeg] = React.useState(0);
   const hasShownCoinTossRef = React.useRef(false);
+  const spinTimerRef = React.useRef<number | null>(null);
+  const doneTimerRef = React.useRef<number | null>(null);
 
   const coinFace: CoinFace = React.useMemo(() => {
     if (!vm.gs || !session) return 'front';
@@ -31,6 +33,7 @@ const GamePage: React.FC = () => {
     if (!vm.gs || !session || hasShownCoinTossRef.current) return;
     hasShownCoinTossRef.current = true;
     setCoinTossStage('spinning');
+    setCoinRotationDeg(0);
 
     const allCards = [
       ...(vm.gs.my_state?.hand || []),
@@ -44,20 +47,26 @@ const GamePage: React.FC = () => {
 
     const spinCount = 10;
     const finalRotation = spinCount * 360 + (coinFace === 'front' ? 0 : 180);
-    setCoinRotationDeg(finalRotation);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        setCoinRotationDeg(finalRotation);
+      });
+    });
 
-    const spinTimer = window.setTimeout(() => {
+    spinTimerRef.current = window.setTimeout(() => {
       setCoinTossStage('result');
     }, 2000);
-    const doneTimer = window.setTimeout(() => {
+    doneTimerRef.current = window.setTimeout(() => {
       setCoinTossStage('done');
     }, 3500);
-
-    return () => {
-      window.clearTimeout(spinTimer);
-      window.clearTimeout(doneTimer);
-    };
   }, [vm.gs, session, coinFace]);
+
+  React.useEffect(() => {
+    return () => {
+      if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
+      if (doneTimerRef.current !== null) window.clearTimeout(doneTimerRef.current);
+    };
+  }, []);
 
   const handleSurrender = () => {
     if (isGameOver) return;
