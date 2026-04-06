@@ -122,22 +122,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   if (!show) return null;
 
   return (
-    <div className="game-context-stack">
-      {phase === 'mulligan' && !mulliganDone && (
-        <div className="game-context-panel">
-          <div className="game-context-head">
-            <span className="game-toolbar-title">멀리건 선택</span>
-            <span className="game-context-subtext">
-              {selectedMulligan.length > 0 ? '선택 카드 1장 멀리건' : '카드를 눌러 1장씩 멀리건'}
-            </span>
-          </div>
-          <div className="game-context-actions">
-            <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0}>멀리건 실행</button>
-            <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
-          </div>
-        </div>
-      )}
-
+      <>
       {showSkillOverlay && (
           <div className="game-skill-select-overlay" role="dialog" aria-modal="true" aria-label="스킬 선택" onClick={onCancelSkillSelection}>
             <div className="game-skill-cinematic-stage" onClick={(e) => e.stopPropagation()}>
@@ -187,7 +172,23 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         </div>
       )}
 
-      {actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && (
+      <div className="game-context-stack">
+        {phase === 'mulligan' && !mulliganDone && (
+            <div className="game-context-panel">
+              <div className="game-context-head">
+                <span className="game-toolbar-title">멀리건 선택</span>
+                <span className="game-context-subtext">
+              {selectedMulligan.length > 0 ? '선택 카드 1장 멀리건' : '카드를 눌러 1장씩 멀리건'}
+            </span>
+              </div>
+              <div className="game-context-actions">
+                <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0}>멀리건 실행</button>
+                <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
+              </div>
+            </div>
+        )}
+
+        {actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && (
           <div className="game-context-panel">
             <div className="game-context-head game-context-head-wrap">
               <span className="game-toolbar-title">{selectedFieldName || '영웅'}</span>
@@ -352,6 +353,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
 
