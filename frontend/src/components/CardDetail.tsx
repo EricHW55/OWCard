@@ -136,51 +136,18 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                         marginBottom: 10,
                     }}
                 >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        <div
-                            style={{
-                                width: 46,
-                                height: 46,
-                                borderRadius: 10,
-                                overflow: 'hidden',
-                                background: '#111832',
-                                border: '1px solid #2a3560',
-                                display: 'grid',
-                                placeItems: 'center',
-                                flexShrink: 0,
-                            }}
-                        >
-                            {!imgError ? (
-                                <img
-                                    src={getHeroImageSrc(card as any)}
-                                    alt={card.name}
-                                    onError={() => setImgError(true)}
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                    }}
-                                />
-                            ) : (
-                                <span style={{ fontSize: 20 }}>
-                                    {isSpell ? '✦' : ROLE_ICON[role]}
-                                </span>
-                            )}
-                        </div>
-
-                        <span
-                            style={{
-                                fontSize: 18,
-                                fontWeight: 900,
-                                color: '#e8ecf8',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {card.name}
-                        </span>
-                    </div>
+                    <span
+                        style={{
+                            fontSize: 18,
+                            fontWeight: 900,
+                            color: '#e8ecf8',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {card.name}
+                    </span>
 
                     <span
                         style={{
@@ -236,6 +203,84 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
+                        {!isSpell && maxHp > 0 && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    left: 8,
+                                    right: 8,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    pointerEvents: 'none',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: 54,
+                                        height: 54,
+                                        borderRadius: '50%',
+                                        border: '3px solid rgba(49,40,58,0.85)',
+                                        background: 'radial-gradient(circle at 30% 30%, rgba(220,220,255,0.95), rgba(165,165,204,0.92) 65%, rgba(120,120,160,0.9))',
+                                        color: '#0e1020',
+                                        fontWeight: 900,
+                                        fontSize: 16,
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        boxShadow: '0 6px 14px rgba(0,0,0,0.32)',
+                                    }}
+                                >
+                                    {Math.max(0, hp)}
+                                </div>
+                                <div
+                                    style={{
+                                        flex: 1,
+                                        height: 28,
+                                        borderRadius: 14,
+                                        border: '2px solid rgba(128,104,84,0.75)',
+                                        background: 'linear-gradient(180deg, rgba(244,240,255,0.78), rgba(204,196,220,0.72))',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: 3,
+                                        gap: barrierHp > 0 ? 3 : 0,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            height: '100%',
+                                            width: `${Math.max(
+                                                0,
+                                                Math.min(
+                                                    100,
+                                                    (hp / Math.max(1, maxHp)) * (barrierHp > 0 ? 74 : 100)
+                                                )
+                                            )}%`,
+                                            background: '#04b953',
+                                            borderRadius: 8,
+                                            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2)',
+                                        }}
+                                    />
+                                    {barrierHp > 0 && (
+                                        <div
+                                            style={{
+                                                height: '100%',
+                                                width: `${Math.max(
+                                                    0,
+                                                    Math.min(
+                                                        26,
+                                                        (barrierHp / Math.max(1, barrierMax || barrierHp)) * 26
+                                                    )
+                                                )}%`,
+                                                background: '#4f7fd5',
+                                                borderRadius: 8,
+                                                boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.2)',
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div
                             style={{
                                 position: 'absolute',
@@ -268,7 +313,6 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
                         }}
                     >
                         {([
-                            ['HP', fc ? `${hp}/${maxHp}` : hp, '#22dd77'],
                             ['사거리', rng === 99 ? '∞' : rng, '#ffaa22'],
                             ...(barrierHp > 0 ? [['방벽', `${barrierHp}/${barrierMax}`, '#22cc88']] : []),
                             ...(extraHp > 0 ? [['추가HP', `+${extraHp}`, '#ffdd44']] : []),
