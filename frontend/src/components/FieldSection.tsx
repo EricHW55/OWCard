@@ -281,7 +281,12 @@ const FieldSection: React.FC<Props> = ({
                                 ['--from-center-y' as string]: `${scene.fromCenterY}px`,
                             }}
                         >
-                            <img src={scene.imageSrc} alt="" />
+                            <div className="field-placement-cinematic-face field-placement-cinematic-face-front">
+                                <img src={scene.imageSrc} alt="" />
+                            </div>
+                            <div className="field-placement-cinematic-face field-placement-cinematic-face-back">
+                                <img src="/cards/card_back.png" alt="" />
+                            </div>
                         </div>
                     ))}
                 </div>

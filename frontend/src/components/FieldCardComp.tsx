@@ -223,10 +223,17 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 transform: isAirborne ? 'translateY(-4px)' : undefined,
                 filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
                 transition: 'all 0.25s',
-                animation: isDestroying ? 'destroyFadeOut 0.5s ease forwards' : undefined,
+                animation: isDestroying ? 'destroyFlipFadeOut 0.75s cubic-bezier(0.22, 0.84, 0.2, 1) forwards' : undefined,
                 pointerEvents: isDestroying ? 'none' : undefined,
+                transformStyle: 'preserve-3d',
+                willChange: isDestroying ? 'transform, filter, opacity' : undefined,
             }}
         >
+            {isDestroying && (
+                <div className="field-destroy-backface" aria-hidden>
+                    <img src="/cards/card_back.png" alt="" />
+                </div>
+            )}
             {effect?.floatingDamage !== undefined && effect?.floatingDamage !== null && effect.floatingDamage !== 0 && (
                 <div
                     style={{
@@ -599,9 +606,52 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         transform: translate(-50%, -138%) scale(.9);
                     }
                 }
-                @keyframes destroyFadeOut {
-                    0% { opacity: 1; transform: scale(1); filter: saturate(1); }
-                    100% { opacity: 0; transform: scale(0.94); filter: saturate(.4) blur(1px); }
+                .field-destroy-backface {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 30;
+                    border-radius: calc(var(--field-card-radius) - 1px);
+                    overflow: hidden;
+                    border: 1px solid rgba(222, 234, 255, 0.42);
+                    background: #040916;
+                    opacity: 0;
+                    animation: destroyBackReveal 0.75s linear forwards;
+                    pointer-events: none;
+                    backface-visibility: hidden;
+                }
+                .field-destroy-backface img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    image-rendering: auto;
+                    transform: scale(1.01);
+                }
+                @keyframes destroyBackReveal {
+                    0%, 30% { opacity: 0; }
+                    34%, 78% { opacity: 1; }
+                    100% { opacity: .92; }
+                }
+                @keyframes destroyFlipFadeOut {
+                    0% {
+                        opacity: 1;
+                        transform: scale(1) rotateY(0deg);
+                        filter: saturate(1);
+                    }
+                    33.333% {
+                        opacity: 1;
+                        transform: scale(1) rotateY(180deg);
+                        filter: saturate(.96);
+                    }
+                    53.333% {
+                        opacity: 1;
+                        transform: scale(1) rotateY(180deg);
+                        filter: saturate(.92);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: scale(.94) rotateY(180deg);
+                        filter: saturate(.4) blur(1.4px);
+                    }
                 }
             `}</style>
         </div>
