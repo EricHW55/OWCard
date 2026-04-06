@@ -384,11 +384,10 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         inset: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain',
                         borderRadius: 'calc(var(--field-card-radius) - 1px)',
                         imageRendering: 'auto',
                         backfaceVisibility: 'hidden',
-                        transform: 'translateZ(0)',
                     }}
                 />
             )}

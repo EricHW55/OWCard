@@ -1,6 +1,6 @@
 .game-page {
     --field-card-width: clamp(72px, min(10.6vmin, 10.2vh), 116px);
-    --field-card-height: calc(var(--field-card-width) * 1.48);
+    --field-card-height: calc(var(--field-card-width) * 1.5);
     --field-card-radius: clamp(6px, calc(var(--field-card-width) * 0.11), 10px);
     --field-lane-gap: clamp(3px, calc(var(--field-card-width) * 0.07), 8px);
     height: 100dvh;

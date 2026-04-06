@@ -191,7 +191,7 @@ ${desc}` : ''}`;
                         onTouchEnd={() => setTilt({ rx: 0, ry: 0 })}
                         style={{
                             width: '100%',
-                            aspectRatio: '0.72',
+                            aspectRatio: '2 / 3',
                             borderRadius: 16,
                             overflow: 'hidden',
                             marginBottom: 12,
