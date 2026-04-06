@@ -386,6 +386,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         height: '100%',
                         objectFit: 'cover',
                         borderRadius: 'calc(var(--field-card-radius) - 1px)',
+                        imageRendering: 'auto',
+                        backfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)',
                     }}
                 />
             )}
@@ -435,6 +438,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
+                            imageRendering: 'auto',
+                            backfaceVisibility: 'hidden',
+                            transform: 'translateZ(0)',
                         }}
                     />
                 ) : (

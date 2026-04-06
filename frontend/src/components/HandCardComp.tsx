@@ -79,6 +79,9 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                         height: '100%',
                         objectFit: 'cover',
                         borderRadius: 6,
+                        imageRendering: 'auto',
+                        backfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)',
                     }}
                 />
             ) : (
@@ -139,7 +142,10 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                                 style={{
                                     width: '100%',
                                     height: '100%',
-                                    objectFit: 'cover'
+                                    objectFit: 'cover',
+                                    imageRendering: 'auto',
+                                    backfaceVisibility: 'hidden',
+                                    transform: 'translateZ(0)',
                                 }}
                             />
                         ) : (

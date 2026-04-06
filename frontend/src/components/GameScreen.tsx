@@ -98,6 +98,20 @@ const GameScreen: React.FC<GameScreenProps> = ({
       <div className="game-bottom-panel">
         {contextPanel}
 
+        <div className="game-floating-actions">
+          <div className="game-floating-actions-inner">
+            <button
+                type="button"
+                className="game-log-button game-chip-button"
+                onClick={() => setShowLogModal(true)}
+                disabled={logs.length === 0}
+            >
+              전투 로그
+            </button>
+            {bottomActions}
+          </div>
+        </div>
+
         <div className="game-hand-row">
           {handCards.map((card, index) => (
             <HandCardComp
@@ -114,17 +128,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
         <div className="game-bottombar">
           <span className="game-bottombar-meta">{bottomMeta}</span>
-          <div className="game-bottombar-actions">
-            <button
-                type="button"
-                className="game-log-button"
-                onClick={() => setShowLogModal(true)}
-                disabled={logs.length === 0}
-            >
-              전투 로그
-            </button>
-            {bottomActions}
-          </div>
         </div>
       </div>
 
