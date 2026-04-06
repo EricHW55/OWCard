@@ -240,6 +240,7 @@ function collectAllFieldCards(state: any) {
 const HP_ANIMATION_MS = 500;
 const DESTROY_ANIMATION_MS = 500;
 const DAMAGE_FLOAT_MS = 800;
+const PLACEMENT_CINEMATIC_MS = 1220;
 
 function collectDamageMap(node: any, out: Record<string, number> = {}): Record<string, number> {
   if (!node || typeof node !== 'object') return out;
@@ -363,6 +364,13 @@ export function useOnlineGameController(gameId: string) {
     });
   }, [enqueueAnnouncer]);
 
+  const showSkillUseAfterPlacement = useCallback((props: Parameters<typeof showSkillUse>[0], delay = PLACEMENT_CINEMATIC_MS) => {
+    const timerId = window.setTimeout(() => {
+      showSkillUse(props);
+    }, delay);
+    uiTimersRef.current.push(timerId);
+  }, [showSkillUse]);
+
   const runAfterSkillAnnouncer = useCallback((payload: {
     skillName: string;
     heroKey?: string;
@@ -455,7 +463,7 @@ export function useOnlineGameController(gameId: string) {
     const sourceHeroKey = getHeroKey(sourceCard);
 
     if (entry?.type === 'turn_start_passive' && entry?.result?.passive) {
-      showSkillUse({ skillName: entry.result.passive, subtitle: `${sourceName} 패시브`, description: entry?.result?.message || '', heroKey: sourceHeroKey, imageName: sourceName, isSpell: false, duration: 3000 });
+      showSkillUseAfterPlacement({ skillName: entry.result.passive, subtitle: `${sourceName} 패시브`, description: entry?.result?.message || '', heroKey: sourceHeroKey, imageName: sourceName, isSpell: false, duration: 3000 });
       return;
     }
 
@@ -464,7 +472,7 @@ export function useOnlineGameController(gameId: string) {
       return;
     }
     if (entry?.type === 'auto_heal') showSystemNotice('자동 치유', sourceName, 1400);
-  }, [showSkillUse, showSystemNotice]);
+  }, [showSkillUseAfterPlacement, showSystemNotice]);
 
   const showDeathPassiveNotice = useCallback((result: any) => {
     const gsNow = gsRef.current;
@@ -731,14 +739,6 @@ export function useOnlineGameController(gameId: string) {
             fatalUids,
           };
 
-          if (msg.action === 'place_card' && result?.type === 'card_placed' && result?.card && !result?.card?.is_spell) {
-            const zoneLabel = result?.zone === 'side' ? '사이드' : '본대';
-            showSystemNotice(result.card.name, `${zoneLabel} 배치`, 1200);
-          }
-          if (msg.action === 'resolve_passive_choice' && result?.type === 'card_placed' && result?.card && !result?.card?.is_spell) {
-            const zoneLabel = result?.zone === 'side' ? '사이드' : '본대';
-            showSystemNotice(result.card.name, `${zoneLabel} 추가 배치`, 1300);
-          }
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
             if (result?.hero_key === 'spell_duplicate') {
               setDuplicateTargetUid(null);
@@ -778,7 +778,7 @@ export function useOnlineGameController(gameId: string) {
             showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
           }
           if (result?.passive_triggered?.passive) {
-            showSkillUse({
+            showSkillUseAfterPlacement({
               skillName: result.passive_triggered.passive,
               subtitle: `${actorName} 패시브`,
               description: result?.passive_triggered?.message || '',
@@ -887,7 +887,7 @@ export function useOnlineGameController(gameId: string) {
                 || result?.caster
                 || result?.card
                 || null;
-            showSkillUse({
+            showSkillUseAfterPlacement({
               skillName: result.passive_triggered.passive,
               subtitle: '상대 패시브',
               description: result?.passive_triggered?.message || '',
@@ -945,7 +945,7 @@ export function useOnlineGameController(gameId: string) {
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }

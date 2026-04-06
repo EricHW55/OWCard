@@ -652,6 +652,7 @@
 .field-placement-cinematic-card {
     position: fixed;
     transform-origin: center;
+    transform-style: preserve-3d;
     border-radius: var(--field-card-radius);
     overflow: hidden;
     border: 2px solid rgba(226, 238, 255, 0.88);
@@ -702,27 +703,27 @@
 @keyframes fieldPlacementCinematic {
     0% {
         opacity: 0;
-        transform: translate(var(--from-center-x), var(--from-center-y)) scale(0.28) rotateZ(0deg);
+        transform: perspective(1200px) translate3d(var(--from-center-x), var(--from-center-y), 0) scale(0.3) rotateY(0deg);
         filter: blur(6px) saturate(1.08);
     }
     18% {
         opacity: 1;
-        transform: translate(var(--from-center-x), var(--from-center-y)) scale(1.25) rotateZ(360deg);
+        transform: perspective(1200px) translate3d(var(--from-center-x), var(--from-center-y), 0) scale(1.2) rotateY(360deg);
         filter: blur(0) saturate(1.12);
     }
     48% {
         opacity: 1;
-        transform: translate(var(--from-center-x), var(--from-center-y)) scale(1.12) rotateZ(720deg);
+        transform: perspective(1200px) translate3d(var(--from-center-x), var(--from-center-y), 0) scale(1.08) rotateY(720deg);
         filter: blur(0);
     }
     72% {
         opacity: 1;
-        transform: translate(calc(var(--from-center-x) * 0.28), calc(var(--from-center-y) * 0.28)) scale(1.04) rotateZ(720deg);
+        transform: perspective(1200px) translate3d(calc(var(--from-center-x) * 0.28), calc(var(--from-center-y) * 0.28), 0) scale(1.02) rotateY(720deg);
         filter: blur(0);
     }
     100% {
         opacity: 0;
-        transform: translate(0, 0) scale(0.98) rotateZ(720deg);
+        transform: perspective(1200px) translate3d(0, 0, 0) scale(0.98) rotateY(720deg);
         filter: blur(1.5px);
     }
 }

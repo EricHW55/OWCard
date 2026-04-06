@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
 import FieldCardComp from './FieldCardComp';
-import { getCardImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getCardImageSrc } from '../utils/heroImage';
 
 interface Props {
     field: FieldState;
@@ -106,7 +106,7 @@ const FieldSection: React.FC<Props> = ({
                 return [{
                     id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
                     uid: card.uid,
-                    imageSrc: getCardImageSrc({ hero_key: card.hero_key, name: card.name }),
+                    imageSrc: getCardArtCandidates(card)[0] || getCardImageSrc({ hero_key: card.hero_key, name: card.name }),
                     targetRect: {
                         left: rect.left,
                         top: rect.top,
