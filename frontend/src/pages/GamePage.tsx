@@ -4,14 +4,60 @@ import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
 import useOnlineGameController from '../controllers/useOnlineGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
-import { getCardArtCandidates, getCardImageSrc } from '../utils/heroImage';
+import { getCardArtCandidates, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
 import './GamePage.css';
+
+type CoinFace = 'front' | 'back';
+type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'done';
 
 const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
   const navigate = useNavigate();
   const vm = useOnlineGameController(gameId);
   const session = vm.session;
+  const [coinTossStage, setCoinTossStage] = React.useState<CoinTossStage>('hidden');
+  const [coinRotationDeg, setCoinRotationDeg] = React.useState(0);
+  const hasShownCoinTossRef = React.useRef(false);
+
+  const coinFace: CoinFace = React.useMemo(() => {
+    if (!vm.gs || !session) return 'front';
+    const isFirstPlayer = vm.gs.current_player
+        ? Number(vm.gs.current_player) === Number(session.player_id)
+        : vm.gs.is_my_turn;
+    return isFirstPlayer ? 'front' : 'back';
+  }, [vm.gs, session]);
+
+  React.useEffect(() => {
+    if (!vm.gs || !session || hasShownCoinTossRef.current) return;
+    hasShownCoinTossRef.current = true;
+    setCoinTossStage('spinning');
+
+    const allCards = [
+      ...(vm.gs.my_state?.hand || []),
+      ...(vm.gs.my_state?.field?.main || []),
+      ...(vm.gs.my_state?.field?.side || []),
+      ...(vm.gs.opponent_state?.field?.main || []),
+      ...(vm.gs.opponent_state?.field?.side || []),
+    ];
+    const stage2Sources = Array.from(new Set(allCards.flatMap((card) => getCardArtCandidates(card as any))));
+    void preloadImageAssets(stage2Sources, 3200);
+
+    const spinCount = 10;
+    const finalRotation = spinCount * 360 + (coinFace === 'front' ? 0 : 180);
+    setCoinRotationDeg(finalRotation);
+
+    const spinTimer = window.setTimeout(() => {
+      setCoinTossStage('result');
+    }, 2000);
+    const doneTimer = window.setTimeout(() => {
+      setCoinTossStage('done');
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(spinTimer);
+      window.clearTimeout(doneTimer);
+    };
+  }, [vm.gs, session, coinFace]);
 
   const handleSurrender = () => {
     if (isGameOver) return;
@@ -65,6 +111,29 @@ const GamePage: React.FC = () => {
 
   return (
     <>
+      {coinTossStage !== 'done' && coinTossStage !== 'hidden' && (
+          <div className="game-coin-toss-overlay" aria-live="polite" aria-label="선후공 코인 토스">
+            <div className="game-coin-toss-stage">
+              {coinTossStage === 'result' && (
+                  <div className="game-coin-toss-result-text">{coinFace === 'front' ? '앞면' : '뒷면'}</div>
+              )}
+              <div className={`game-coin-toss-coin-wrap ${coinTossStage === 'spinning' ? 'spinning' : 'settled'}`}>
+                <div className="game-coin-toss-shadow" />
+                <div
+                    className="game-coin-toss-coin"
+                    style={{ transform: `rotateX(${coinRotationDeg}deg)` }}
+                >
+                  <div className="game-coin-toss-face front">
+                    <img src="/coin/front.png" alt="코인 앞면" />
+                  </div>
+                  <div className="game-coin-toss-face back">
+                    <img src="/coin/back.png" alt="코인 뒷면" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      )}
     <GameScreen
       announcerData={vm.announcerData}
       onCloseAnnouncer={vm.closeAnnouncer}
