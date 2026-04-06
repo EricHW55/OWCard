@@ -125,8 +125,8 @@ ${desc}` : ''}`;
             <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                    width: 312,
-                    maxHeight: '85vh',
+                    width: 'clamp(312px, 34vw, 460px)',
+                    maxHeight: '88vh',
                     overflowY: 'auto',
                     background: '#1a2342',
                     border: `2px solid ${color}`,
@@ -216,17 +216,18 @@ ${desc}` : ''}`;
                         <div
                             style={{
                                 position: 'absolute',
-                                left: 12,
-                                right: 12,
-                                bottom: 10,
-                                height: '23%',
-                                padding: '10px 12px 8px',
+                                left: '7.5%',
+                                right: '7.5%',
+                                top: '66.2%',
+                                bottom: '6.8%',
+                                padding: '8px 10px 12px',
                                 color: '#0b0b0b',
                                 overflowY: 'auto',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'flex-start',
                                 alignItems: 'stretch',
+                                boxSizing: 'border-box',
                                 lineHeight: 1.35,
                                 wordBreak: 'keep-all',
                                 overflowWrap: 'anywhere',
