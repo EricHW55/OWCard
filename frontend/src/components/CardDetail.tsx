@@ -216,26 +216,49 @@ ${desc}` : ''}`;
                         <div
                             style={{
                                 position: 'absolute',
-                                left: 8,
-                                right: 8,
-                                bottom: 8,
-                                padding: '8px 10px',
-                                color: '#f4f8ff',
-                                maxHeight: '38%',
+                                left: 12,
+                                right: 12,
+                                bottom: 10,
+                                height: '23%',
+                                padding: '10px 12px 8px',
+                                color: '#0b0b0b',
                                 overflowY: 'auto',
-                                textShadow: '0 1px 2px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.55)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'flex-start',
+                                alignItems: 'stretch',
+                                lineHeight: 1.35,
+                                wordBreak: 'keep-all',
+                                overflowWrap: 'anywhere',
                             }}
                         >
                             {cardArtSkillRows.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                                     {cardArtSkillRows.map((skill) => (
                                         <div key={skill.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                            <div style={{ fontSize: 11, fontWeight: 800, lineHeight: 1.3 }}>
+                                            <div
+                                                style={{
+                                                    fontSize: 11,
+                                                    fontWeight: 800,
+                                                    lineHeight: 1.3,
+                                                    color: '#0b0b0b',
+                                                    WebkitTextStroke: '1px rgba(255,255,255,0.95)',
+                                                    paintOrder: 'stroke fill',
+                                                }}
+                                            >
                                                 {skill.title}
                                                 {skill.value ? ` ${skill.value}` : ''}
                                             </div>
                                             {!!skill.desc && (
-                                                <div style={{ fontSize: 9, lineHeight: 1.35, color: 'rgba(233, 241, 255, 0.96)' }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: 9,
+                                                        lineHeight: 1.35,
+                                                        color: '#0b0b0b',
+                                                        WebkitTextStroke: '0.85px rgba(255,255,255,0.96)',
+                                                        paintOrder: 'stroke fill',
+                                                    }}
+                                                >
                                                     {skill.desc}
                                                 </div>
                                             )}
@@ -243,7 +266,15 @@ ${desc}` : ''}`;
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ fontSize: 10, lineHeight: 1.35, color: 'rgba(233, 241, 255, 0.96)' }}>
+                                <div
+                                    style={{
+                                        fontSize: 10,
+                                        lineHeight: 1.35,
+                                        color: '#0b0b0b',
+                                        WebkitTextStroke: '0.9px rgba(255,255,255,0.96)',
+                                        paintOrder: 'stroke fill',
+                                    }}
+                                >
                                     {fallbackDescription || '스킬 설명 없음'}
                                 </div>
                             )}
