@@ -23,12 +23,10 @@ interface PlacementCinematic {
     id: string;
     uid: string;
     imageSrc: string;
-    targetRect: {
-        left: number;
-        top: number;
-        width: number;
-        height: number;
-    };
+    targetCenterX: number;
+    targetCenterY: number;
+    targetWidth: number;
+    targetHeight: number;
     fromCenterX: number;
     fromCenterY: number;
 }
@@ -101,19 +99,18 @@ const FieldSection: React.FC<Props> = ({
 
                 const targetCenterX = rect.left + rect.width / 2;
                 const targetCenterY = rect.top + rect.height / 2;
-                const viewportCenterX = window.innerWidth / 2;
-                const viewportCenterY = window.innerHeight / 2;
+                const viewport = window.visualViewport;
+                const viewportCenterX = (viewport?.offsetLeft ?? 0) + (viewport?.width ?? window.innerWidth) / 2;
+                const viewportCenterY = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight) / 2;
 
                 return [{
                     id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
                     uid: card.uid,
                     imageSrc: getCardArtCandidates(card)[0] || getCardImageSrc({ hero_key: card.hero_key, name: card.name }),
-                    targetRect: {
-                        left: rect.left,
-                        top: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                    },
+                    targetCenterX,
+                    targetCenterY,
+                    targetWidth: rect.width,
+                    targetHeight: rect.height,
                     fromCenterX: viewportCenterX - targetCenterX,
                     fromCenterY: viewportCenterY - targetCenterY,
                 }];
@@ -277,10 +274,10 @@ const FieldSection: React.FC<Props> = ({
                             key={scene.id}
                             className="field-placement-cinematic-card"
                             style={{
-                                left: `${scene.targetRect.left}px`,
-                                top: `${scene.targetRect.top}px`,
-                                width: `${scene.targetRect.width}px`,
-                                height: `${scene.targetRect.height}px`,
+                                left: `${scene.targetCenterX}px`,
+                                top: `${scene.targetCenterY}px`,
+                                width: `${scene.targetWidth}px`,
+                                height: `${scene.targetHeight}px`,
                                 ['--from-center-x' as string]: `${scene.fromCenterX}px`,
                                 ['--from-center-y' as string]: `${scene.fromCenterY}px`,
                             }}

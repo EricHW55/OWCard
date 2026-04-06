@@ -4,6 +4,7 @@ import { BTN_SM, roleClass, roleLabel } from '../utils/ui';
 export type FieldSkill = {
   key: string;
   name: string;
+  description: string;
   onCooldown: boolean;
   cdLeft: number;
 };
@@ -34,6 +35,7 @@ export interface OnlineContextPanelProps {
 
   selectedFieldName?: string;
   selectedHeroKey?: string;
+  selectedFieldImage?: string | null;
   selectedChargeLevel?: number;
   fieldSkills: FieldSkill[];
   actionMode: string | null;
@@ -73,6 +75,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   onSkipMulligan,
   selectedFieldName,
   selectedHeroKey,
+  selectedFieldImage,
   selectedChargeLevel,
   fieldSkills,
   actionMode,
@@ -117,33 +120,42 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
       )}
 
       {fieldSkills.length > 0 && (
-        <div className="game-context-panel">
-          <div className="game-context-head game-context-head-wrap">
-            <span className="game-toolbar-title">{selectedFieldName}</span>
-            <span className="game-context-subtext">
-              사용할 스킬을 고르세요
-              {selectedHeroKey === 'sojourn' ? ` · 현재 차징 ${selectedChargeLevel ?? 0}/3` : ''}
-            </span>
+          <div className="game-skill-select-overlay" role="dialog" aria-modal="true" aria-label="스킬 선택">
+            <div className="game-skill-select-panel">
+              <div className="game-skill-select-card-wrap">
+                <div className="game-skill-select-card">
+                  {selectedFieldImage ? <img src={selectedFieldImage} alt={selectedFieldName || '선택 카드'} /> : <div className="game-skill-select-card-fallback">{selectedFieldName || 'CARD'}</div>}
+                </div>
+              </div>
+              <div className="game-skill-select-content">
+                <div className="game-context-head game-context-head-wrap">
+                  <span className="game-toolbar-title">{selectedFieldName}</span>
+                  <span className="game-context-subtext">
+                  사용할 스킬을 고르세요
+                    {selectedHeroKey === 'sojourn' ? ` · 현재 차징 ${selectedChargeLevel ?? 0}/3` : ''}
+                </span>
+                </div>
+                <div className="game-skill-choice-list">
+                  {fieldSkills.map((skill) => (
+                      <button
+                          key={skill.key}
+                          disabled={skill.onCooldown}
+                          className={`game-skill-choice-box ${actionMode === skill.key ? 'selected' : ''}`}
+                          onClick={() => onPrepareSkill(skill.key)}
+                      >
+                        <span className="game-skill-choice-name">✦ {skill.name}</span>
+                        <span className="game-skill-choice-desc">
+                      {skill.onCooldown ? `${skill.cdLeft}턴 후 사용` : (skill.description || '탭해서 사용 준비')}
+                    </span>
+                      </button>
+                  ))}
+                </div>
+                <div className="game-context-actions">
+                  <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
+                </div>
+                {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
+              </div>
           </div>
-          <div className="game-context-actions game-context-actions-wrap">
-            {fieldSkills.map((skill) => (
-              <button
-                key={skill.key}
-                disabled={skill.onCooldown}
-                className={`skill-choice-chip ${actionMode === skill.key ? 'selected' : ''}`}
-                onClick={() => onPrepareSkill(skill.key)}
-                style={{
-                  ...BTN_SM,
-                  opacity: skill.onCooldown ? 0.4 : 1,
-                }}
-              >
-                <span className="skill-choice-chip-name">✦ {skill.name}</span>
-                <span className="skill-choice-chip-meta">{skill.onCooldown ? `${skill.cdLeft}턴 후 사용` : '탭해서 사용 준비'}</span>
-              </button>
-            ))}
-            <button onClick={onCancelSkillSelection} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
-          </div>
-          {actionMode && actionMode !== 'spell' && <div className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</div>}
         </div>
       )}
 

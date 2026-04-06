@@ -981,7 +981,7 @@ export function useOnlineGameController(gameId: string) {
       : null;
   const canActUids = (phase === 'action' && isMyTurn) ? allMyField.filter((c) => !c.placed_this_turn && !c.acted_this_turn).map((c) => c.uid) : [];
 
-  const fieldSkills: { key: string; name: string; onCooldown: boolean; cdLeft: number }[] = [];
+  const fieldSkills: { key: string; name: string; description: string; onCooldown: boolean; cdLeft: number }[] = [];
   if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && phase === 'action' && isMyTurn) {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
@@ -991,7 +991,13 @@ export function useOnlineGameController(gameId: string) {
       if (!key.startsWith('skill_')) continue;
       let displayName = (m as any)?.name || key;
       if (heroKey === 'sojourn' && key === 'skill_2') displayName = `${displayName} [${chargeLevel}단계]`;
-      fieldSkills.push({ key, name: displayName, onCooldown: (cds[key] ?? 0) > 0, cdLeft: cds[key] ?? 0 });
+      fieldSkills.push({
+        key,
+        name: displayName,
+        description: String((m as any)?.description || ''),
+        onCooldown: (cds[key] ?? 0) > 0,
+        cdLeft: cds[key] ?? 0,
+      });
     }
     fieldSkills.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
