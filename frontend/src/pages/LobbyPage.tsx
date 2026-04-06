@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LobbySocket, buildWsUrl, getApiBase } from '../api/ws';
+import { buildCoreImagePreloadList, preloadImageAssets } from '../utils/heroImage';
 import './LobbyPage.css';
 
 interface RoomInfo {
@@ -109,6 +110,7 @@ const LobbyPage: React.FC = () => {
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
     const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
+    const preloadPromiseRef = useRef<Promise<void> | null>(null);
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -116,6 +118,13 @@ const LobbyPage: React.FC = () => {
 
     const send = useCallback((data: Record<string, unknown>) => {
         wsRef.current?.send(data);
+    }, []);
+
+    const ensureGameImageWarmup = useCallback(() => {
+        if (!preloadPromiseRef.current) {
+            preloadPromiseRef.current = preloadImageAssets(buildCoreImagePreloadList(), 2200);
+        }
+        return preloadPromiseRef.current;
     }, []);
 
     const applyDeckToRoom = useCallback((roomId: string, selectedDeckId?: number) => {
@@ -169,6 +178,11 @@ const LobbyPage: React.FC = () => {
         if (!session) return;
         refreshDecks(session.player_id);
     }, [session, refreshDecks]);
+
+    useEffect(() => {
+        if (!session) return;
+        ensureGameImageWarmup();
+    }, [session, ensureGameImageWarmup]);
 
     useEffect(() => {
         if (!decks.length) {
@@ -336,14 +350,18 @@ const LobbyPage: React.FC = () => {
             setQueueing(false);
             setQueueStartedAt(null);
             addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
-            navigate(`/game/${msg.game_id}`);
+            ensureGameImageWarmup().finally(() => {
+                navigate(`/game/${msg.game_id}`);
+            });
         });
 
         const offGameStarting = ws.on('game_starting', (msg: any) => {
             setQueueing(false);
             setQueueStartedAt(null);
             addLog(`게임 시작: ${msg.game_id}`);
-            navigate(`/game/${msg.game_id}`);
+            ensureGameImageWarmup().finally(() => {
+                navigate(`/game/${msg.game_id}`);
+            });
         });
 
         const offQueueJoined = ws.on('queue_joined', (msg: any) => {
@@ -377,7 +395,7 @@ const LobbyPage: React.FC = () => {
             offError();
             ws.disconnect();
         };
-    }, [session, addLog, navigate, refreshRooms, applyDeckToRoom]);
+    }, [session, addLog, navigate, refreshRooms, applyDeckToRoom, ensureGameImageWarmup]);
 
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();

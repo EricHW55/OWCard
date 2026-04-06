@@ -251,6 +251,7 @@ function buildNormalizedAliasMap(source: Record<string, string>): Record<string,
 const HERO_NAME_ALIAS_NORMALIZED = buildNormalizedAliasMap(HERO_NAME_ALIAS);
 const SPELL_ALIAS_NORMALIZED = buildNormalizedAliasMap(SPELL_ALIAS);
 const KNOWN_HERO_KEYS = new Set<string>(Object.values(HERO_ID_ALIAS));
+const KNOWN_SPELL_KEYS = new Set<string>(Object.values(SPELL_ALIAS));
 
 export function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
@@ -336,4 +337,39 @@ export function getCardArtCandidates(card: CardLike): string[] {
 // 기존 코드 호환용
 export function getHeroImageSrc(card: CardLike): string {
     return getCardImageSrc(card);
+}
+
+export function buildCoreImagePreloadList(): string[] {
+    const heroImages = Array.from(KNOWN_HERO_KEYS).map((key) => `/heroes/${key}.png`);
+    const spellImages = Array.from(KNOWN_SPELL_KEYS).map((key) => `/skills/${key}.png`);
+    return Array.from(new Set<string>([
+        ...heroImages,
+        ...spellImages,
+        '/heroes/_unknown.png',
+        '/skills/_unknown.png',
+        '/coin/front.png',
+        '/coin/back.png',
+    ]));
+}
+
+export async function preloadImageAssets(sources: string[], timeoutMs = 2500): Promise<void> {
+    if (typeof window === 'undefined' || sources.length === 0) return;
+
+    const loadPromises = Array.from(new Set(sources)).map((src) => new Promise<void>((resolve) => {
+        const img = new Image();
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            resolve();
+        };
+        img.onload = finish;
+        img.onerror = finish;
+        img.src = src;
+    }));
+
+    await Promise.race([
+        Promise.allSettled(loadPromises).then(() => undefined),
+        new Promise<void>((resolve) => window.setTimeout(resolve, timeoutMs)),
+    ]);
 }
