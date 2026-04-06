@@ -48,6 +48,11 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         setTilt({ rx: 0, ry: 0 });
     }, [card]);
 
+    const cardArtChain = useMemo(
+        () => (card ? [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)] : []),
+        [card]
+    );
+
     if (!card) return null;
 
     const isSpell = 'is_spell' in card && !!card.is_spell;
@@ -66,7 +71,6 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         ('skill_damages' in card ? card.skill_damages : {}) || {};
     const cooldowns: Record<string, number> = fc?.skill_cooldowns ?? {};
     const statuses = fc?.statuses ?? [];
-    const cardArtChain = useMemo(() => [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)], [card]);
     const currentCardArt = cardArtChain[imageStep];
     const hasCardArt = !imgError && !!currentCardArt && currentCardArt.startsWith('/cards/');
 
