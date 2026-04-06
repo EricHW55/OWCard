@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
+import { getHeroImageSrc, getIllustrationCandidates } from '../utils/heroImage';
 
 interface Props {
     card: HandCard;
@@ -14,7 +14,7 @@ interface Props {
 
 const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, focusedIndex }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
-    const fallbackChain = [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)];
+    const fallbackChain = [...getIllustrationCandidates(card as any), getHeroImageSrc(card as any)];
     const [imageStep, setImageStep] = useState(0);
     const [imgError, setImgError] = useState(false);
     const currentImageSrc = fallbackChain[imageStep];
@@ -26,7 +26,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const fanArcOffset = Math.pow(Math.abs(fanProgress) * 2, 1.25) * 16;
     const cardLift = selected ? -16 : 0;
     const cardScale = selected ? 1.14 : 1;
-    const usingFullCardArt = !!currentImageSrc && currentImageSrc.startsWith('/cards/');
+    const usingFullCardArt = !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
     const centerPriority = total <= 1 ? 1 : 1 - Math.abs(fanProgress * 2);
     const baseZIndex = 100 + Math.round(centerPriority * 100);
 

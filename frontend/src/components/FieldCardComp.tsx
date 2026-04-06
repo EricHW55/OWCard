@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
+import { getHeroImageSrc, getIllustrationCandidates } from '../utils/heroImage';
 
 interface Props {
     card: FieldCard;
@@ -70,7 +70,7 @@ function getMainDamage(card: FieldCard): string {
 }
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
-    const fallbackChain = [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)];
+    const fallbackChain = [...getIllustrationCandidates(card as any), getHeroImageSrc(card as any)];
     const [imageStep, setImageStep] = useState(0);
     const [imgError, setImgError] = useState(false);
     const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
@@ -188,7 +188,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         .join(', ');
     const isDestroying = !!effect?.destroying;
     const currentImageSrc = fallbackChain[imageStep];
-    const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/cards/');
+    const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
 
     return (
         <div

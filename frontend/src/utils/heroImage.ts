@@ -334,6 +334,20 @@ export function getCardArtCandidates(card: CardLike): string[] {
     ];
 }
 
+export function getIllustrationCandidates(card: CardLike): string[] {
+    if (!card) return [];
+    const roleFolder = getCardArtRoleFolder(card);
+    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroKey(card);
+    if (!key) return [];
+
+    const normalizedKey = key === 'hana_song' ? 'songhana' : key;
+    return [
+        `/illustration/${roleFolder}/${normalizedKey}.png`,
+        `/illustration/${roleFolder}/${normalizedKey}.jpg`,
+        `/illustration/${roleFolder}/${normalizedKey}.jpeg`,
+    ];
+}
+
 // 기존 코드 호환용
 export function getHeroImageSrc(card: CardLike): string {
     return getCardImageSrc(card);
