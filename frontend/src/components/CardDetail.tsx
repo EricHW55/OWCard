@@ -271,6 +271,31 @@ ${desc}` : ''}`;
                         >
                             {card.name}
                         </div>
+                        {!isSpell && maxHp > 0 && (
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: '1.9%',
+                                    top: '0.8%',
+                                    width: '17.2%',
+                                    height: '14.2%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    pointerEvents: 'none',
+                                    color: '#41e06a',
+                                    fontSize: scaledPx(22.5, 18, 28),
+                                    fontWeight: 950,
+                                    lineHeight: 1,
+                                    letterSpacing: '-0.02em',
+                                    WebkitTextStroke: '1.1px rgba(9,44,12,0.95)',
+                                    paintOrder: 'stroke fill',
+                                    textShadow: '0 0 4px rgba(35, 188, 66, 0.5), 0 1px 2px rgba(0,0,0,0.55)',
+                                }}
+                            >
+                                {Math.max(0, hp)}
+                            </div>
+                        )}
                         <div
                             style={{
                                 position: 'absolute',
