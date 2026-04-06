@@ -136,7 +136,7 @@ const FieldSection: React.FC<Props> = ({
                             next.delete(scene.uid);
                             return next;
                         });
-                    }, 1220);
+                    }, 1670);
                     cinematicTimersRef.current.push(timerId);
                 });
             }
