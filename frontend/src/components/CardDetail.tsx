@@ -247,6 +247,31 @@ ${desc}` : ''}`;
                         <div
                             style={{
                                 position: 'absolute',
+                                left: '25.5%',
+                                right: '8.8%',
+                                top: '2.6%',
+                                height: '8.6%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 10px',
+                                textAlign: 'center',
+                                color: '#f5f6ff',
+                                fontSize: scaledPx(12.8, 11, 14.5),
+                                fontWeight: 900,
+                                lineHeight: 1.1,
+                                letterSpacing: '0.02em',
+                                textShadow: '0 1px 2px rgba(0,0,0,0.75)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                            }}
+                        >
+                            {card.name}
+                        </div>
+                        <div
+                            style={{
+                                position: 'absolute',
                                 left: '7.5%',
                                 right: '7.5%',
                                 top: '64.8%',
@@ -271,10 +296,10 @@ ${desc}` : ''}`;
                                             <div
                                                 style={{
                                                     fontSize: scaledPx(12.6, 11, 14),
-                                                    fontWeight: 800,
+                                                    fontWeight: 900,
                                                     lineHeight: 1.3,
                                                     color: '#0b0b0b',
-                                                    WebkitTextStroke: '0.75px rgba(255,255,255,0.95)',
+                                                    WebkitTextStroke: '0.52px rgba(255,255,255,0.9)',
                                                     paintOrder: 'stroke fill',
                                                 }}
                                             >
@@ -285,9 +310,10 @@ ${desc}` : ''}`;
                                                 <div
                                                     style={{
                                                         fontSize: scaledPx(10.7, 9, 12),
+                                                        fontWeight: 700,
                                                         lineHeight: 1.35,
                                                         color: '#0b0b0b',
-                                                        WebkitTextStroke: '0.7px rgba(255,255,255,0.96)',
+                                                        WebkitTextStroke: '0.45px rgba(255,255,255,0.9)',
                                                         paintOrder: 'stroke fill',
                                                     }}
                                                 >
@@ -301,9 +327,10 @@ ${desc}` : ''}`;
                                 <div
                                     style={{
                                         fontSize: scaledPx(11.4, 10, 12.8),
+                                        fontWeight: 700,
                                         lineHeight: 1.35,
                                         color: '#0b0b0b',
-                                        WebkitTextStroke: '0.72px rgba(255,255,255,0.96)',
+                                        WebkitTextStroke: '0.48px rgba(255,255,255,0.9)',
                                         paintOrder: 'stroke fill',
                                     }}
                                 >
