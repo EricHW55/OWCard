@@ -247,6 +247,8 @@ class GameEngine:
         self.current_turn_index: int = 0
         self.turn_number: int = 0
         self.round_number: int = 1  # 라운드 (지휘관 스킬 횟수 결정)
+        self.coin_result: Optional[str] = None
+        self.first_player_id: Optional[int] = None
         self.phase: GamePhase = GamePhase.WAITING
         self.winner: Optional[int] = None
         self.action_log: list[dict] = []
@@ -462,9 +464,11 @@ class GameEngine:
         self.turn_number = 1
         self.phase = GamePhase.PLACEMENT
         fid = self.player_order[first_idx]
+        self.first_player_id = fid
+        self.coin_result = "heads" if first_idx == 0 else "tails"
         return {
             "phase": self.phase.value,
-            "coin_result": "heads" if first_idx == 0 else "tails",
+            "coin_result": self.coin_result,
             "first_player": fid,
             "first_player_name": self.players[fid].username,
             "turn": self.turn_number,
@@ -1098,7 +1102,7 @@ class GameEngine:
                     continue
                 if int(dmg_log.get("final_damage", 0) or 0) <= 0:
                     continue
-                retaliation_log = caster.take_raw_damage(retaliate)
+                retaliation_log = caster.take_damage(retaliate, source_uid=target_card.uid, damage_kind="passive_retaliation")
                 retaliation_logs.append({
                     "from_uid": target_card.uid,
                     "to_uid": caster.uid,
@@ -1167,7 +1171,7 @@ class GameEngine:
         if target.extra.get("hazard_retaliate", 0):
             retaliate = int(target.extra.get("hazard_retaliate", 0) or 0)
             if retaliate > 0 and int(result.get("final_damage", 0) or 0) > 0 and attacker.alive and attacker.uid != target.uid:
-                retaliation_log = attacker.take_raw_damage(retaliate)
+                retaliation_log = attacker.take_damage(retaliate, source_uid=target.uid, damage_kind="passive_retaliation")
                 result["hazard_retaliation"] = {
                     "from_uid": target.uid,
                     "to_uid": attacker.uid,
@@ -1339,6 +1343,8 @@ class GameEngine:
             "turn": self.turn_number,
             "round": self.round_number,
             "current_player": self.current_player_id if self.player_order else None,
+            "coin_result": self.coin_result,
+            "first_player": self.first_player_id,
             "is_my_turn": for_player_id == self.current_player_id if self.player_order else False,
             "my_state": ps.to_dict(reveal_hand=True) if ps else None,
             "opponent_state": opp.to_dict(reveal_hand=False) if opp else None,
@@ -1353,6 +1359,8 @@ class GameEngine:
             "turn": self.turn_number,
             "round": self.round_number,
             "current_player": self.current_player_id if self.player_order else None,
+            "coin_result": self.coin_result,
+            "first_player": self.first_player_id,
             "players": {pid: ps.to_dict(reveal_hand=False) for pid, ps in self.players.items()},
             "winner": self.winner,
             "action_log": self.action_log[-20:],

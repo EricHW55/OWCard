@@ -24,8 +24,9 @@ const GamePage: React.FC = () => {
 
   const coinFace: CoinFace = React.useMemo(() => {
     if (!vm.gs || !session) return 'front';
-    const isFirstPlayer = vm.gs.current_player
-        ? Number(vm.gs.current_player) === Number(session.player_id)
+    const firstPlayerId = vm.gs.first_player ?? vm.gs.current_player;
+    const isFirstPlayer = firstPlayerId != null
+        ? Number(firstPlayerId) === Number(session.player_id)
         : vm.gs.is_my_turn;
     return isFirstPlayer ? 'front' : 'back';
   }, [vm.gs, session]);

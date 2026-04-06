@@ -247,7 +247,7 @@ def anran_inferno_dash(caster: FieldCard, target: FieldCard, game: GameState) ->
         return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
     target.add_status(Burn(
-        damage_per_turn=int(caster.extra.get("burn_damage", 1)),
+        damage_per_turn=int(caster.extra.get("burn_damage", 2)),
         duration=int(caster.extra.get("burn_duration", 3)),
         source_uid=caster.uid,
     ))

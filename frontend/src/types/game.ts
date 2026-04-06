@@ -99,6 +99,8 @@ export interface GameState {
   turn: number;
   round: number;
   current_player: number | null;
+  coin_result?: 'heads' | 'tails' | null;
+  first_player?: number | null;
   is_my_turn: boolean;
   my_state: PlayerState;
   opponent_state: PlayerState;

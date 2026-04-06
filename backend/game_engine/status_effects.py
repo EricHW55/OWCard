@@ -403,7 +403,7 @@ class SkillSilence(StatusEffect):
 class Burn(StatusEffect):
     """화상 (애쉬 다이너마이트): 매턴 데미지."""
     name: str = "burn"
-    damage_per_turn: int = 1
+    damage_per_turn: int = 2
     tags: list[str] = field(default_factory=lambda: ["debuff", "dot"])
 
     def on_turn_end(self, card):
