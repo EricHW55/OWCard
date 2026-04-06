@@ -41,12 +41,19 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const [imgError, setImgError] = useState(false);
     const [imageStep, setImageStep] = useState(0);
     const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
+    const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
     useEffect(() => {
         setImgError(false);
         setImageStep(0);
         setTilt({ rx: 0, ry: 0 });
     }, [card]);
+
+    useEffect(() => {
+        const handleResize = () => setViewportWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const cardArtChain = useMemo(
         () => (card ? [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)] : []),
@@ -85,6 +92,8 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
 
     const extraHpStatus = statuses.find(s => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
+    const fontScale = viewportWidth < 390 ? 0.92 : viewportWidth < 520 ? 0.97 : viewportWidth >= 1400 ? 1.06 : 1;
+    const scaledPx = (base: number, min = 8, max = 18) => Math.max(min, Math.min(max, Number((base * fontScale).toFixed(2))));
 
     const handleTiltMove = (clientX: number, clientY: number, rect: DOMRect) => {
         const px = (clientX - rect.left) / rect.width;
@@ -147,7 +156,7 @@ ${desc}` : ''}`;
                     >
                         <span
                             style={{
-                                fontSize: 18,
+                                fontSize: scaledPx(18, 16, 19),
                                 fontWeight: 900,
                                 color: '#e8ecf8',
                                 overflow: 'hidden',
@@ -162,7 +171,7 @@ ${desc}` : ''}`;
                             style={{
                                 padding: '2px 10px',
                                 borderRadius: 20,
-                                fontSize: 10,
+                                fontSize: scaledPx(10, 9, 11),
                                 fontWeight: 700,
                                 background: `${color}20`,
                                 color,
@@ -239,7 +248,7 @@ ${desc}` : ''}`;
                                         <div key={skill.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                             <div
                                                 style={{
-                                                    fontSize: 11,
+                                                    fontSize: scaledPx(11, 10, 12),
                                                     fontWeight: 800,
                                                     lineHeight: 1.3,
                                                     color: '#0b0b0b',
@@ -253,7 +262,7 @@ ${desc}` : ''}`;
                                             {!!skill.desc && (
                                                 <div
                                                     style={{
-                                                        fontSize: 9,
+                                                        fontSize: scaledPx(9, 8, 10),
                                                         lineHeight: 1.35,
                                                         color: '#0b0b0b',
                                                         WebkitTextStroke: '0.85px rgba(255,255,255,0.96)',
@@ -269,7 +278,7 @@ ${desc}` : ''}`;
                             ) : (
                                 <div
                                     style={{
-                                        fontSize: 10,
+                                        fontSize: scaledPx(10, 9, 11),
                                         lineHeight: 1.35,
                                         color: '#0b0b0b',
                                         WebkitTextStroke: '0.9px rgba(255,255,255,0.96)',
@@ -313,7 +322,7 @@ ${desc}` : ''}`;
                                 flexShrink: 0,
                             }}
                         />
-                        <div style={{ fontSize: 10, color: '#9aa6ce', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                        <div style={{ fontSize: scaledPx(10, 9, 11), color: '#9aa6ce', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
                             {skillSummary || fallbackDescription || '스킬 설명 없음'}
                         </div>
                     </div>
@@ -344,8 +353,8 @@ ${desc}` : ''}`;
                                     borderRadius: 6,
                                 }}
                             >
-                                <div style={{ fontSize: 8, color: '#5a6488' }}>{label}</div>
-                                <div style={{ fontSize: 14, fontWeight: 900, color: c }}>{value}</div>
+                                <div style={{ fontSize: scaledPx(8, 7, 9), color: '#5a6488' }}>{label}</div>
+                                <div style={{ fontSize: scaledPx(14, 12, 15), fontWeight: 900, color: c }}>{value}</div>
                             </div>
                         ))}
                     </div>
@@ -353,7 +362,7 @@ ${desc}` : ''}`;
 
                 {!hasCardArt && skillEntries.length > 0 && (
                     <>
-                        <div style={{ fontSize: 10, color: '#5a6488', fontWeight: 700, marginBottom: 6 }}>
+                        <div style={{ fontSize: scaledPx(10, 9, 11), color: '#5a6488', fontWeight: 700, marginBottom: 6 }}>
                             스킬 설명
                         </div>
                         {skillEntries.map(([key, meta]) => {
@@ -389,7 +398,7 @@ ${desc}` : ''}`;
                                                     width: 'fit-content',
                                                     padding: '2px 7px',
                                                     borderRadius: 999,
-                                                    fontSize: 9,
+                                                    fontSize: scaledPx(9, 8, 10),
                                                     fontWeight: 800,
                                                     color: key === 'passive' ? '#78cfff' : '#ffcf7a',
                                                     background: key === 'passive' ? 'rgba(120,207,255,0.12)' : 'rgba(255,155,48,0.12)',
@@ -398,12 +407,12 @@ ${desc}` : ''}`;
                                             >
                                                 {skillSectionLabel(key)}
                                             </span>
-                                            <span style={{ fontSize: 13, fontWeight: 800, color: '#e8ecf8' }}>
+                                            <span style={{ fontSize: scaledPx(13, 12, 14), fontWeight: 800, color: '#e8ecf8' }}>
                                                 {meta?.name ?? key}
                                             </span>
                                         </div>
                                         {cd > 0 && (
-                                            <span style={{ fontSize: 9, color: '#ff3355', fontWeight: 700, flexShrink: 0 }}>
+                                            <span style={{ fontSize: scaledPx(9, 8, 10), color: '#ff3355', fontWeight: 700, flexShrink: 0 }}>
                                                 쿨 {cd}턴
                                             </span>
                                         )}
@@ -414,7 +423,7 @@ ${desc}` : ''}`;
                                             {dmgStr && (
                                                 <div
                                                     style={{
-                                                        fontSize: 10,
+                                                        fontSize: scaledPx(10, 9, 11),
                                                         color: '#ffcf7a',
                                                         fontWeight: 700,
                                                     }}
@@ -423,7 +432,7 @@ ${desc}` : ''}`;
                                                 </div>
                                             )}
                                             {skillDescription && (
-                                                <div style={{ fontSize: 10, color: '#9aa6ce', lineHeight: 1.5 }}>
+                                                <div style={{ fontSize: scaledPx(10, 9, 11), color: '#9aa6ce', lineHeight: 1.5 }}>
                                                     {skillDescription}
                                                 </div>
                                             )}
@@ -439,7 +448,7 @@ ${desc}` : ''}`;
                     <>
                         <div
                             style={{
-                                fontSize: 10,
+                                fontSize: scaledPx(10, 9, 11),
                                 color: '#5a6488',
                                 fontWeight: 700,
                                 marginTop: 8,
@@ -469,7 +478,7 @@ ${desc}` : ''}`;
                                         style={{
                                             padding: '2px 8px',
                                             borderRadius: 12,
-                                            fontSize: 9,
+                                            fontSize: scaledPx(9, 8, 10),
                                             fontWeight: 700,
                                             background: isDebuff ? '#ff335520' : '#22dd7720',
                                             color: isDebuff ? '#ff3355' : '#22dd77',
@@ -497,7 +506,7 @@ ${desc}` : ''}`;
                         border: '1px solid #3a4a78',
                         color: '#e8ecf8',
                         fontWeight: 700,
-                        fontSize: 13,
+                        fontSize: scaledPx(13, 12, 14),
                         cursor: 'pointer',
                     }}
                 >
