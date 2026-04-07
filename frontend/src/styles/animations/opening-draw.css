@@ -64,10 +64,14 @@
     animation: game-opening-front-in 300ms ease-out;
 }
 
+.game-opening-front-card.fullart {
+    padding: 0;
+}
+
 .game-opening-front-card img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
 }
 
 .game-opening-front-card.exiting {

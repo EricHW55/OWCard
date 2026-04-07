@@ -276,7 +276,7 @@ const GamePage: React.FC = () => {
             {openingStage === 'reveal_front' && revealCardInHand && (
                 <button type="button" className="game-opening-reveal-area" onClick={handleRevealNext}>
                   <div
-                      className={`game-opening-front-card ${revealExiting ? 'exiting' : ''}`}
+                      className={`game-opening-front-card ${revealUsingFullCardArt ? 'fullart' : ''} ${revealExiting ? 'exiting' : ''}`}
                       onPointerMove={handleRevealPointerMove}
                       onPointerLeave={resetRevealTilt}
                       onPointerUp={resetRevealTilt}

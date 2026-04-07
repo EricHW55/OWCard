@@ -1,5 +1,5 @@
 import React from 'react';
-import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
+import { ROLE_ICON } from '../types/constants';
 
 type Role = 'tank' | 'dealer' | 'healer' | string | null | undefined;
 
@@ -27,8 +27,23 @@ interface FieldProps extends BaseProps {
 type Props = HandProps | FieldProps;
 
 export const CardFaceContent: React.FC<Props> = (props) => {
-    const roleColor = ROLE_COLOR[props.role || ''] || '#7f8aa8';
-    const accentColor = props.isSpell ? '#ffaa22' : roleColor;
+    const handRootRef = React.useRef<HTMLDivElement | null>(null);
+    const [handScale, setHandScale] = React.useState(1);
+
+    React.useEffect(() => {
+        if (props.variant !== 'hand') return;
+        const node = handRootRef.current;
+        if (!node) return;
+        const updateScale = () => {
+            const width = node.clientWidth || 70;
+            const next = Math.min(2.4, Math.max(0.9, width / 70));
+            setHandScale(next);
+        };
+        updateScale();
+        const observer = new ResizeObserver(updateScale);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [props.variant]);
 
     if (props.usingFullCardArt) {
         return (
@@ -40,10 +55,10 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     ? {
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        objectFit: 'cover',
                         borderRadius: 6,
-                        border: `2px solid ${accentColor}`,
-                        background: '#090d1a',
+                        border: 'none',
+                        background: 'transparent',
                         boxSizing: 'border-box',
                         imageRendering: 'auto',
                         backfaceVisibility: 'hidden',
@@ -99,16 +114,26 @@ export const CardFaceContent: React.FC<Props> = (props) => {
     }
 
     return (
-        <>
+        <div
+            ref={handRootRef}
+            style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+            }}
+        >
             <div
                 style={{
-                    width: 'clamp(18px, 18%, 34px)',
-                    height: 'clamp(18px, 18%, 34px)',
+                    width: `${Math.round(18 * handScale)}px`,
+                    height: `${Math.round(18 * handScale)}px`,
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: 'clamp(9px, 7%, 14px)',
-                    fontWeight: 900,
+                    fontSize: `${Math.round(9 * handScale)}px`,
+                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -120,9 +145,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: 'clamp(40px, 40%, 84px)',
-                    height: 'clamp(40px, 40%, 84px)',
-                    borderRadius: 'clamp(8px, 12%, 16px)',
+                    width: `${Math.round(40 * handScale)}px`,
+                    height: `${Math.round(40 * handScale)}px`,
+                    borderRadius: `${Math.round(8 * handScale)}px`,
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -145,7 +170,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: 18 }}>
+                    <span style={{ fontSize: `${Math.round(18 * handScale)}px` }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
@@ -153,8 +178,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: 'clamp(9px, 8%, 13px)',
-                    fontWeight: 700,
+                    fontSize: `${Math.round(9 * handScale)}px`,
+                    fontWeight: 600,
                     color: '#e8ecf8',
                     textAlign: 'center',
                     lineHeight: 1.1,
@@ -164,12 +189,12 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: 'clamp(8px, 7%, 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: `${Math.round(8 * handScale)}px`, color: '#ffaa22', fontWeight: 600 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 3, fontSize: 'clamp(8px, 7%, 12px)', fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: 3, fontSize: `${Math.round(8 * handScale)}px`, fontWeight: 600 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
-        </>
+        </div>
     );
 };

@@ -62,12 +62,12 @@
     }
     40% {
         opacity: 1;
-        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.78), calc(var(--from-center-y) + 24vh), 310px) rotateX(-20deg) rotateY(630deg) scale(2.06);
+        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.78), calc(var(--from-center-y) * 0.38), 310px) rotateX(-20deg) rotateY(630deg) scale(2.06);
         filter: blur(0) saturate(1.22) brightness(1.06);
     }
     56% {
         opacity: 1;
-        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.62), calc(var(--from-center-y) + 17vh), 250px) rotateX(-15deg) rotateY(710deg) scale(1.9);
+        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.62), calc(var(--from-center-y) * 0.25), 250px) rotateX(-15deg) rotateY(710deg) scale(1.9);
         filter: blur(0) saturate(1.16) brightness(1.03);
     }
     88% {
