@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { getHeroImageSrc, getIllustrationCandidates } from '../utils/heroImage';
+import { buildCardImageChain } from '../utils/heroImage';
+import { useImageFallback } from '../hooks/useImageFallback';
 
 interface Props {
     card: HandCard;
@@ -14,10 +15,11 @@ interface Props {
 
 const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, focusedIndex }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
-    const fallbackChain = [...getIllustrationCandidates(card as any), getHeroImageSrc(card as any)];
-    const [imageStep, setImageStep] = useState(0);
-    const [imgError, setImgError] = useState(false);
-    const currentImageSrc = fallbackChain[imageStep];
+    const fallbackChain = buildCardImageChain(card as any, 'hand');
+    const { currentImageSrc, imgError, onError } = useImageFallback(
+        fallbackChain,
+        [card.id, card.hero_key, card.name, card.is_spell, card.role]
+    );
     const hasFocused = focusedIndex >= 0;
     const relative = index - Math.max(0, focusedIndex);
     const fanProgress = total <= 1 ? 0 : index / (total - 1) - 0.5;
@@ -29,11 +31,6 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const usingFullCardArt = !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
     const centerPriority = total <= 1 ? 1 : 1 - Math.abs(fanProgress * 2);
     const baseZIndex = 100 + Math.round(centerPriority * 100);
-
-    useEffect(() => {
-        setImageStep(0);
-        setImgError(false);
-    }, [card.id, card.hero_key, card.name, card.is_spell, card.role]);
 
     return (
         <div
@@ -68,11 +65,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                     src={currentImageSrc}
                     alt={card.name}
                     onError={() => {
-                        if (imageStep + 1 < fallbackChain.length) {
-                            setImageStep((prev) => prev + 1);
-                        } else {
-                            setImgError(true);
-                        }
+                        onError();
                     }}
                     style={{
                         width: '100%',
@@ -133,11 +126,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                                 src={currentImageSrc}
                                 alt={card.name}
                                 onError={() => {
-                                    if (imageStep + 1 < fallbackChain.length) {
-                                        setImageStep((prev) => prev + 1);
-                                    } else {
-                                        setImgError(true);
-                                    }
+                                    onError();
                                 }}
                                 style={{
                                     width: '100%',

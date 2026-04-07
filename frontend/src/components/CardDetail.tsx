@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldCard, HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON, ROLE_LABEL } from '../types/constants';
-import { getCardArtCandidates, getHeroImageSrc } from '../utils/heroImage';
+import { buildCardImageChain } from '../utils/heroImage';
+import { useImageFallback } from '../hooks/useImageFallback';;
 
 interface Props {
     card: FieldCard | HandCard | null;
@@ -38,14 +39,10 @@ function skillSectionLabel(key: string) {
 }
 
 const CardDetail: React.FC<Props> = ({ card, onClose }) => {
-    const [imgError, setImgError] = useState(false);
-    const [imageStep, setImageStep] = useState(0);
     const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
     const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
     useEffect(() => {
-        setImgError(false);
-        setImageStep(0);
         setTilt({ rx: 0, ry: 0 });
     }, [card]);
 
@@ -56,11 +53,17 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     }, []);
 
     const cardArtChain = useMemo(
-        () => (card ? [...getCardArtCandidates(card as any), getHeroImageSrc(card as any)] : []),
+        () => (card ? buildCardImageChain(card as any, 'detail') : []),
         [card]
     );
 
     if (!card) return null;
+
+
+    const { currentImageSrc: currentCardArt, imgError, onError } = useImageFallback(
+        cardArtChain,
+        [card]
+    );
 
     const isSpell = 'is_spell' in card && !!card.is_spell;
     const role = 'role' in card ? card.role : 'dealer';
@@ -78,7 +81,6 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         ('skill_damages' in card ? card.skill_damages : {}) || {};
     const cooldowns: Record<string, number> = fc?.skill_cooldowns ?? {};
     const statuses = fc?.statuses ?? [];
-    const currentCardArt = cardArtChain[imageStep];
     const hasAnyImage = !imgError && !!currentCardArt;
     const hasCardArt = hasAnyImage && currentCardArt.startsWith('/cards/');
 
@@ -226,8 +228,7 @@ ${desc}` : ''}`;
                             src={currentCardArt}
                             alt={card.name}
                             onError={() => {
-                                if (imageStep + 1 < cardArtChain.length) setImageStep((prev) => prev + 1);
-                                else setImgError(true);
+                                onError();
                             }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -385,8 +386,7 @@ ${desc}` : ''}`;
                             src={currentCardArt}
                             alt={card.name}
                             onError={() => {
-                                if (imageStep + 1 < cardArtChain.length) setImageStep((prev) => prev + 1);
-                                else setImgError(true);
+                                onError();
                             }}
                             style={{
                                 width: 68,

@@ -353,6 +353,27 @@ export function getIllustrationCandidates(card: CardLike): string[] {
 }
 
 // 기존 코드 호환용
+
+export type CardImageMode = 'field' | 'hand' | 'detail' | 'cinematic';
+
+export function buildCardImageChain(card: CardLike, mode: CardImageMode): string[] {
+    if (!card) return [];
+
+    const fallback = getCardImageSrc(card);
+    const illustrations = getIllustrationCandidates(card);
+    const cardArts = getCardArtCandidates(card);
+
+    if (mode === 'detail') {
+        return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
+    }
+
+    if (mode === 'cinematic') {
+        return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
+    }
+
+    return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+}
+
 export function getHeroImageSrc(card: CardLike): string {
     return getCardImageSrc(card);
 }
