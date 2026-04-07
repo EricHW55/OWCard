@@ -4,16 +4,19 @@ import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
 import useOnlineGameController from '../controllers/useOnlineGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
+import { getApiBase } from '../api/ws';
 import { getCardArtCandidates, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
 import './GamePage.css';
 
 type CoinFace = 'front' | 'back';
 type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'clearing' | 'done';
+type OpeningStage = 'idle' | 'draw_back' | 'reveal_front' | 'done';
 
 const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
   const navigate = useNavigate();
   const vm = useOnlineGameController(gameId);
+  const apiBase = getApiBase();
   const session = vm.session;
   const [coinTossStage, setCoinTossStage] = React.useState<CoinTossStage>('hidden');
   const [coinRotationDeg, setCoinRotationDeg] = React.useState(0);
@@ -21,6 +24,13 @@ const GamePage: React.FC = () => {
   const spinTimerRef = React.useRef<number | null>(null);
   const doneTimerRef = React.useRef<number | null>(null);
   const clearTimerRef = React.useRef<number | null>(null);
+  const openingStartedRef = React.useRef(false);
+  const revealExitTimerRef = React.useRef<number | null>(null);
+  const [handSize, setHandSize] = React.useState(7);
+  const [openingStage, setOpeningStage] = React.useState<OpeningStage>('idle');
+  const [revealedCount, setRevealedCount] = React.useState(0);
+  const [revealIndex, setRevealIndex] = React.useState(0);
+  const [revealExiting, setRevealExiting] = React.useState(false);
 
   const isFirstPlayer = React.useMemo(() => {
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
@@ -69,12 +79,60 @@ const GamePage: React.FC = () => {
   }, [vm.gs, session, coinFace]);
 
   React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/public/game-config`);
+        if (!res.ok) return;
+        const cfg = await res.json();
+        const size = Number(cfg?.hand_size);
+        if (mounted && Number.isFinite(size) && size > 0) setHandSize(size);
+      } catch (_) {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [apiBase]);
+
+  React.useEffect(() => {
+    if (!vm.gs || !vm.my) return;
+    if (openingStartedRef.current) return;
+    if (vm.phase !== 'mulligan') return;
+    if (vm.my.hand.length < handSize) return;
+    openingStartedRef.current = true;
+    setOpeningStage('draw_back');
+    const timer = window.setTimeout(() => {
+      setOpeningStage('reveal_front');
+      setRevealedCount(0);
+      setRevealIndex(0);
+    }, handSize * 230 + 500);
+    return () => window.clearTimeout(timer);
+  }, [vm.gs, vm.my, vm.phase, handSize]);
+
+  React.useEffect(() => {
     return () => {
       if (spinTimerRef.current !== null) window.clearTimeout(spinTimerRef.current);
       if (clearTimerRef.current !== null) window.clearTimeout(clearTimerRef.current);
       if (doneTimerRef.current !== null) window.clearTimeout(doneTimerRef.current);
+      if (revealExitTimerRef.current !== null) window.clearTimeout(revealExitTimerRef.current);
     };
   }, []);
+
+  const handleRevealNext = () => {
+    if (openingStage !== 'reveal_front') return;
+    if (!vm.my || revealIndex >= handSize || revealExiting) return;
+    setRevealExiting(true);
+    revealExitTimerRef.current = window.setTimeout(() => {
+      setRevealedCount((prev) => Math.min(handSize, prev + 1));
+      const nextIndex = revealIndex + 1;
+      setRevealExiting(false);
+      if (nextIndex >= handSize) {
+        setOpeningStage('done');
+      } else {
+        setRevealIndex(nextIndex);
+      }
+    }, 260);
+  };
 
   const handleSurrender = () => {
     if (isGameOver) return;
@@ -126,6 +184,11 @@ const GamePage: React.FC = () => {
     ) : null,
   ].filter(Boolean) as React.ReactNode[];
 
+  const openingActive = openingStage !== 'done';
+  const visibleHandCards = openingActive
+      ? vm.my.hand.slice(0, revealedCount)
+      : vm.my.hand;
+
   return (
     <>
       {coinTossStage !== 'done' && coinTossStage !== 'hidden' && (
@@ -149,6 +212,25 @@ const GamePage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+      )}
+      {openingStage !== 'done' && openingStage !== 'idle' && (
+          <div className="game-opening-overlay" aria-live="polite" aria-label="시작 패 드로우 연출">
+            {openingStage === 'draw_back' && (
+                <div className="game-opening-backdraw-stack">
+                  {Array.from({ length: handSize }).map((_, idx) => (
+                      <div key={`back-${idx}`} className="game-opening-backdraw-card" style={{ animationDelay: `${idx * 0.22}s` }} />
+                  ))}
+                </div>
+            )}
+            {openingStage === 'reveal_front' && vm.my.hand[revealIndex] && (
+                <button type="button" className="game-opening-reveal-area" onClick={handleRevealNext}>
+                  <div className={`game-opening-front-card ${revealExiting ? 'exiting' : ''}`}>
+                    <img src={getCardImageSrc(vm.my.hand[revealIndex])} alt={vm.my.hand[revealIndex].name} />
+                  </div>
+                  <div className="game-opening-reveal-guide">클릭해서 다음 카드 보기 ({Math.min(handSize, revealIndex + 1)}/{handSize})</div>
+                </button>
+            )}
           </div>
       )}
     <GameScreen
@@ -207,7 +289,7 @@ const GamePage: React.FC = () => {
         canSelectEmptySlot: vm.canSelectEmptySlot,
         onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
-      contextPanel={
+      contextPanel={openingActive ? null : (
         <OnlineContextPanel
           show={vm.showContextPanel}
           phase={vm.phase}
@@ -242,10 +324,10 @@ const GamePage: React.FC = () => {
           pendingSpellChoice={vm.pendingSpellChoice}
           onResolveSpellChoice={vm.resolveSpellChoice}
         />
-      }
-      handCards={vm.my.hand}
+      )}
+      handCards={visibleHandCards}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
-      onHandClick={vm.handleHandClick}
+      onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
       bottomMeta={<>패:{vm.my.hand_count} · 덱:{vm.my.draw_pile_count} · 트래시:{vm.my.trash_count}</>}
       bottomActions={
         <>
