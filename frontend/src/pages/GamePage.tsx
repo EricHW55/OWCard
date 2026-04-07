@@ -5,6 +5,7 @@ import OnlineContextPanel from '../components/OnlineContextPanel';
 import { CardFaceContent } from '../components/CardFaceContent';
 import useOnlineGameController from '../controllers/useOnlineGameController';
 import { useCardImage } from '../hooks/useCardImage';
+import { ROLE_COLOR } from '../types/constants';
 import { BTN_SM, phaseLabel } from '../utils/ui';
 import { getApiBase } from '../api/ws';
 import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
@@ -227,6 +228,9 @@ const GamePage: React.FC = () => {
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
   const revealCardInHand = vm.my.hand[revealIndex];
+  const revealRoleColor = revealCardInHand?.is_spell
+      ? '#ffaa22'
+      : (ROLE_COLOR[revealCardInHand?.role || ''] || 'rgba(188, 202, 246, 0.64)');
 
   return (
     <>
@@ -278,6 +282,7 @@ const GamePage: React.FC = () => {
                       onPointerUp={resetRevealTilt}
                       style={{
                         transform: `rotateX(${revealTilt.x}deg) rotateY(${revealTilt.y}deg) translateZ(0)`,
+                        borderColor: revealRoleColor,
                       }}
                   >
                     <CardFaceContent

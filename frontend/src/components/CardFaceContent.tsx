@@ -1,5 +1,5 @@
 import React from 'react';
-import { ROLE_ICON } from '../types/constants';
+import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 
 type Role = 'tank' | 'dealer' | 'healer' | string | null | undefined;
 
@@ -27,6 +27,8 @@ interface FieldProps extends BaseProps {
 type Props = HandProps | FieldProps;
 
 export const CardFaceContent: React.FC<Props> = (props) => {
+    const roleColor = ROLE_COLOR[props.role || ''] || '#7f8aa8';
+
     if (props.usingFullCardArt) {
         return (
             <img
@@ -96,12 +98,12 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         <>
             <div
                 style={{
-                    width: 18,
-                    height: 18,
+                    width: 'clamp(18px, 18%, 34px)',
+                    height: 'clamp(18px, 18%, 34px)',
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: 10,
+                    fontSize: 'clamp(10px, 7%, 16px)',
                     fontWeight: 900,
                     display: 'flex',
                     alignItems: 'center',
@@ -114,14 +116,14 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
+                    width: 'clamp(34px, 42%, 96px)',
+                    height: 'clamp(34px, 42%, 96px)',
+                    borderRadius: 'clamp(8px, 12%, 16px)',
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
                     background: '#1a223a',
-                    border: '1px solid #2a3560',
+                    border: `2px solid ${props.isSpell ? '#ffaa22' : roleColor}`,
                 }}
             >
                 {!props.imgError && props.currentImageSrc ? (
@@ -147,7 +149,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: 9,
+                    fontSize: 'clamp(9px, 8%, 17px)',
                     fontWeight: 700,
                     color: '#e8ecf8',
                     textAlign: 'center',
@@ -158,9 +160,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: 8, color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: 'clamp(8px, 7%, 14px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 3, fontSize: 8, fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: 3, fontSize: 'clamp(8px, 7%, 14px)', fontWeight: 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
