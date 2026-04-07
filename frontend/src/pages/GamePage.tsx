@@ -28,14 +28,13 @@ const GamePage: React.FC = () => {
   }, [vm.gs, session]);
 
   const coinFace: CoinFace = React.useMemo(() => {
-    if (!vm.gs) return 'front';
-    if (vm.gs.coin_result === 'tails') return 'back';
-    return 'front';
-  }, [vm.gs]);
+    if (isFirstPlayer == null) return 'front';
+    return isFirstPlayer ? 'front' : 'back';
+  }, [isFirstPlayer]);
 
   React.useEffect(() => {
     if (!vm.gs || !session || hasShownCoinTossRef.current) return;
-    if (vm.gs.first_player == null || vm.gs.coin_result == null) return;
+    if (vm.gs.first_player == null) return;
     hasShownCoinTossRef.current = true;
     setCoinTossStage('spinning');
     setCoinRotationDeg(0);
@@ -117,7 +116,7 @@ const GamePage: React.FC = () => {
 
   const banners = [
     vm.reconnecting ? (
-      <div key="reconnect" className="game-reconnect-banner">네트워크가 잠깐 끊겼어요. 자동 재연결 중입니다.</div>
+      <div key="reconnect" className="game-reconnect-banner">네트워크가 잠깐 끊겼습니다. 자동 재연결 중입니다.</div>
     ) : null,
     vm.pendingPassive ? (
       <div key="passive" className="game-passive-banner">패시브 선택 대기 중: {vm.pendingPassive.type === 'mercy_resurrect' ? '메르시 부활' : vm.pendingPassive.type}</div>
