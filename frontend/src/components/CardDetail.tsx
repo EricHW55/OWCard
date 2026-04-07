@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldCard, HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON, ROLE_LABEL } from '../types/constants';
 import { buildCardImageChain } from '../utils/heroImage';
-import { useImageFallback } from '../hooks/useImageFallback';;
+import { useImageFallback } from '../hooks/useImageFallback';
 
 interface Props {
     card: FieldCard | HandCard | null;
@@ -57,13 +57,12 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         [card]
     );
 
-    if (!card) return null;
-
-
     const { currentImageSrc: currentCardArt, imgError, onError } = useImageFallback(
         cardArtChain,
         [card]
     );
+    
+    if (!card) return null;
 
     const isSpell = 'is_spell' in card && !!card.is_spell;
     const role = 'role' in card ? card.role : 'dealer';
