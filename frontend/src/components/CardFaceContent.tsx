@@ -28,6 +28,7 @@ type Props = HandProps | FieldProps;
 
 export const CardFaceContent: React.FC<Props> = (props) => {
     const roleColor = ROLE_COLOR[props.role || ''] || '#7f8aa8';
+    const accentColor = props.isSpell ? '#ffaa22' : roleColor;
 
     if (props.usingFullCardArt) {
         return (
@@ -41,6 +42,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         height: '100%',
                         objectFit: 'cover',
                         borderRadius: 6,
+                        border: `2px solid ${accentColor}`,
+                        boxSizing: 'border-box',
                         imageRendering: 'auto',
                         backfaceVisibility: 'hidden',
                         transform: 'translateZ(0)',
@@ -123,7 +126,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     display: 'grid',
                     placeItems: 'center',
                     background: '#1a223a',
-                    border: `2px solid ${props.isSpell ? '#ffaa22' : roleColor}`,
+                    border: '1px solid #2a3560',
                 }}
             >
                 {!props.imgError && props.currentImageSrc ? (

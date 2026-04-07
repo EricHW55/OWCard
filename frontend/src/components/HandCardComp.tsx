@@ -25,9 +25,9 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const fanProgress = total <= 1 ? 0 : index / (total - 1) - 0.5;
     const baseRotate = fanProgress * 22;
     const spreadOffset = hasFocused ? Math.sign(relative) * Math.min(Math.abs(relative) * 7, 28) : 0;
-    const topDownOffset = (total - 1 - index) * 4;
-    const cardLift = selected ? -16 : 0;
-    const cardScale = selected ? 1.14 : 1;
+    const arcDrop = Math.abs(fanProgress) * 18;
+    const cardLift = selected ? -12 : 0;
+    const cardScale = selected ? 1.06 : 1;
     const baseZIndex = 100 + index;
 
     return (
@@ -38,7 +38,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 width: 70,
                 height: 98,
                 borderRadius: 6,
-                border: `2px solid ${selected ? '#ff9b30' : color}`,
+                border: `2px solid ${selected ? '#ff9b30' : (usingFullCardArt ? '#2f3d68' : color)}`,
                 background: usingFullCardArt ? 'transparent' : (selected ? '#1b2238' : '#0f1528'),
                 display: 'flex',
                 flexDirection: 'column',
@@ -54,7 +54,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                     : (usingFullCardArt ? '0 6px 12px rgba(0,0,0,0.3)' : 'none'),
                 marginInline: '-14px',
                 zIndex: selected ? 320 : baseZIndex,
-                transform: `translateX(${spreadOffset}px) translateY(${cardLift + topDownOffset}px) rotate(${baseRotate}deg) scale(${cardScale})`,
+                transform: `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`,
                 transformOrigin: 'center 130%',
                 transition: 'transform 0.22s ease, box-shadow 0.22s ease',
             }}
