@@ -31,9 +31,9 @@ interface GameConfig {
 }
 
 const ROLE_COLOR: Record<string, string> = {
-    tank: '#22cc88',
+    tank: '#44aaff',
     dealer: '#ff4466',
-    healer: '#44aaff',
+    healer: '#22cc88',
     spell: '#ffaa22',
 };
 

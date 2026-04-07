@@ -1,5 +1,5 @@
 export const ROLE_COLOR: Record<string, string> = {
-  tank: '#22cc88', dealer: '#ff4466', healer: '#44aaff',
+  tank: '#44aaff', dealer: '#ff4466', healer: '#22cc88',
 };
 export const ROLE_LABEL: Record<string, string> = {
   tank: '탱커', dealer: '딜러', healer: '힐러',
