@@ -1,8 +1,8 @@
 import React from 'react';
 import type { HandCard } from '../types/game';
-import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { buildCardImageChain } from '../utils/heroImage';
-import { useImageFallback } from '../hooks/useImageFallback';
+import { ROLE_COLOR } from '../types/constants';
+import { useCardImage } from '../hooks/useCardImage';
+import { CardFaceContent } from './CardFaceContent';
 
 interface Props {
     card: HandCard;
@@ -15,9 +15,9 @@ interface Props {
 
 const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, focusedIndex }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
-    const fallbackChain = buildCardImageChain(card as any, 'hand');
-    const { currentImageSrc, imgError, onError } = useImageFallback(
-        fallbackChain,
+    const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
+        card as any,
+        'hand',
         [card.id, card.hero_key, card.name, card.is_spell, card.role]
     );
     const hasFocused = focusedIndex >= 0;
@@ -28,7 +28,6 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const fanArcOffset = Math.pow(Math.abs(fanProgress) * 2, 1.25) * 16;
     const cardLift = selected ? -16 : 0;
     const cardScale = selected ? 1.14 : 1;
-    const usingFullCardArt = !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
     const centerPriority = total <= 1 ? 1 : 1 - Math.abs(fanProgress * 2);
     const baseZIndex = 100 + Math.round(centerPriority * 100);
 
@@ -60,113 +59,19 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 transition: 'transform 0.22s ease, box-shadow 0.22s ease',
             }}
         >
-            {usingFullCardArt ? (
-                <img
-                    src={currentImageSrc}
-                    alt={card.name}
-                    onError={() => {
-                        onError();
-                    }}
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: 6,
-                        imageRendering: 'auto',
-                        backfaceVisibility: 'hidden',
-                        transform: 'translateZ(0)',
-                    }}
-                />
-            ) : (
-                <>
-                <div
-                    style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        background: '#44aaff',
-                        color: '#fff',
-                        fontSize: 10,
-                        fontWeight: 900,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '2px solid #0a0e1a',
-                    }}
-                >
-                    {card.cost || 1}
-                </div>
-
-                <div
-                    style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        display: 'grid',
-                        placeItems: 'center',
-                        background: '#0d1225',
-                        border: '1px solid #2a3560',
-                    }}
-                >
-                    <div
-                            style={{
-                                width: 34,
-                                height: 34,
-                                borderRadius: 8,
-                                overflow: 'hidden',
-                                display: 'grid',
-                                placeItems: 'center',
-                                background: '#0d1225',
-                                border: '1px solid #2a3560',
-                            }}
-                    >
-                        {!imgError && currentImageSrc ? (
-                            <img
-                                src={currentImageSrc}
-                                alt={card.name}
-                                onError={() => {
-                                    onError();
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    imageRendering: 'auto',
-                                    backfaceVisibility: 'hidden',
-                                    transform: 'translateZ(0)',
-                                }}
-                            />
-                        ) : (
-                            <span style={{ fontSize: 18 }}>
-                                    {card.is_spell ? '✦' : ROLE_ICON[card.role]}
-                                </span>
-                        )}
-                    </div>
-                </div>
-
-                <div
-                    style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        color: '#e8ecf8',
-                        textAlign: 'center',
-                        lineHeight: 1.1,
-                    }}
-                >
-                    {card.name}
-                </div>
-
-                    {card.is_spell ? (
-                        <div style={{ fontSize: 8, color: '#ffaa22', fontWeight: 700 }}>스킬</div>
-                    ) : (
-                        <div style={{ display: 'flex', gap: 3, fontSize: 8, fontWeight: 700 }}>
-                            <span style={{ color: '#ff4466' }}>⚔{card.base_attack || 0}</span>
-                            <span style={{ color: '#22dd77' }}>♥{card.hp}</span>
-                        </div>
-                    )}
-                </>
-            )}
+            <CardFaceContent
+                variant="hand"
+                name={card.name}
+                role={card.role}
+                isSpell={card.is_spell}
+                cost={card.cost}
+                baseAttack={card.base_attack}
+                hp={card.hp}
+                currentImageSrc={currentImageSrc}
+                usingFullCardArt={usingFullCardArt}
+                imgError={imgError}
+                onError={onError}
+            />
         </div>
     );
 };

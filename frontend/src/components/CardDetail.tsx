@@ -61,7 +61,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
         cardArtChain,
         [card]
     );
-    
+
     if (!card) return null;
 
     const isSpell = 'is_spell' in card && !!card.is_spell;

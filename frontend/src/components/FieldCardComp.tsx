@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldCard } from '../types/game';
-import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
-import { buildCardImageChain } from '../utils/heroImage';
-import { useImageFallback } from '../hooks/useImageFallback';
+import { ROLE_COLOR } from '../types/constants';
+import { useCardImage } from '../hooks/useCardImage';
+import { CardFaceContent } from './CardFaceContent';
 
 interface Props {
     card: FieldCard;
@@ -71,9 +71,9 @@ function getMainDamage(card: FieldCard): string {
 }
 
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
-    const fallbackChain = buildCardImageChain(card as any, 'field');
-    const { currentImageSrc, imgError, onError } = useImageFallback(
-        fallbackChain,
+    const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
+        card as any,
+        'field',
         [card.uid, card.name, card.role]
     );
     const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
@@ -185,7 +185,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         .filter(Boolean)
         .join(', ');
     const isDestroying = !!effect?.destroying;
-    const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
 
     return (
         <div
@@ -381,22 +380,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             )}
 
             {usingFullCardArt && (
-                <img
-                    src={currentImageSrc}
-                    alt={card.name}
-                    onError={() => {
-                        onError();
-                    }}
-                    style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        borderRadius: 'calc(var(--field-card-radius) - 1px)',
-                        imageRendering: 'auto',
-                        backfaceVisibility: 'hidden',
-                    }}
+                <CardFaceContent
+                    variant="field"
+                    name={card.name}
+                    role={card.role}
+                    currentImageSrc={currentImageSrc}
+                    usingFullCardArt={usingFullCardArt}
+                    imgError={imgError}
+                    onError={onError}
                 />
             )}
 
@@ -418,38 +409,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             </div>
 
             {!usingFullCardArt && (
-                <div
-                style={{
-                    width: 'calc(var(--field-card-width) * 0.45)',
-                    height: 'calc(var(--field-card-width) * 0.45)',
-                    borderRadius: 'calc(var(--field-card-radius) + 1px)',
-                    overflow: 'hidden',
-                    display: 'grid',
-                    placeItems: 'center',
-                    background: '#0d1225',
-                    border: '1px solid #2a3560',
-                }}
-            >
-                {!imgError ? (
-                    <img
-                        src={currentImageSrc}
-                        alt={card.name}
-                        onError={() => {
-                            onError();
-                        }}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            imageRendering: 'auto',
-                            backfaceVisibility: 'hidden',
-                            transform: 'translateZ(0)',
-                        }}
-                    />
-                ) : (
-                    <span style={{ fontSize: 16 }}>{ROLE_ICON[card.role]}</span>
-                )}
-            </div>
+                <CardFaceContent
+                    variant="field"
+                    name={card.name}
+                    role={card.role}
+                    currentImageSrc={currentImageSrc}
+                    usingFullCardArt={usingFullCardArt}
+                    imgError={imgError}
+                    onError={onError}
+                />
             )}
 
             <div
