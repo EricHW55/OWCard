@@ -5,7 +5,7 @@ import OnlineContextPanel from '../components/OnlineContextPanel';
 import useOnlineGameController from '../controllers/useOnlineGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
 import { getApiBase } from '../api/ws';
-import { getCardArtCandidates, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
+import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
 import './GamePage.css';
 
 type CoinFace = 'front' | 'back';
@@ -33,6 +33,7 @@ const GamePage: React.FC = () => {
   const [revealExiting, setRevealExiting] = React.useState(false);
   const [revealImageStep, setRevealImageStep] = React.useState(0);
   const [revealTilt, setRevealTilt] = React.useState({ x: 0, y: 0 });
+  const [openingCardCount, setOpeningCardCount] = React.useState(handSize);
 
   const isFirstPlayer = React.useMemo(() => {
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
@@ -101,14 +102,16 @@ const GamePage: React.FC = () => {
     if (openingStartedRef.current) return;
     if (coinTossStage !== 'done') return;
     if (vm.phase !== 'mulligan') return;
-    if (vm.my.hand.length < handSize) return;
+    if (vm.my.hand.length === 0) return;
+    const startCardCount = Math.max(handSize, vm.my.hand.length);
     openingStartedRef.current = true;
+    setOpeningCardCount(startCardCount);
     setOpeningStage('draw_back');
     const timer = window.setTimeout(() => {
       setOpeningStage('reveal_front');
       setRevealedCount(0);
       setRevealIndex(0);
-    }, handSize * 230 + 500);
+    }, startCardCount * 230 + 500);
     return () => window.clearTimeout(timer);
   }, [vm.gs, vm.my, vm.phase, handSize, coinTossStage]);
 
@@ -128,13 +131,13 @@ const GamePage: React.FC = () => {
 
   const handleRevealNext = () => {
     if (openingStage !== 'reveal_front') return;
-    if (!vm.my || revealIndex >= handSize || revealExiting) return;
+    if (!vm.my || revealIndex >= openingCardCount || revealExiting) return;
     setRevealExiting(true);
     revealExitTimerRef.current = window.setTimeout(() => {
-      setRevealedCount((prev) => Math.min(handSize, prev + 1));
+      setRevealedCount((prev) => Math.min(openingCardCount, prev + 1));
       const nextIndex = revealIndex + 1;
       setRevealExiting(false);
-      if (nextIndex >= handSize) {
+      if (nextIndex >= openingCardCount) {
         setOpeningStage('done');
       } else {
         setRevealIndex(nextIndex);
@@ -206,7 +209,7 @@ const GamePage: React.FC = () => {
     ) : null,
   ].filter(Boolean) as React.ReactNode[];
 
-  const openingActive = openingStage !== 'done';
+  const openingActive = openingStage !== 'done' && openingStage !== 'idle';
   const visibleHandCards = openingActive
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
@@ -245,8 +248,12 @@ const GamePage: React.FC = () => {
           <div className="game-opening-overlay" aria-live="polite" aria-label="시작 패 드로우 연출">
             {openingStage === 'draw_back' && (
                 <div className="game-opening-backdraw-stack">
-                  {Array.from({ length: handSize }).map((_, idx) => (
-                      <div key={`back-${idx}`} className="game-opening-backdraw-card" style={{ animationDelay: `${idx * 0.22}s` }} />
+                  {Array.from({ length: openingCardCount }).map((_, idx) => (
+                      <div
+                          key={`back-${idx}`}
+                          className="game-opening-backdraw-card"
+                          style={{ animationDelay: `${idx * 0.22}s`, backgroundImage: `url(${getCardBackImageSrc()})` }}
+                      />
                   ))}
                 </div>
             )}
@@ -271,7 +278,7 @@ const GamePage: React.FC = () => {
                         }}
                     />
                   </div>
-                  <div className="game-opening-reveal-guide">클릭해서 다음 카드 보기 ({Math.min(handSize, revealIndex + 1)}/{handSize})</div>
+                  <div className="game-opening-reveal-guide">클릭해서 다음 카드 보기 ({Math.min(openingCardCount, revealIndex + 1)}/{openingCardCount})</div>
                 </button>
             )}
           </div>

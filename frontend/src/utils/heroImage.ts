@@ -312,6 +312,10 @@ export function getCardImageSrc(card: CardLike): string {
     return heroKey ? `/heroes/${heroKey}.png` : '/heroes/_unknown.png';
 }
 
+export function getCardBackImageSrc(): string {
+    return '/cards/card_back.png';
+}
+
 function getCardArtRoleFolder(card: CardLike): string {
     if (card.is_spell) return 'spells';
     if (card.role === 'tank') return 'tanks';
