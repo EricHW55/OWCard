@@ -9,6 +9,7 @@ import { BTN_SM, phaseLabel } from '../utils/ui';
 import { getApiBase } from '../api/ws';
 import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
 import './GamePage.css';
+import '../styles/animations/index.css';
 
 type CoinFace = 'front' | 'back';
 type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'clearing' | 'done';
