@@ -27,7 +27,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const spreadOffset = hasFocused ? Math.sign(relative) * Math.min(Math.abs(relative) * 7, 28) : 0;
     const arcDrop = Math.abs(fanProgress) * 18;
     const cardLift = selected ? -12 : 0;
-    const cardScale = selected ? 1.06 : 1;
+    const cardScale = selected ? 1.03 : 1;
     const baseZIndex = 100 + index;
 
     return (
@@ -38,7 +38,9 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 width: 70,
                 height: 98,
                 borderRadius: 6,
-                border: `2px solid ${selected ? '#ff9b30' : (usingFullCardArt ? '#2f3d68' : color)}`,
+                border: usingFullCardArt
+                    ? 'none'
+                    : `2px solid ${selected ? '#ff9b30' : color}`,
                 background: usingFullCardArt ? 'transparent' : (selected ? '#1b2238' : '#0f1528'),
                 display: 'flex',
                 flexDirection: 'column',

@@ -40,9 +40,10 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     ? {
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain',
                         borderRadius: 6,
                         border: `2px solid ${accentColor}`,
+                        background: '#090d1a',
                         boxSizing: 'border-box',
                         imageRendering: 'auto',
                         backfaceVisibility: 'hidden',
@@ -53,7 +54,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         inset: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        objectFit: 'cover',
                         borderRadius: 'calc(var(--field-card-radius) - 1px)',
                         imageRendering: 'auto',
                         backfaceVisibility: 'hidden',
@@ -106,7 +107,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: 'clamp(11px, 8%, 18px)',
+                    fontSize: 'clamp(9px, 7%, 14px)',
                     fontWeight: 900,
                     display: 'flex',
                     alignItems: 'center',
@@ -119,8 +120,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: 'clamp(48px, 45%, 110px)',
-                    height: 'clamp(48px, 45%, 110px)',
+                    width: 'clamp(40px, 40%, 84px)',
+                    height: 'clamp(40px, 40%, 84px)',
                     borderRadius: 'clamp(8px, 12%, 16px)',
                     overflow: 'hidden',
                     display: 'grid',
@@ -152,7 +153,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: 'clamp(11px, 10%, 20px)',
+                    fontSize: 'clamp(9px, 8%, 13px)',
                     fontWeight: 700,
                     color: '#e8ecf8',
                     textAlign: 'center',
@@ -163,9 +164,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: 'clamp(10px, 8%, 16px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: 'clamp(8px, 7%, 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 3, fontSize: 'clamp(10px, 8%, 16px)', fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: 3, fontSize: 'clamp(8px, 7%, 12px)', fontWeight: 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}

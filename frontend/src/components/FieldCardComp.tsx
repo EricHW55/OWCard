@@ -227,7 +227,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     borderRadius: 'var(--field-card-radius)',
                     position: 'relative',
                     overflow: 'hidden',
-                    border: `2px solid ${borderColor}`,
+                    border: usingFullCardArt ? 'none' : `2px solid ${borderColor}`,
                     background: usingFullCardArt
                         ? '#070b16'
                         : selected
@@ -383,7 +383,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 style={{
                     position: 'relative',
                     zIndex: 2,
-                    fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.125), 11px)',
+                    fontSize: 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
                     fontWeight: 700,
                     color: usingFullCardArt ? '#f4f8ff' : color,
                     textAlign: 'center',
@@ -414,7 +414,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     zIndex: 2,
                     display: 'flex',
                     gap: 2,
-                    fontSize: 'clamp(7px, calc(var(--field-card-width) * 0.11), 10px)',
+                    fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)',
                     fontWeight: 700,
                     flexWrap: 'wrap',
                     justifyContent: 'center',
