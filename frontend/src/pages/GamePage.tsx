@@ -159,13 +159,17 @@ const GamePage: React.FC = () => {
     setRevealTilt({ x: 0, y: 0 });
   };
 
-  const handleSurrender = () => {
-    if (isGameOver) return;
-    const confirmed = window.confirm('정말로 항복하시겠습니까?');
-    if (!confirmed) return;
-    vm.surrenderGame();
-    // navigate('/');
-  };
+  const currentRevealCard = vm.my?.hand?.[revealIndex];
+  const {
+    currentImageSrc: revealImageSrc,
+    imgError: revealImgError,
+    onError: handleRevealImageError,
+    usingFullCardArt: revealUsingFullCardArt,
+  } = useCardImage(
+      currentRevealCard || {},
+      'hand',
+      [revealIndex, currentRevealCard?.id, currentRevealCard?.hero_key, currentRevealCard?.name]
+  );
 
   if (!session) {
     return (
@@ -183,6 +187,14 @@ const GamePage: React.FC = () => {
       : isWinner
           ? '상대가 항복했습니다.'
           : '당신이 항복하여 패배했습니다.';
+
+  const handleSurrender = () => {
+    if (isGameOver) return;
+    const confirmed = window.confirm('정말로 항복하시겠습니까?');
+    if (!confirmed) return;
+    vm.surrenderGame();
+    // navigate('/');
+  };
 
   if (!vm.gs || !vm.my || !vm.opp) {
     return (
@@ -213,17 +225,7 @@ const GamePage: React.FC = () => {
   const visibleHandCards = openingActive
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
-  const currentRevealCard = vm.my.hand[revealIndex];
-  const {
-    currentImageSrc: revealImageSrc,
-    imgError: revealImgError,
-    onError: handleRevealImageError,
-    usingFullCardArt: revealUsingFullCardArt,
-  } = useCardImage(
-      currentRevealCard || {},
-      'hand',
-      [revealIndex, currentRevealCard?.id, currentRevealCard?.hero_key, currentRevealCard?.name]
-  );
+  const revealCardInHand = vm.my.hand[revealIndex];
 
   return (
     <>
@@ -266,7 +268,7 @@ const GamePage: React.FC = () => {
                   ))}
                 </div>
             )}
-            {openingStage === 'reveal_front' && currentRevealCard && (
+            {openingStage === 'reveal_front' && revealCardInHand && (
                 <button type="button" className="game-opening-reveal-area" onClick={handleRevealNext}>
                   <div
                       className={`game-opening-front-card ${revealExiting ? 'exiting' : ''}`}
@@ -279,11 +281,11 @@ const GamePage: React.FC = () => {
                   >
                     <CardFaceContent
                         variant="hand"
-                        name={currentRevealCard.name}
-                        role={currentRevealCard.role}
-                        isSpell={currentRevealCard.is_spell}
-                        cost={currentRevealCard.cost}
-                        hp={currentRevealCard.hp}
+                        name={revealCardInHand.name}
+                        role={revealCardInHand.role}
+                        isSpell={revealCardInHand.is_spell}
+                        cost={revealCardInHand.cost}
+                        hp={revealCardInHand.hp}
                         currentImageSrc={revealImageSrc}
                         usingFullCardArt={revealUsingFullCardArt}
                         imgError={revealImgError}
