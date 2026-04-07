@@ -424,8 +424,20 @@ class GameEngine:
             random.shuffle(shuffled)
             ps.hand = shuffled[:HAND_SIZE]
             ps.draw_pile = shuffled[HAND_SIZE:]
+        first_idx = random.randint(0, 1)
+        self.current_turn_index = first_idx
+        self.turn_number = 1
+        fid = self.player_order[first_idx]
+        self.first_player_id = fid
+        self.coin_result = "heads" if first_idx == 0 else "tails"
         self.phase = GamePhase.MULLIGAN
-        return {"phase": self.phase.value}
+        return {
+            "phase": self.phase.value,
+            "coin_result": self.coin_result,
+            "first_player": fid,
+            "first_player_name": self.players[fid].username,
+            "turn": self.turn_number,
+        }
 
     # ── 멀리건 ────────────────────────────────
 
@@ -450,7 +462,14 @@ class GameEngine:
         ps.mulligan_used += replaced
         ps.mulligan_done = ps.mulligan_used >= MAX_MULLIGAN or len(card_indices) == 0
         if all(p.mulligan_done for p in self.players.values()):
-            return self._coin_flip()
+            self.phase = GamePhase.PLACEMENT
+            return {
+                "phase": self.phase.value,
+                "coin_result": self.coin_result,
+                "first_player": self.first_player_id,
+                "first_player_name": self.players[self.first_player_id].username if self.first_player_id in self.players else None,
+                "turn": self.turn_number,
+            }
         remaining_after = max(0, MAX_MULLIGAN - ps.mulligan_used)
         message = "Waiting for opponent" if ps.mulligan_done else f"Mulligan remaining: {remaining_after}"
         return {"phase": self.phase.value, "message": message, "remaining": remaining_after}
@@ -458,21 +477,21 @@ class GameEngine:
     def skip_mulligan(self, player_id: int) -> dict:
         return self.mulligan(player_id, [])
 
-    def _coin_flip(self) -> dict:
-        first_idx = random.randint(0, 1)
-        self.current_turn_index = first_idx
-        self.turn_number = 1
-        self.phase = GamePhase.PLACEMENT
-        fid = self.player_order[first_idx]
-        self.first_player_id = fid
-        self.coin_result = "heads" if first_idx == 0 else "tails"
-        return {
-            "phase": self.phase.value,
-            "coin_result": self.coin_result,
-            "first_player": fid,
-            "first_player_name": self.players[fid].username,
-            "turn": self.turn_number,
-        }
+    # def _coin_flip(self) -> dict:
+    #     first_idx = random.randint(0, 1)
+    #     self.current_turn_index = first_idx
+    #     self.turn_number = 1
+    #     self.phase = GamePhase.PLACEMENT
+    #     fid = self.player_order[first_idx]
+    #     self.first_player_id = fid
+    #     self.coin_result = "heads" if first_idx == 0 else "tails"
+    #     return {
+    #         "phase": self.phase.value,
+    #         "coin_result": self.coin_result,
+    #         "first_player": fid,
+    #         "first_player_name": self.players[fid].username,
+    #         "turn": self.turn_number,
+    #     }
 
     def _build_field_card(self, card_data: dict, zone: Zone, *, placed_this_turn: bool = True) -> FieldCard:
         hero_name = card_data.get("hero_key", card_data.get("name", "").lower())
