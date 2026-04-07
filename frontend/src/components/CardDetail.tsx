@@ -508,7 +508,13 @@ ${desc}` : ''}`;
                                                 </div>
                                             )}
                                             {skillDescription && (
-                                                <div style={{ fontSize: scaledPx(10, 9, 11), color: '#9aa6ce', lineHeight: 1.5 }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: scaledPx(10, 9, 11),
+                                                        color: key === 'passive' ? '#ff5c5c' : '#9aa6ce',
+                                                        lineHeight: 1.5,
+                                                    }}
+                                                >
                                                     {skillDescription}
                                                 </div>
                                             )}

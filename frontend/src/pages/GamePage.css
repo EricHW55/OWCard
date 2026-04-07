@@ -316,7 +316,7 @@
     }
     100% {
         opacity: 0;
-        transform: translate3d(-50%, -50%, 620px) rotateX(-14deg) rotateY(8deg) translateY(-56vh) scale(1.28);
+        transform: translate3d(-50%, -50%, 620px) rotateX(-14deg) rotateY(8deg) translateY(56vh) scale(1.28);
     }
 }
 
