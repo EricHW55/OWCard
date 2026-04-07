@@ -72,10 +72,10 @@
     }
     88% {
         opacity: 1;
-        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.08), calc(var(--from-center-y) * 0.1), 40px) rotateX(-2deg) rotateY(720deg) scale(1.06);
+        transform: translate(-50%, -50%) perspective(1400px) translate3d(calc(var(--from-center-x) * 0.05), calc(var(--from-center-y) * 0.05), 40px) rotateX(-2deg) rotateY(720deg) scale(1.06);
         filter: blur(0);
     }
-    92% {
+    90% {
         opacity: 1;
         transform: translate(-50%, -50%) perspective(1400px) translate3d(0, 0, 0) rotateX(0deg) rotateY(720deg) scale(1);
         filter: blur(0);
