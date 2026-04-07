@@ -17,7 +17,6 @@ interface BaseProps {
 interface HandProps extends BaseProps {
     variant: 'hand';
     cost?: number;
-    baseAttack?: number;
     hp?: number;
 }
 
@@ -68,7 +67,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
-                    background: '#0d1225',
+                    background: '#1a223a',
                     border: '1px solid #2a3560',
                 }}
             >
@@ -121,7 +120,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
-                    background: '#0d1225',
+                    background: '#1a223a',
                     border: '1px solid #2a3560',
                 }}
             >
@@ -162,7 +161,6 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                 <div style={{ fontSize: 8, color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
                 <div style={{ display: 'flex', gap: 3, fontSize: 8, fontWeight: 700 }}>
-                    <span style={{ color: '#ff4466' }}>⚔{props.baseAttack || 0}</span>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}

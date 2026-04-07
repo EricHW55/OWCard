@@ -40,7 +40,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 height: 98,
                 borderRadius: 6,
                 border: usingFullCardArt ? 'none' : `2px solid ${selected ? '#ff9b30' : color}`,
-                background: usingFullCardArt ? 'transparent' : (selected ? 'rgba(255,155,48,0.18)' : `${color}10`),
+                background: usingFullCardArt ? 'transparent' : (selected ? '#1b2238' : '#0f1528'),
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -49,6 +49,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 cursor: 'pointer',
                 flexShrink: 0,
                 position: 'relative',
+                overflow: 'hidden',
                 boxShadow: selected
                     ? '0 0 14px rgba(255,155,48,0.5)'
                     : (usingFullCardArt ? '0 6px 12px rgba(0,0,0,0.3)' : 'none'),
@@ -65,7 +66,6 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 role={card.role}
                 isSpell={card.is_spell}
                 cost={card.cost}
-                baseAttack={card.base_attack}
                 hp={card.hp}
                 currentImageSrc={currentImageSrc}
                 usingFullCardArt={usingFullCardArt}

@@ -58,18 +58,6 @@ function getAuraSpikes(level: number): AuraSpike[] {
     });
 }
 
-function getMainDamage(card: FieldCard): string {
-    const d = card.skill_damages;
-    if (!d) return '0';
-    const keys = Object.keys(d);
-    if (!keys.length) return '0';
-    const v = d[keys[0]];
-    if (typeof v === 'number') return String(v);
-    if (Array.isArray(v)) return String(v[0] ?? 0);
-    if (typeof v === 'object' && v !== null) return String((v as any).damage ?? (v as any).heal ?? 0);
-    return '0';
-}
-
 const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
@@ -82,7 +70,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const color = ROLE_COLOR[card.role] || '#888';
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
     const hpColor = hpPct > 60 ? '#22dd77' : hpPct > 30 ? '#ffaa22' : '#ff3355';
-    const mainDmg = getMainDamage(card);
 
     const barrierStatus = card.statuses?.find((s) => s.name === 'barrier');
     const barrierHp = (barrierStatus as any)?.barrier_hp ?? 0;
@@ -238,15 +225,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     height: '100%',
                     borderRadius: 'var(--field-card-radius)',
                     position: 'relative',
-                    overflow: 'visible',
+                    overflow: 'hidden',
                     border: `2px solid ${borderColor}`,
                     background: usingFullCardArt
                         ? '#070b16'
                         : selected
-                            ? 'rgba(255,155,48,0.15)'
+                            ? '#1b2238'
                             : glowing
-                                ? 'rgba(102,221,255,0.08)'
-                                : `${color}12`,
+                                ? '#16243a'
+                                : '#0f1528',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -435,7 +422,6 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     background: usingFullCardArt ? 'rgba(6,10,20,0.6)' : undefined,
                 }}
             >
-                <span style={{ color: '#ff9b30' }}>✦{mainDmg}</span>
                 <span style={{ color: '#22dd77' }}>♥{card.current_hp}</span>
                 {hasBarrier && <span style={{ color: '#22cc88' }}>🛡{barrierHp}</span>}
                 {extraHp > 0 && <span style={{ color: '#ffdd44' }}>+{extraHp}</span>}
