@@ -36,17 +36,18 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         const node = handRootRef.current;
         if (!node) return;
         const updateScale = () => {
-            const width = node.clientWidth || 70;
-            const next = Math.min(2.4, Math.max(0.9, width / 70));
+            const width = node.clientWidth || 72;
+            const baseWidth = props.sizePreset === 'opening' ? 98 : 72;
+            const next = Math.min(4, Math.max(0.72, width / baseWidth));
             setHandScale(next);
         };
         updateScale();
         const observer = new ResizeObserver(updateScale);
         observer.observe(node);
         return () => observer.disconnect();
-    }, [props.variant]);
+    }, [props.variant, props.sizePreset]);
 
-    const handPresetScale = props.variant === 'hand' && props.sizePreset === 'opening' ? 1.5 : 1;
+    const handPresetScale = props.variant === 'hand' && props.sizePreset === 'opening' ? 1.08 : 1;
 
     if (props.usingFullCardArt) {
         return (
@@ -130,12 +131,12 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         >
             <div
                 style={{
-                    width: `${Math.round(18 * handScale * handPresetScale)}px`,
-                    height: `${Math.round(18 * handScale * handPresetScale)}px`,
+                    width: `${Math.round(16 * handScale * handPresetScale)}px`,
+                    height: `${Math.round(16 * handScale * handPresetScale)}px`,
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: `${Math.round(9 * handScale * handPresetScale)}px`,
+                    fontSize: `${Math.round(8 * handScale * handPresetScale)}px`,
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
@@ -148,9 +149,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: `${Math.round(40 * handScale * handPresetScale)}px`,
-                    height: `${Math.round(40 * handScale * handPresetScale)}px`,
-                    borderRadius: `${Math.round(8 * handScale * handPresetScale)}px`,
+                    width: `${Math.round(36 * handScale * handPresetScale)}px`,
+                    height: `${Math.round(36 * handScale * handPresetScale)}px`,
+                    borderRadius: `${Math.round(7 * handScale * handPresetScale)}px`,
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -173,7 +174,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: `${Math.round(18 * handScale * handPresetScale)}px` }}>
+                    <span style={{ fontSize: `${Math.round(16 * handScale * handPresetScale)}px` }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
@@ -181,7 +182,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: `${Math.round(9 * handScale * handPresetScale)}px`,
+                    fontSize: `${Math.round(8 * handScale * handPresetScale)}px`,
                     fontWeight: 600,
                     color: '#e8ecf8',
                     textAlign: 'center',
@@ -192,9 +193,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: `${Math.round(8 * handScale * handPresetScale)}px`, color: '#ffaa22', fontWeight: 600 }}>스킬</div>
+                <div style={{ fontSize: `${Math.round(7 * handScale * handPresetScale)}px`, color: '#ffaa22', fontWeight: 600 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 3, fontSize: `${Math.round(8 * handScale * handPresetScale)}px`, fontWeight: 600 }}>
+                <div style={{ display: 'flex', gap: 3, fontSize: `${Math.round(7 * handScale * handPresetScale)}px`, fontWeight: 600 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}

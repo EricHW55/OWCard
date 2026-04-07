@@ -51,7 +51,6 @@ const FieldSection: React.FC<Props> = ({
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
                                            canSelectEmptySlot, onEmptySlotSelect,
                                        }) => {
-    const sectionRootRef = useRef<HTMLDivElement | null>(null);
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
     const dealers = (field?.main || []).filter(c => c.role === 'dealer');
     const healers = (field?.main || []).filter(c => c.role === 'healer');
@@ -100,22 +99,19 @@ const FieldSection: React.FC<Props> = ({
 
                 const targetCenterX = rect.left + rect.width / 2;
                 const targetCenterY = rect.top + rect.height / 2;
-                const sectionRect = sectionRootRef.current?.getBoundingClientRect();
-                const layerCenterX = sectionRect ? sectionRect.width / 2 : window.innerWidth / 2;
-                const layerCenterY = sectionRect ? sectionRect.height / 2 : window.innerHeight / 2;
-                const relativeTargetCenterX = sectionRect ? (targetCenterX - sectionRect.left) : targetCenterX;
-                const relativeTargetCenterY = sectionRect ? (targetCenterY - sectionRect.top) : targetCenterY;
+                const layerCenterX = window.innerWidth / 2;
+                const layerCenterY = window.innerHeight / 2;
 
                 return [{
                     id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
                     uid: card.uid,
                     imageSrc: buildCardImageChain(card as any, 'cinematic')[0] || '/heroes/_unknown.png',
-                    targetCenterX: relativeTargetCenterX,
-                    targetCenterY: relativeTargetCenterY,
+                    targetCenterX,
+                    targetCenterY,
                     targetWidth: rect.width,
                     targetHeight: rect.height,
-                    fromCenterX: layerCenterX - relativeTargetCenterX,
-                    fromCenterY: layerCenterY - relativeTargetCenterY,
+                    fromCenterX: layerCenterX - targetCenterX,
+                    fromCenterY: layerCenterY - targetCenterY,
                 }];
             });
 
@@ -237,7 +233,7 @@ const FieldSection: React.FC<Props> = ({
         ];
 
     return (
-        <div ref={sectionRootRef} className={`field-section ${isOpponent ? 'opponent' : 'player'}`}>
+        <div className={`field-section ${isOpponent ? 'opponent' : 'player'}`}>
             <div className="field-lanes">
                 {mainRows.map(({ role, cards, max }, idx) => {
                     const sideDef = sideRowDefs[idx];

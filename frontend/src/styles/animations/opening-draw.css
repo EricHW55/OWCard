@@ -46,7 +46,7 @@
 }
 
 .game-opening-front-card {
-    width: min(42vw, 240px);
+    width: clamp(210px, 28vw, 300px);
     aspect-ratio: 5 / 7;
     border-radius: 16px;
     overflow: hidden;
@@ -62,6 +62,12 @@
     will-change: transform;
     transition: transform 140ms ease;
     animation: game-opening-front-in 300ms ease-out;
+}
+
+@media (max-width: 768px) {
+    .game-opening-front-card {
+        width: min(64vw, 280px);
+    }
 }
 
 .game-opening-front-card.fullart {
