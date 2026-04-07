@@ -2,7 +2,9 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
+import { CardFaceContent } from '../components/CardFaceContent';
 import useOnlineGameController from '../controllers/useOnlineGameController';
+import { useCardImage } from '../hooks/useCardImage';
 import { BTN_SM, phaseLabel } from '../utils/ui';
 import { getApiBase } from '../api/ws';
 import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
@@ -31,7 +33,6 @@ const GamePage: React.FC = () => {
   const [revealedCount, setRevealedCount] = React.useState(0);
   const [revealIndex, setRevealIndex] = React.useState(0);
   const [revealExiting, setRevealExiting] = React.useState(false);
-  const [revealImageStep, setRevealImageStep] = React.useState(0);
   const [revealTilt, setRevealTilt] = React.useState({ x: 0, y: 0 });
   const [openingCardCount, setOpeningCardCount] = React.useState(handSize);
 
@@ -116,7 +117,6 @@ const GamePage: React.FC = () => {
   }, [vm.gs, vm.my, vm.phase, handSize, coinTossStage]);
 
   React.useEffect(() => {
-    setRevealImageStep(0);
     setRevealTilt({ x: 0, y: 0 });
   }, [revealIndex, vm.my?.hand?.[revealIndex]?.id, vm.my?.hand?.[revealIndex]?.hero_key]);
 
@@ -214,10 +214,16 @@ const GamePage: React.FC = () => {
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
   const currentRevealCard = vm.my.hand[revealIndex];
-  const revealFallbackChain = currentRevealCard
-      ? [...getCardArtCandidates(currentRevealCard as any), getCardImageSrc(currentRevealCard as any)]
-      : [];
-  const revealImageSrc = revealFallbackChain[revealImageStep] || '/heroes/_unknown.png';
+  const {
+    currentImageSrc: revealImageSrc,
+    imgError: revealImgError,
+    onError: handleRevealImageError,
+    usingFullCardArt: revealUsingFullCardArt,
+  } = useCardImage(
+      currentRevealCard || {},
+      'hand',
+      [revealIndex, currentRevealCard?.id, currentRevealCard?.hero_key, currentRevealCard?.name]
+  );
 
   return (
     <>
@@ -271,14 +277,17 @@ const GamePage: React.FC = () => {
                         transform: `rotateX(${revealTilt.x}deg) rotateY(${revealTilt.y}deg) translateZ(0)`,
                       }}
                   >
-                    <img
-                        src={revealImageSrc}
-                        alt={currentRevealCard.name}
-                        onError={() => {
-                          if (revealImageStep + 1 < revealFallbackChain.length) {
-                            setRevealImageStep((prev) => prev + 1);
-                          }
-                        }}
+                    <CardFaceContent
+                        variant="hand"
+                        name={currentRevealCard.name}
+                        role={currentRevealCard.role}
+                        isSpell={currentRevealCard.is_spell}
+                        cost={currentRevealCard.cost}
+                        hp={currentRevealCard.hp}
+                        currentImageSrc={revealImageSrc}
+                        usingFullCardArt={revealUsingFullCardArt}
+                        imgError={revealImgError}
+                        onError={handleRevealImageError}
                     />
                   </div>
                   <div className="game-opening-reveal-guide">클릭해서 다음 카드 보기 ({Math.min(openingCardCount, revealIndex + 1)}/{openingCardCount})</div>
