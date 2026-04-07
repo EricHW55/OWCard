@@ -252,7 +252,10 @@ const GamePage: React.FC = () => {
                       <div
                           key={`back-${idx}`}
                           className="game-opening-backdraw-card"
-                          style={{ animationDelay: `${idx * 0.22}s`, backgroundImage: `url(${getCardBackImageSrc()})` }}
+                          style={{
+                            animationDelay: `${idx * 0.22}s`,
+                            backgroundImage: `url(${getCardBackImageSrc()}), url(/illustration/card_back.png)`,
+                          }}
                       />
                   ))}
                 </div>

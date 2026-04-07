@@ -312,11 +312,11 @@
     }
     32% {
         opacity: 1;
-        transform: translate3d(-50%, -50%, 140px) rotateX(18deg) rotateY(-6deg) translateY(16vh) scale(1.05);
+        transform: translate3d(-50%, -50%, 220px) rotateX(8deg) rotateY(-4deg) translateY(-4vh) scale(1.1);
     }
     100% {
         opacity: 0;
-        transform: translate3d(-50%, -50%, 320px) rotateX(-8deg) rotateY(6deg) translateY(70vh) scale(1.14);
+        transform: translate3d(-50%, -50%, 620px) rotateX(-14deg) rotateY(8deg) translateY(-56vh) scale(1.28);
     }
 }
 
