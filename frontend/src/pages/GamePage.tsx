@@ -287,6 +287,7 @@ const GamePage: React.FC = () => {
                   >
                     <CardFaceContent
                         variant="hand"
+                        sizePreset="opening"
                         name={revealCardInHand.name}
                         role={revealCardInHand.role}
                         isSpell={revealCardInHand.is_spell}

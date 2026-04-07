@@ -227,7 +227,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     borderRadius: 'var(--field-card-radius)',
                     position: 'relative',
                     overflow: 'hidden',
-                    border: usingFullCardArt ? 'none' : `2px solid ${borderColor}`,
+                    border: `2px solid ${borderColor}`,
                     background: usingFullCardArt
                         ? '#070b16'
                         : selected

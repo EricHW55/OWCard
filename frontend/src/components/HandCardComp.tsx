@@ -29,18 +29,17 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
     const cardLift = selected ? -12 : 0;
     const cardScale = selected ? 1.03 : 1;
     const baseZIndex = 100 + index;
+    const frameColor = selected ? '#ff9b30' : color;
 
     return (
         <div
             onClick={onClick}
             className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''}`}
             style={{
-                width: 70,
-                height: 98,
+                width: 'clamp(52px, min(9.2vw, 8.4vh), 70px)',
+                height: 'clamp(73px, min(12.9vw, 11.8vh), 98px)',
                 borderRadius: 6,
-                border: usingFullCardArt
-                    ? 'none'
-                    : `2px solid ${selected ? '#ff9b30' : color}`,
+                border: `2px solid ${frameColor}`,
                 background: usingFullCardArt ? 'transparent' : (selected ? '#1b2238' : '#0f1528'),
                 display: 'flex',
                 flexDirection: 'column',

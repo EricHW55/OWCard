@@ -576,6 +576,7 @@
     border: none;
     border-radius: 0;
     background: transparent;
+    position: relative;
     display: flex;
     flex-direction: column;
     --field-row-gap: clamp(3px, calc(var(--field-card-width) * 0.06), 8px);
