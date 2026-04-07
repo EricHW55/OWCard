@@ -31,6 +31,8 @@ const GamePage: React.FC = () => {
   const [revealedCount, setRevealedCount] = React.useState(0);
   const [revealIndex, setRevealIndex] = React.useState(0);
   const [revealExiting, setRevealExiting] = React.useState(false);
+  const [revealImageStep, setRevealImageStep] = React.useState(0);
+  const [revealTilt, setRevealTilt] = React.useState({ x: 0, y: 0 });
 
   const isFirstPlayer = React.useMemo(() => {
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
@@ -97,6 +99,7 @@ const GamePage: React.FC = () => {
   React.useEffect(() => {
     if (!vm.gs || !vm.my) return;
     if (openingStartedRef.current) return;
+    if (coinTossStage !== 'done') return;
     if (vm.phase !== 'mulligan') return;
     if (vm.my.hand.length < handSize) return;
     openingStartedRef.current = true;
@@ -107,7 +110,12 @@ const GamePage: React.FC = () => {
       setRevealIndex(0);
     }, handSize * 230 + 500);
     return () => window.clearTimeout(timer);
-  }, [vm.gs, vm.my, vm.phase, handSize]);
+  }, [vm.gs, vm.my, vm.phase, handSize, coinTossStage]);
+
+  React.useEffect(() => {
+    setRevealImageStep(0);
+    setRevealTilt({ x: 0, y: 0 });
+  }, [revealIndex, vm.my?.hand?.[revealIndex]?.id, vm.my?.hand?.[revealIndex]?.hero_key]);
 
   React.useEffect(() => {
     return () => {
@@ -132,6 +140,20 @@ const GamePage: React.FC = () => {
         setRevealIndex(nextIndex);
       }
     }, 260);
+  };
+
+  const handleRevealPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    const rotateY = (px - 0.5) * 20;
+    const rotateX = (0.5 - py) * 20;
+    setRevealTilt({ x: rotateX, y: rotateY });
+  };
+
+  const resetRevealTilt = () => {
+    setRevealTilt({ x: 0, y: 0 });
   };
 
   const handleSurrender = () => {
@@ -188,6 +210,11 @@ const GamePage: React.FC = () => {
   const visibleHandCards = openingActive
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
+  const currentRevealCard = vm.my.hand[revealIndex];
+  const revealFallbackChain = currentRevealCard
+      ? [...getCardArtCandidates(currentRevealCard as any), getCardImageSrc(currentRevealCard as any)]
+      : [];
+  const revealImageSrc = revealFallbackChain[revealImageStep] || '/heroes/_unknown.png';
 
   return (
     <>
@@ -223,10 +250,26 @@ const GamePage: React.FC = () => {
                   ))}
                 </div>
             )}
-            {openingStage === 'reveal_front' && vm.my.hand[revealIndex] && (
+            {openingStage === 'reveal_front' && currentRevealCard && (
                 <button type="button" className="game-opening-reveal-area" onClick={handleRevealNext}>
-                  <div className={`game-opening-front-card ${revealExiting ? 'exiting' : ''}`}>
-                    <img src={getCardImageSrc(vm.my.hand[revealIndex])} alt={vm.my.hand[revealIndex].name} />
+                  <div
+                      className={`game-opening-front-card ${revealExiting ? 'exiting' : ''}`}
+                      onPointerMove={handleRevealPointerMove}
+                      onPointerLeave={resetRevealTilt}
+                      onPointerUp={resetRevealTilt}
+                      style={{
+                        transform: `rotateX(${revealTilt.x}deg) rotateY(${revealTilt.y}deg) translateZ(0)`,
+                      }}
+                  >
+                    <img
+                        src={revealImageSrc}
+                        alt={currentRevealCard.name}
+                        onError={() => {
+                          if (revealImageStep + 1 < revealFallbackChain.length) {
+                            setRevealImageStep((prev) => prev + 1);
+                          }
+                        }}
+                    />
                   </div>
                   <div className="game-opening-reveal-guide">클릭해서 다음 카드 보기 ({Math.min(handSize, revealIndex + 1)}/{handSize})</div>
                 </button>
