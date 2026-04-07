@@ -67,6 +67,47 @@ def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         "damage_log": result,
         "message": "정조준 사용 후 착지",
     }
+    
+# ── 파라 ──────────────────────────────────
+@register_passive("pharah")
+def pharah_passive(card: FieldCard, game: GameState) -> dict:
+    card.remove_status("airborne")
+    card.add_status(Airborne(duration=-1, source_uid=card.uid))
+    return {"passive": "호버 추진기"}
+
+@register_skill("pharah", "skill_1")
+def pharah_rocket_launcher(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """
+    로켓 런처
+    - 직격: 지정 대상 5 피해
+    - 광역: 동일 역할군 + 동일 구역의 반대 슬롯 대상 3 피해
+      (탱커/사이드는 반대 슬롯이 없으므로 직격만 적용)
+    """
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+
+    dmgs = game.get_skill_damage(caster, "skill_1")
+    direct_dmg = dmgs[0] if isinstance(dmgs, list) else dmgs
+    splash_dmg = dmgs[1] if isinstance(dmgs, list) and len(dmgs) > 1 else 0
+
+    logs = [{"target": target.uid, "kind": "direct", "damage_log": target.take_damage(direct_dmg)}]
+
+    from game_engine.field import Zone, Role
+    if target.zone == Zone.MAIN and target.role in {Role.DEALER, Role.HEALER} and splash_dmg > 0:
+        enemy = game.get_enemy_field(caster)
+        target_slot = int(target.extra.get("slot_index", 0) or 0)
+        splash_slot = 1 if target_slot == 0 else 0
+        splash_target = next(
+            (
+                c for c in enemy.get_role_row_in_zone(target.role, target.zone)
+                if c.uid != target.uid and int(c.extra.get("slot_index", 0) or 0) == splash_slot
+            ),
+            None,
+        )
+        if splash_target:
+            logs.append({"target": splash_target.uid, "kind": "splash", "damage_log": splash_target.take_damage(splash_dmg)})
+
+    return {"success": True, "skill": "로켓 런처", "damage_logs": logs}
 
 # ── 트레이서 ──────────────────────────────
 @register_passive("tracer")
