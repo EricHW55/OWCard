@@ -235,12 +235,14 @@
             animation: pulledTowardEnemy 0.95s ease-in-out infinite alternate;
         }
         .field-card.frozen_state {
-            opacity: 0.52;
-            filter: saturate(0.55) contrast(1.06);
+            filter: saturate(0.82) contrast(1.08);
+            background:
+                    linear-gradient(180deg, rgba(114, 191, 255, 0.72) 0%, rgba(74, 151, 230, 0.68) 52%, rgba(52, 118, 196, 0.7) 100%),
+                    linear-gradient(180deg, #21345d 0%, #172540 50%, #131f37 100%);
             box-shadow:
-                    0 0 0 2px rgba(145, 225, 255, 0.75),
-                    0 0 22px rgba(122, 213, 255, 0.48),
-                    inset 0 0 18px rgba(167, 236, 255, 0.3),
+                    0 0 0 2px rgba(145, 225, 255, 0.84),
+                    0 0 22px rgba(122, 213, 255, 0.5),
+                    inset 0 0 22px rgba(167, 236, 255, 0.34),
                     0 12px 34px rgba(10,25,57,.55);
         }
         .field-card.frozen_state::before {
@@ -305,6 +307,30 @@
                     0 0 38px rgba(255, 189, 58, .42),
                     0 0 62px rgba(255, 212, 118, .26);
         }
+
+        .field-card.barrier::before {
+            content: "";
+            position: absolute;
+            inset: -12px;
+            border-radius: 24px;
+            pointer-events: none;
+            z-index: -1;
+            background:
+                    conic-gradient(from 12deg, rgba(96, 226, 255, .22), rgba(68, 169, 255, .72), rgba(129, 239, 255, .2), rgba(96, 226, 255, .22));
+            box-shadow:
+                    0 0 18px rgba(104, 205, 255, .55),
+                    inset 0 0 14px rgba(181, 243, 255, .3);
+            animation: barrierSpin 2.2s linear infinite;
+        }
+        .field-card.barrier::after {
+            content: "";
+            position: absolute;
+            inset: -5px;
+            border-radius: 20px;
+            pointer-events: none;
+            border: 2px solid rgba(136, 227, 255, .72);
+            box-shadow: 0 0 14px rgba(136, 227, 255, .42);
+        }
         .field-card.damage_reduction {
             box-shadow:
                     0 0 0 2px rgba(108, 194, 255, .82),
@@ -325,32 +351,55 @@
         .field-card.skill_silence::after {
             content: "";
             position: absolute;
-            inset: -8px;
-            border-radius: 20px;
             pointer-events: none;
-            border: 3px solid rgba(188, 197, 226, 0.58);
-            box-shadow: inset 0 0 10px rgba(15, 22, 42, .5), 0 0 18px rgba(182, 194, 230, .34);
-            z-index: 2;
+            z-index: 3;
+            background-repeat: repeat;
+            border-radius: 999px;
+            background-image:
+                    radial-gradient(circle at 8px 50%, rgba(226, 233, 249, .96) 0 2px, transparent 2.2px),
+                    radial-gradient(circle at 20px 50%, rgba(202, 212, 238, .94) 0 2px, transparent 2.2px),
+                    linear-gradient(90deg, rgba(214, 222, 244, .92) 0 26px, transparent 26px 36px);
+            background-size: 36px 16px;
+            box-shadow:
+                    0 0 8px rgba(175, 190, 225, .48),
+                    0 0 2px rgba(244, 248, 255, .85),
+                    inset 0 0 2px rgba(255, 255, 255, .7);
         }
-        .field-card.skill_silence::before { transform: rotate(34deg); }
-        .field-card.skill_silence::after { transform: rotate(-34deg); }
+        .field-card.skill_silence::before {
+            left: -18px;
+            right: -10px;
+            top: 24%;
+            height: 18px;
+            transform: rotate(26deg);
+        }
+        .field-card.skill_silence::after {
+            left: -9px;
+            right: -22px;
+            top: 58%;
+            height: 18px;
+            transform: rotate(-21deg);
+        }
         .field-card.skill_silence {
-            box-shadow: 0 0 0 2px rgba(177, 192, 225, .6), 0 0 22px rgba(140, 157, 198, .35);
+            box-shadow:
+                    0 0 0 2px rgba(177, 192, 225, .7),
+                    0 0 24px rgba(140, 157, 198, .4),
+                    inset 0 0 18px rgba(96, 114, 153, .28);
         }
 
         .field-card.sticky_bomb::before {
             content: "";
             position: absolute;
-            inset: 12% 10%;
-            border-radius: 14px;
+            inset: 4% 2%;
+            border-radius: 18px;
             pointer-events: none;
             background:
-                    radial-gradient(circle at 20% 30%, rgba(122, 218, 255, .95) 0 8px, rgba(104, 188, 255, .35) 9px, transparent 15px),
-                    radial-gradient(circle at 72% 24%, rgba(118, 204, 255, .9) 0 7px, rgba(89, 172, 255, .3) 8px, transparent 14px),
-                    radial-gradient(circle at 35% 58%, rgba(102, 196, 255, .94) 0 7px, rgba(80, 160, 255, .35) 8px, transparent 14px),
-                    radial-gradient(circle at 78% 62%, rgba(124, 208, 255, .9) 0 8px, rgba(96, 170, 255, .35) 9px, transparent 15px),
-                    radial-gradient(circle at 50% 78%, rgba(112, 202, 255, .9) 0 7px, rgba(74, 160, 255, .3) 8px, transparent 13px);
-            filter: drop-shadow(0 0 5px rgba(111, 207, 255, .7));
+                    radial-gradient(circle at 18% 26%, rgba(90, 214, 255, .98) 0 16px, rgba(74, 176, 255, .55) 17px, transparent 31px),
+                    radial-gradient(circle at 74% 22%, rgba(96, 220, 255, .96) 0 15px, rgba(70, 164, 255, .52) 16px, transparent 30px),
+                    radial-gradient(circle at 32% 56%, rgba(84, 204, 255, .98) 0 17px, rgba(54, 154, 255, .54) 18px, transparent 32px),
+                    radial-gradient(circle at 81% 64%, rgba(106, 218, 255, .94) 0 16px, rgba(72, 172, 255, .5) 17px, transparent 31px),
+                    radial-gradient(circle at 52% 80%, rgba(90, 210, 255, .95) 0 14px, rgba(60, 162, 255, .46) 15px, transparent 29px),
+                    radial-gradient(circle at 48% 46%, rgba(118, 232, 255, .62), rgba(36, 132, 255, 0));
+            filter: drop-shadow(0 0 10px rgba(111, 207, 255, .82));
             z-index: 2;
         }
 
@@ -411,6 +460,10 @@
             to { transform: translateX(3px); opacity: .95; }
         }
         @keyframes chargeSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes barrierSpin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
@@ -542,8 +595,6 @@
             if (fx === 'gravity_flux_airborne') {
                 card.classList.add('airborne');
                 wrap.classList.add('airborne');
-            } else if (fx === 'barrier') {
-                card.classList.add('damage_reduction');
             } else if (fx === 'particle_barrier') {
                 card.classList.add('reflect');
             } else {
