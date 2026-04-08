@@ -1,17 +1,20 @@
 @keyframes status-frozen-shimmer {
     from {
-        transform: translateX(-3px);
-        opacity: 0.8;
+        transform: translateY(-2px);
+        opacity: 0.72;
     }
     to {
-        transform: translateX(3px);
-        opacity: 0.95;
+        transform: translateY(2px);
+        opacity: 0.92;
     }
 }
 
 .field-card-3d.status-frozen {
-    filter: saturate(0.82) contrast(1.08);
-    box-shadow: 0 0 0 2px rgba(145, 225, 255, 0.84), 0 0 22px rgba(122, 213, 255, 0.5), inset 0 0 22px rgba(167, 236, 255, 0.34);
+    filter: saturate(0.84) contrast(1.08);
+    box-shadow:
+            0 0 0 2px rgba(125, 212, 255, 0.88),
+            0 0 20px rgba(106, 198, 250, 0.48),
+            inset 0 0 26px rgba(88, 170, 232, 0.35);
 }
 
 .field-card-3d.status-frozen .field-status-layer-frozen-base {
@@ -20,7 +23,9 @@
     pointer-events: none;
     z-index: 3;
     border-radius: inherit;
-    background: linear-gradient(180deg, rgba(114, 191, 255, 0.72) 0%, rgba(74, 151, 230, 0.68) 52%, rgba(52, 118, 196, 0.7) 100%);
+    background:
+            radial-gradient(120% 110% at 50% 46%, rgba(218, 244, 255, 0.4) 0%, rgba(190, 231, 252, 0.26) 40%, rgba(120, 193, 238, 0.2) 67%, rgba(55, 133, 211, 0.58) 100%),
+            linear-gradient(180deg, rgba(124, 203, 251, 0.62) 0%, rgba(88, 171, 232, 0.58) 56%, rgba(52, 125, 206, 0.68) 100%);
 }
 
 .field-card-3d.status-frozen .field-status-layer-frozen-shimmer {
@@ -29,8 +34,10 @@
     pointer-events: none;
     z-index: 4;
     border-radius: calc(var(--field-card-radius) + 2px);
-    background: linear-gradient(125deg, rgba(205, 247, 255, 0.42), rgba(122, 211, 255, 0.12) 45%, rgba(170, 235, 255, 0.4)),
-    repeating-linear-gradient(115deg, rgba(232, 252, 255, 0.25) 0 8px, rgba(140, 220, 255, 0.12) 8px 13px);
+    background:
+            radial-gradient(100% 70% at 50% 8%, rgba(238, 252, 255, 0.36), rgba(238, 252, 255, 0) 68%),
+            radial-gradient(110% 76% at 50% 96%, rgba(90, 185, 244, 0.32), rgba(90, 185, 244, 0) 72%),
+            linear-gradient(130deg, rgba(226, 248, 255, 0.24) 0%, rgba(169, 226, 252, 0.08) 46%, rgba(214, 244, 255, 0.2) 100%);
     mix-blend-mode: screen;
-    animation: status-frozen-shimmer 2.2s linear infinite;
+    animation: status-frozen-shimmer 2.2s ease-in-out infinite alternate;
 }

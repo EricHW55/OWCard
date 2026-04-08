@@ -1,32 +1,39 @@
 .field-card-3d.status-skill-silence {
-    box-shadow: 0 0 0 2px rgba(177, 192, 225, 0.7), 0 0 24px rgba(140, 157, 198, 0.4), inset 0 0 18px rgba(96, 114, 153, 0.28);
+    box-shadow:
+            0 0 0 2px rgba(177, 192, 225, 0.72),
+            0 0 24px rgba(140, 157, 198, 0.42),
+            inset 0 0 18px rgba(96, 114, 153, 0.3);
 }
 
 .field-card-3d.status-skill-silence .field-status-layer-silence-chain {
     position: absolute;
     pointer-events: none;
     z-index: 8;
-    background-repeat: repeat;
     border-radius: 999px;
-    background-image: radial-gradient(circle at 8px 50%, rgba(226, 233, 249, 0.96) 0 2px, transparent 2.2px),
-    radial-gradient(circle at 20px 50%, rgba(202, 212, 238, 0.94) 0 2px, transparent 2.2px),
-    linear-gradient(90deg, rgba(214, 222, 244, 0.92) 0 26px, transparent 26px 36px);
-    background-size: 36px 16px;
-    box-shadow: 0 0 8px rgba(175, 190, 225, 0.48), 0 0 2px rgba(244, 248, 255, 0.85), inset 0 0 2px rgba(255, 255, 255, 0.7);
+    background-repeat: repeat;
+    background-size: 42px 22px;
+    background-image:
+            radial-gradient(ellipse 8px 11px at 8px 11px, transparent 60%, rgba(244, 248, 255, 0.96) 62% 72%, rgba(126, 139, 172, 0.95) 74% 100%),
+            radial-gradient(ellipse 8px 11px at 33px 11px, transparent 60%, rgba(244, 248, 255, 0.96) 62% 72%, rgba(126, 139, 172, 0.95) 74% 100%),
+            linear-gradient(90deg, rgba(232, 239, 252, 0.95) 0 27%, rgba(142, 158, 192, 0.92) 27% 73%, rgba(227, 236, 250, 0.95) 73% 100%);
+    box-shadow:
+            0 0 8px rgba(165, 180, 218, 0.56),
+            0 0 2px rgba(247, 250, 255, 0.9),
+            inset 0 0 2px rgba(255, 255, 255, 0.68);
 }
 
 .field-card-3d.status-skill-silence .field-status-layer-silence-chain.top {
     left: -18px;
     right: -10px;
-    top: 24%;
-    height: 18px;
-    transform: rotate(26deg);
+    top: 23%;
+    height: 20px;
+    transform: rotate(25deg);
 }
 
 .field-card-3d.status-skill-silence .field-status-layer-silence-chain.bottom {
-    left: -9px;
+    left: -10px;
     right: -22px;
     top: 58%;
-    height: 18px;
-    transform: rotate(-21deg);
+    height: 20px;
+    transform: rotate(-20deg);
 }
