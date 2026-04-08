@@ -113,8 +113,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         >
             <div
                 style={{
-                    fontSize: 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
-                    fontWeight: 700,
+                    fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 13px)',
+                    fontWeight: 650,
                     color: nameColor,
                     textAlign: 'center',
                     lineHeight: 1.1,
@@ -129,8 +129,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: 'calc(var(--field-card-width) * 0.45)',
-                    height: 'calc(var(--field-card-width) * 0.45)',
+                    width: 'calc(var(--field-card-width) * 0.4)',
+                    height: 'calc(var(--field-card-width) * 0.4)',
                     borderRadius: 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
                     display: 'grid',
@@ -154,16 +154,16 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
+                    <span style={{ fontSize: 'clamp(13px, calc(var(--field-card-width) * 0.2), 20px)', fontWeight: 650 }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.115), 11px)', color: '#ffaa22', fontWeight: 650 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 'calc(var(--field-card-width) * 0.042)', fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: 'calc(var(--field-card-width) * 0.04)', fontSize: 'clamp(8px, calc(var(--field-card-width) * 0.115), 11px)', fontWeight: 650 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
