@@ -279,7 +279,7 @@ export function useSoloGameController() {
 
       setPhase('placement');
       setActiveSide('bottom');
-    }, 820);
+    }, 1420);
   }, [players, activePlayer, phase, activeSide, selectedMulligan]);
   const runMulligan = confirmMulligan;
 

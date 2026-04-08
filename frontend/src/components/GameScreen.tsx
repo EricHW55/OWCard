@@ -183,6 +183,24 @@ const GameScreen: React.FC<GameScreenProps> = ({
               <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
                 <img src={getCardBackImageSrc()} alt="" />
               </div>
+              <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
+                {mulliganUsingFullCardArt ? (
+                    <img src={mulliganFrontImageSrc} alt="" onError={onMulliganFrontImageError} />
+                ) : (
+                    <CardFaceContent
+                        variant="hand"
+                        name={mulliganCinematicCard.name}
+                        role={mulliganCinematicCard.role}
+                        isSpell={mulliganCinematicCard.is_spell}
+                        cost={mulliganCinematicCard.cost}
+                        hp={mulliganCinematicCard.hp}
+                        currentImageSrc={mulliganFrontImageSrc || getCardImageSrc(mulliganCinematicCard)}
+                        usingFullCardArt={false}
+                        imgError={mulliganFrontImageError}
+                        onError={onMulliganFrontImageError}
+                    />
+                )}
+              </div>
             </div>
           </div>
       )}

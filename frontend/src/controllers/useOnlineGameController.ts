@@ -1254,7 +1254,7 @@ export function useOnlineGameController(gameId: string) {
         setMulliganAnimatingIndex(null);
         setMulliganCinematicCard(null);
         setIsMulliganCinematicActive(false);
-      }, 1250);
+      }, 1420);
     }
     send({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
     setSelectedMulligan([]);
