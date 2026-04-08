@@ -28,29 +28,6 @@ interface FieldProps extends BaseProps {
 type Props = HandProps | FieldProps;
 
 export const CardFaceContent: React.FC<Props> = (props) => {
-    const handRootRef = React.useRef<HTMLDivElement | null>(null);
-    const [handWidth, setHandWidth] = React.useState(72);
-
-    React.useEffect(() => {
-        if (props.variant !== 'hand') return;
-        const node = handRootRef.current;
-        if (!node) return;
-        const updateWidth = () => {
-            const measured = Math.round(node.getBoundingClientRect().width);
-            const fallback = props.sizePreset === 'opening' ? 220 : 72;
-            const width = measured > 0 ? measured : fallback;
-            setHandWidth(width);
-        };
-        updateWidth();
-        const observer = new ResizeObserver(updateWidth);
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, [props.variant, props.sizePreset]);
-
-    const effectiveHandWidth = props.sizePreset === 'opening'
-        ? Math.max(handWidth, 180)
-        : handWidth;
-
     if (props.usingFullCardArt) {
         return (
             <img
@@ -121,7 +98,6 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
     return (
         <div
-            ref={handRootRef}
             style={{
                 width: '100%',
                 height: '100%',
@@ -129,18 +105,18 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: `${Math.round(effectiveHandWidth * 0.055)}px ${Math.round(effectiveHandWidth * 0.042)}px`,
+                padding: 'calc(var(--field-card-width) * 0.055) calc(var(--field-card-width) * 0.042)',
                 boxSizing: 'border-box',
             }}
         >
             <div
                 style={{
-                    width: `${Math.round(handWidth * 0.22)}px`,
-                    height: `${Math.round(handWidth * 0.22)}px`,
+                    width: 'calc(var(--field-card-width) * 0.22)',
+                    height: 'calc(var(--field-card-width) * 0.22)',
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: `${Math.round(handWidth * 0.11)}px`,
+                    fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.11), 12px)',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
@@ -153,9 +129,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: `${Math.round(effectiveHandWidth * 0.5)}px`,
-                    height: `${Math.round(effectiveHandWidth * 0.5)}px`,
-                    borderRadius: `${Math.round(effectiveHandWidth * 0.1)}px`,
+                    width: 'calc(var(--field-card-width) * 0.45)',
+                    height: 'calc(var(--field-card-width) * 0.45)',
+                    borderRadius: 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -178,7 +154,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: `${Math.round(handWidth * 0.22)}px` }}>
+                    <span style={{ fontSize: 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
@@ -186,8 +162,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: `${Math.round(handWidth * 0.11)}px`,
-                    fontWeight: 600,
+                    fontSize: 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
+                    fontWeight: 700,
                     color: '#e8ecf8',
                     textAlign: 'center',
                     lineHeight: 1.1,
@@ -197,9 +173,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: `${Math.round(handWidth * 0.097)}px`, color: '#ffaa22', fontWeight: 600 }}>스킬</div>
+                <div style={{ fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: Math.max(2, Math.round(handWidth * 0.042)), fontSize: `${Math.round(handWidth * 0.097)}px`, fontWeight: 600 }}>
+                <div style={{ display: 'flex', gap: 'calc(var(--field-card-width) * 0.042)', fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
