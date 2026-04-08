@@ -12,6 +12,9 @@ export type SkillMetaInfo = {
 
 export interface FieldCard {
   hero_key?: string;
+  is_spell?: boolean;
+  cost?: number;
+  hp?: number;
   uid: string;
   template_id: number;
   name: string;
