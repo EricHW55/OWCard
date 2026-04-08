@@ -578,10 +578,14 @@
 }
 
 .mulligan-cinematic-card--return {
+    left: 50%;
+    top: 50%;
     opacity: 0;
 }
 
 .mulligan-cinematic-card--draw {
+    left: 50%;
+    top: 50%;
     opacity: 0;
 }
 
@@ -597,27 +601,32 @@
 
 .mulligan-cinematic-card--draw.mulligan-stage-draw,
 .mulligan-cinematic-card--draw.mulligan-stage-reveal {
-    animation: mulligan-draw-from-bottom 760ms cubic-bezier(0.23, 0.79, 0.22, 1) forwards;
+    animation: mulligan-draw-back 860ms cubic-bezier(0.23, 0.81, 0.2, 1) forwards;
 }
 
-.mulligan-cinematic-card--draw.mulligan-stage-reveal .mulligan-cinematic-surface--back {
-    animation: mulligan-back-hide 420ms ease forwards;
-}
-
-.mulligan-cinematic-card--draw.mulligan-stage-reveal .mulligan-cinematic-surface--front {
-    animation: mulligan-front-show 420ms ease forwards;
+.mulligan-cinematic-card--draw .mulligan-cinematic-surface--back {
+    opacity: 1;
 }
 
 @keyframes mulligan-return-to-deck {
-    0% { transform: translate3d(0, 31vh, 120px) scale(0.62); opacity: 1; }
-    56% { transform: translate3d(0, 3vh, 210px) scale(1.1); opacity: 1; }
-    100% { transform: translate3d(0, -11vh, -260px) scale(0.16); opacity: 0; }
+    0% { transform: translate3d(-50%, calc(-50% + 31vh), 120px) scale(0.62); opacity: 1; }
+    56% { transform: translate3d(-50%, calc(-50% + 3vh), 210px) scale(1.1); opacity: 1; }
+    100% { transform: translate3d(-50%, calc(-50% - 11vh), -260px) scale(0.16); opacity: 0; }
 }
 
-@keyframes mulligan-draw-from-bottom {
-    0% { transform: translate3d(0, 38vh, -80px) scale(0.24); opacity: 0; }
-    25% { opacity: 1; }
-    100% { transform: translate3d(0, 0, 170px) scale(1.12); opacity: 1; }
+@keyframes mulligan-draw-back {
+    0% {
+        opacity: 0;
+        transform: translate3d(-50%, -50%, -420px) rotateX(58deg) rotateY(-20deg) translateY(-8vh) scale(0.7);
+    }
+    32% {
+        opacity: 1;
+        transform: translate3d(-50%, -50%, 220px) rotateX(8deg) rotateY(-4deg) translateY(-4vh) scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(-50%, -50%, 620px) rotateX(-14deg) rotateY(8deg) translateY(56vh) scale(1.28);
+    }
 }
 
 @keyframes mulligan-front-hide {
@@ -628,16 +637,6 @@
 @keyframes mulligan-back-show {
     0%, 46% { opacity: 0; }
     52%, 100% { opacity: 1; }
-}
-
-@keyframes mulligan-back-hide {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-}
-
-@keyframes mulligan-front-show {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
 }
 
 .mulligan-cinematic-hint {

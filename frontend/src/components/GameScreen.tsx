@@ -56,22 +56,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
         mulliganCinematicCard?.role,
       ]
   );
-  const {
-    currentImageSrc: mulliganReplacementFrontImageSrc,
-    imgError: mulliganReplacementFrontImageError,
-    onError: onMulliganReplacementFrontImageError,
-    usingFullCardArt: mulliganReplacementUsingFullCardArt,
-  } = useCardImage(
-      mulliganReplacementCard as any,
-      'hand',
-      [
-        mulliganReplacementCard?.id,
-        mulliganReplacementCard?.hero_key,
-        mulliganReplacementCard?.name,
-        mulliganReplacementCard?.is_spell,
-        mulliganReplacementCard?.role,
-      ]
-  );
 
   React.useEffect(() => {
     if (!onDismissKillFeedItem) return;
@@ -227,26 +211,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
             <div className={`mulligan-cinematic-card mulligan-cinematic-card--draw mulligan-stage-${mulliganStage}`}>
               <div className="mulligan-cinematic-surface mulligan-cinematic-surface--back">
                 <img src={getCardBackImageSrc()} alt="" />
-              </div>
-              <div className="mulligan-cinematic-surface mulligan-cinematic-surface--front">
-                {mulliganReplacementCard ? (
-                    mulliganReplacementUsingFullCardArt ? (
-                        <img src={mulliganReplacementFrontImageSrc} alt="" onError={onMulliganReplacementFrontImageError} />
-                    ) : (
-                    <CardFaceContent
-                        variant="hand"
-                        name={mulliganReplacementCard.name}
-                        role={mulliganReplacementCard.role}
-                        isSpell={mulliganReplacementCard.is_spell}
-                        cost={mulliganReplacementCard.cost}
-                        hp={mulliganReplacementCard.hp}
-                        currentImageSrc={mulliganReplacementFrontImageSrc || getCardImageSrc(mulliganReplacementCard)}
-                        usingFullCardArt={false}
-                        imgError={mulliganReplacementFrontImageError}
-                        onError={onMulliganReplacementFrontImageError}
-                    />
-                    )
-                ) : null}
               </div>
             </div>
             {canCloseMulliganCinematic && <div className="mulligan-cinematic-hint">클릭해서 계속</div>}
