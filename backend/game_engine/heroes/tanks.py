@@ -139,8 +139,17 @@ def zarya_particle_barrier(caster: FieldCard, target: FieldCard, game: GameState
 def zarya_particle_cannon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     base = game.get_skill_damage(caster, "skill_2")
-    bonus = caster.extra.get("particle_bonus", 0)
+    charge = max(
+        int(caster.extra.get("particle_bonus", 0) or 0),
+        int(caster.extra.get("particle_barrier_charge", 0) or 0),
+        int(caster.extra.get("zarya_charge", 0) or 0),
+    )
+    bonus = charge * 2
     result = target.take_damage(base + bonus)
+    if charge > 0:
+        caster.extra["particle_bonus"] = 0
+        caster.extra["particle_barrier_charge"] = 0
+        caster.extra["zarya_charge"] = 0
     return {"success": True, "skill": "입자포", "base": base, "bonus": bonus, "damage_log": result}
 
 # ── 레킹볼 ────────────────────────────────
@@ -346,7 +355,7 @@ def mauga_gunny(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     target.add_status(Burn(
-        damage_per_turn=int(caster.extra.get("burn_damage", 2)),
+        damage_per_turn=max(2, int(caster.extra.get("burn_damage", 2))),
         duration=int(caster.extra.get("burn_duration", 3)),
         source_uid=caster.uid,
     ))

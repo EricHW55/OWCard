@@ -1068,13 +1068,28 @@ class GameEngine:
             if skill_key in caster.skill_uses:
                 caster.skill_uses[skill_key] -= 1
 
-            # 반사 데미지 처리
-            for target_card_logs in [result.get("damage_log", {})]:
-                if isinstance(target_card_logs, dict) and target_card_logs.get("reflected"):
-                    reflect_dmg = target_card_logs["reflected"]
-                    caster.take_raw_damage(reflect_dmg)
-                    result["reflected_to_caster"] = reflect_dmg
+            # 반사/입자방벽 트리거 처리 (단일 타겟 + 광역 affected 로그 모두 반영)
+            combat_logs: list[dict] = []
+            direct_log = result.get("damage_log")
+            if isinstance(direct_log, dict):
+                combat_logs.append(direct_log)
+            for entry in result.get("affected", []) or []:
+                if not isinstance(entry, dict):
+                    continue
+                entry_log = entry.get("damage_log") or entry.get("damage")
+                if isinstance(entry_log, dict):
+                    combat_logs.append(entry_log)
+
+            reflected_total = 0
+            for target_card_logs in combat_logs:
+                if target_card_logs.get("reflected"):
+                    reflect_dmg = int(target_card_logs["reflected"] or 0)
+                    if reflect_dmg > 0:
+                        caster.take_raw_damage(reflect_dmg)
+                        reflected_total += reflect_dmg
                 self._apply_particle_barrier_trigger(target_card_logs)
+            if reflected_total > 0:
+                result["reflected_to_caster"] = reflected_total
                 
             retaliation_logs: list[dict] = []
             retaliation_damage = 0

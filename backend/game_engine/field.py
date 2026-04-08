@@ -542,13 +542,21 @@ class Field:
         사이드는 '앞줄 스킵'이 아니라 '사거리 +1' 느낌으로 처리.
         예: 사거리 1이면 탱커/딜러까지 가능.
         """
-        atk_range = override_range if override_range is not None else attacker.attack_range
-
         bypass = 0
         for s in attacker.statuses:
             result = s.on_before_attack(attacker, None)
             bypass += result.get("bypass_distance", 0)
-        effective_range = atk_range + 1 + bypass
+
+        if override_range is not None:
+            atk_range = override_range
+            effective_range = atk_range + 1 + bypass
+        else:
+            # 사이드 보너스(+1)와 넉백(-1)이 정확히 상쇄되도록
+            # unclamped 사거리를 기준으로 계산한 뒤 최소 사거리 1을 보장한다.
+            mod = sum(s.value for s in attacker.statuses if s.name == "range_modifier")
+            knockback = sum(s.value for s in attacker.statuses if s.name == "knockback")
+            raw_range = attacker.base_attack_range + mod - knockback
+            effective_range = max(1, raw_range + 1 + bypass)
 
         layers = self._main_layers()
         result = []
