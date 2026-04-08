@@ -39,6 +39,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   const [mulliganStage, setMulliganStage] = React.useState<'idle' | 'return' | 'draw' | 'reveal'>('idle');
   const killTimerRef = React.useRef<Record<string, number>>({});
   const mulliganTimerRef = React.useRef<number[]>([]);
+  const mulliganAutoCloseTimerRef = React.useRef<number | null>(null);
   const focusedHandIndex = handCards.findIndex((_, index) => isHandSelected(index));
   const {
     currentImageSrc: mulliganFrontImageSrc,
@@ -99,6 +100,24 @@ const GameScreen: React.FC<GameScreenProps> = ({
   }, [isMulliganCinematicActive, mulliganCinematicCard?.id, mulliganCinematicCard?.hero_key, mulliganCinematicCard?.name]);
 
   const canCloseMulliganCinematic = isMulliganCinematicActive && mulliganStage === 'reveal' && !!mulliganReplacementCard;
+
+  React.useEffect(() => {
+    if (mulliganAutoCloseTimerRef.current) {
+      window.clearTimeout(mulliganAutoCloseTimerRef.current);
+      mulliganAutoCloseTimerRef.current = null;
+    }
+    if (!canCloseMulliganCinematic) return;
+    mulliganAutoCloseTimerRef.current = window.setTimeout(() => {
+      onMulliganCinematicComplete?.();
+      mulliganAutoCloseTimerRef.current = null;
+    }, 380);
+    return () => {
+      if (mulliganAutoCloseTimerRef.current) {
+        window.clearTimeout(mulliganAutoCloseTimerRef.current);
+        mulliganAutoCloseTimerRef.current = null;
+      }
+    };
+  }, [canCloseMulliganCinematic, onMulliganCinematicComplete]);
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
@@ -181,9 +200,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
           <div
               className="mulligan-cinematic-layer"
               aria-hidden
-              onClick={() => {
-                if (canCloseMulliganCinematic) onMulliganCinematicComplete?.();
-              }}
           >
             <div className={`mulligan-cinematic-card mulligan-cinematic-card--return mulligan-stage-${mulliganStage}`}>
               <div className="mulligan-cinematic-surface mulligan-cinematic-surface--front">
