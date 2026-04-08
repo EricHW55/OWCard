@@ -26,6 +26,7 @@ interface PlacementCinematic {
     uid: string;
     imageSrc?: string;
     useCardFaceContent: boolean;
+    cardFaceImageSrc?: string;
     usingFullCardArt: boolean;
     name: string;
     role: string;
@@ -116,14 +117,17 @@ const FieldSection: React.FC<Props> = ({
                     ? viewport.offsetTop + viewport.height / 2
                     : window.innerHeight / 2;
 
-                const imageSrc = buildCardImageChain(card as any, 'detail')[0] || buildCardImageChain(card as any, 'cinematic')[0];
-                const usingFullCardArt = !!imageSrc && imageSrc.startsWith('/cards/');
-
+                const detailChain = buildCardImageChain(card as any, 'detail');
+                const cinematicChain = buildCardImageChain(card as any, 'cinematic');
+                const fullCardArtSrc = detailChain.find((src) => src.startsWith('/cards/'));
+                const cardFaceImageSrc = cinematicChain[0] || detailChain.find((src) => !src.startsWith('/cards/')) || '';
+                const usingFullCardArt = !!fullCardArtSrc;
 
                 return [{
                     id: `${card.uid}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
                     uid: card.uid,
-                    imageSrc,
+                    imageSrc: fullCardArtSrc || cardFaceImageSrc,
+                    cardFaceImageSrc,
                     useCardFaceContent: !usingFullCardArt,
                     usingFullCardArt,
                     name: card.name,
@@ -315,7 +319,46 @@ const FieldSection: React.FC<Props> = ({
                             }}
                         >
                             <div className="field-placement-cinematic-face field-placement-cinematic-face-front">
-                                <img src={scene.imageSrc || ''} alt="" />
+                                {scene.useCardFaceContent ? (
+                                    <div
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: 'inherit',
+                                            border: `2px solid ${scene.isSpell ? '#ffaa22' : (ROLE_COLOR[scene.role as keyof typeof ROLE_COLOR] || '#888')}`,
+                                            background: '#0f1528',
+                                            boxSizing: 'border-box',
+                                            overflow: 'hidden',
+                                        }}
+                                    >
+                                        <CardFaceContent
+                                            variant="hand"
+                                            name={scene.name}
+                                            role={scene.role}
+                                            isSpell={scene.isSpell}
+                                            cost={scene.cost}
+                                            hp={scene.hp}
+                                            currentImageSrc={scene.cardFaceImageSrc || ''}
+                                            usingFullCardArt={false}
+                                            imgError={!scene.cardFaceImageSrc}
+                                            onError={() => {
+                                                setPlacementCinematics((prev) => prev.map((item) => (
+                                                    item.id === scene.id ? { ...item, cardFaceImageSrc: '', usingFullCardArt: false, useCardFaceContent: true } : item
+                                                )));
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <img
+                                        src={scene.imageSrc || ''}
+                                        alt=""
+                                        onError={() => {
+                                            setPlacementCinematics((prev) => prev.map((item) => (
+                                                item.id === scene.id ? { ...item, imageSrc: undefined, useCardFaceContent: true, usingFullCardArt: false } : item
+                                            )));
+                                        }}
+                                    />
+                                )}
                             </div>
                             <div className="field-placement-cinematic-face field-placement-cinematic-face-back">
                                 {scene.useCardFaceContent ? (
@@ -337,12 +380,12 @@ const FieldSection: React.FC<Props> = ({
                                             isSpell={scene.isSpell}
                                             cost={scene.cost}
                                             hp={scene.hp}
-                                            currentImageSrc={scene.imageSrc || ''}
-                                            usingFullCardArt={scene.usingFullCardArt}
-                                            imgError={!scene.imageSrc}
+                                            currentImageSrc={scene.cardFaceImageSrc || ''}
+                                            usingFullCardArt={false}
+                                            imgError={!scene.cardFaceImageSrc}
                                             onError={() => {
                                                 setPlacementCinematics((prev) => prev.map((item) => (
-                                                    item.id === scene.id ? { ...item, imageSrc: undefined, useCardFaceContent: true, usingFullCardArt: false } : item
+                                                    item.id === scene.id ? { ...item, cardFaceImageSrc: '', useCardFaceContent: true, usingFullCardArt: false } : item
                                                 )));
                                             }}
                                         />
