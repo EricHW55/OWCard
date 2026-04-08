@@ -96,6 +96,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         );
     }
 
+    const isHand = props.variant === 'hand';
+
     return (
         <div
             style={{
@@ -105,18 +107,18 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: 'calc(var(--field-card-width) * 0.055) calc(var(--field-card-width) * 0.042)',
+                padding: isHand ? '4px 3px 5px' : 'calc(var(--field-card-width) * 0.055) calc(var(--field-card-width) * 0.042)',
                 boxSizing: 'border-box',
             }}
         >
             <div
                 style={{
-                    width: 'calc(var(--field-card-width) * 0.22)',
-                    height: 'calc(var(--field-card-width) * 0.22)',
+                    width: isHand ? '24%' : 'calc(var(--field-card-width) * 0.22)',
+                    aspectRatio: '1 / 1',
                     borderRadius: '50%',
                     background: '#44aaff',
                     color: '#fff',
-                    fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.11), 12px)',
+                    fontSize: isHand ? 'clamp(8px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.11), 12px)',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
@@ -129,9 +131,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: 'calc(var(--field-card-width) * 0.45)',
-                    height: 'calc(var(--field-card-width) * 0.45)',
-                    borderRadius: 'calc(var(--field-card-radius) + 1px)',
+                    width: isHand ? '42%' : 'calc(var(--field-card-width) * 0.45)',
+                    aspectRatio: '1 / 1',
+                    borderRadius: isHand ? 10 : 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -154,7 +156,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
+                    <span style={{ fontSize: isHand ? 'clamp(12px, 2vw, 16px)' : 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
@@ -162,20 +164,24 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
+                    fontSize: isHand ? 'clamp(10px, 1.8vw, 13px)' : 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
                     fontWeight: 700,
                     color: '#e8ecf8',
                     textAlign: 'center',
                     lineHeight: 1.1,
+                    width: '100%',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                 }}
             >
                 {props.name}
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: isHand ? 'clamp(9px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: 'calc(var(--field-card-width) * 0.042)', fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: isHand ? 2 : 'calc(var(--field-card-width) * 0.042)', fontSize: isHand ? 'clamp(9px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
