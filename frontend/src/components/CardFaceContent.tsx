@@ -119,7 +119,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                     background: '#44aaff',
                     color: '#fff',
                     fontSize: isHand ? 'clamp(8px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.11), 12px)',
-                    fontWeight: 700,
+                    fontWeight: isHand ? 600 : 700,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -131,7 +131,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: isHand ? '42%' : 'calc(var(--field-card-width) * 0.45)',
+                    width: isHand ? '47%' : 'calc(var(--field-card-width) * 0.45)',
                     aspectRatio: '1 / 1',
                     borderRadius: isHand ? 10 : 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
@@ -164,8 +164,8 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    fontSize: isHand ? 'clamp(10px, 1.8vw, 13px)' : 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
-                    fontWeight: 700,
+                    fontSize: isHand ? 'clamp(9px, 1.7vw, 12px)' : 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
+                    fontWeight: isHand ? 600 : 700,
                     color: '#e8ecf8',
                     textAlign: 'center',
                     lineHeight: 1.1,
@@ -179,9 +179,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
             </div>
 
             {props.isSpell ? (
-                <div style={{ fontSize: isHand ? 'clamp(9px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
+                <div style={{ fontSize: isHand ? 'clamp(8px, 1.5vw, 10px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: isHand ? 600 : 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: isHand ? 2 : 'calc(var(--field-card-width) * 0.042)', fontSize: isHand ? 'clamp(9px, 1.6vw, 11px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
+                <div style={{ display: 'flex', gap: isHand ? 2 : 'calc(var(--field-card-width) * 0.042)', fontSize: isHand ? 'clamp(8px, 1.5vw, 10px)' : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: isHand ? 600 : 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
