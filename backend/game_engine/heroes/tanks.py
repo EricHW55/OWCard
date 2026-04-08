@@ -355,7 +355,7 @@ def mauga_gunny(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     target.add_status(Burn(
-        damage_per_turn=max(2, int(caster.extra.get("burn_damage", 2))),
+        damage_per_turn=int(caster.extra.get("burn_damage", 2)),
         duration=int(caster.extra.get("burn_duration", 3)),
         source_uid=caster.uid,
     ))
