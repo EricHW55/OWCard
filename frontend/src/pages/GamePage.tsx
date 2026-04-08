@@ -400,6 +400,7 @@ const GamePage: React.FC = () => {
       handCards={visibleHandCards}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
       mulliganCinematicCard={vm.mulliganCinematicCard}
+      mulliganReplacementCard={vm.mulliganReplacementCard}
       isMulliganCinematicActive={vm.isMulliganCinematicActive}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={openingActive ? (() => {}) : vm.handleHandClick}

@@ -126,6 +126,7 @@ export function useSoloGameController() {
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
   const [mulliganAnimatingIndex, setMulliganAnimatingIndex] = useState<number | null>(null);
   const [mulliganCinematicCard, setMulliganCinematicCard] = useState<HandCard | null>(null);
+  const [mulliganReplacementCard, setMulliganReplacementCard] = useState<HandCard | null>(null);
   const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [actionMode, setActionMode] = useState<string | null>(null);
@@ -239,6 +240,7 @@ export function useSoloGameController() {
     if (typeof targetIndex === 'number' && targetCard) {
       setMulliganAnimatingIndex(targetIndex);
       setMulliganCinematicCard(targetCard);
+      setMulliganReplacementCard(null);
       setIsMulliganCinematicActive(true);
     }
 
@@ -255,6 +257,7 @@ export function useSoloGameController() {
         const back = cur.hand.filter((_, idx) => selectedSet.has(idx));
         const shuffled = shuffle([...cur.drawPile, ...back]);
         const redrawn = shuffled.slice(0, back.length);
+        setMulliganReplacementCard(redrawn[0] || null);
 
         return {
           ...prev,
@@ -269,6 +272,7 @@ export function useSoloGameController() {
 
       setMulliganAnimatingIndex(null);
       setMulliganCinematicCard(null);
+      setMulliganReplacementCard(null);
       setIsMulliganCinematicActive(false);
 
       const nextSide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
@@ -633,6 +637,7 @@ export function useSoloGameController() {
     selectedMulligan,
     mulliganAnimatingIndex,
     mulliganCinematicCard,
+    mulliganReplacementCard,
     isMulliganCinematicActive,
     selectedFieldUid,
     selectedHandCard,

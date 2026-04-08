@@ -24,6 +24,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onHandClick,
   mulliganAnimatingIndex = null,
   mulliganCinematicCard = null,
+  mulliganReplacementCard = null,
   isMulliganCinematicActive = false,
   bottomMeta,
   bottomActions,
@@ -50,6 +51,22 @@ const GameScreen: React.FC<GameScreenProps> = ({
         mulliganCinematicCard?.name,
         mulliganCinematicCard?.is_spell,
         mulliganCinematicCard?.role,
+      ]
+  );
+  const {
+    currentImageSrc: mulliganReplacementFrontImageSrc,
+    imgError: mulliganReplacementFrontImageError,
+    onError: onMulliganReplacementFrontImageError,
+    usingFullCardArt: mulliganReplacementUsingFullCardArt,
+  } = useCardImage(
+      mulliganReplacementCard as any,
+      'hand',
+      [
+        mulliganReplacementCard?.id,
+        mulliganReplacementCard?.hero_key,
+        mulliganReplacementCard?.name,
+        mulliganReplacementCard?.is_spell,
+        mulliganReplacementCard?.role,
       ]
   );
 
@@ -184,22 +201,24 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <img src={getCardBackImageSrc()} alt="" />
               </div>
               <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
-                {mulliganUsingFullCardArt ? (
-                    <img src={mulliganFrontImageSrc} alt="" onError={onMulliganFrontImageError} />
-                ) : (
+                {mulliganReplacementCard ? (
+                    mulliganReplacementUsingFullCardArt ? (
+                        <img src={mulliganReplacementFrontImageSrc} alt="" onError={onMulliganReplacementFrontImageError} />
+                    ) : (
                     <CardFaceContent
                         variant="hand"
-                        name={mulliganCinematicCard.name}
-                        role={mulliganCinematicCard.role}
-                        isSpell={mulliganCinematicCard.is_spell}
-                        cost={mulliganCinematicCard.cost}
-                        hp={mulliganCinematicCard.hp}
-                        currentImageSrc={mulliganFrontImageSrc || getCardImageSrc(mulliganCinematicCard)}
+                        name={mulliganReplacementCard.name}
+                        role={mulliganReplacementCard.role}
+                        isSpell={mulliganReplacementCard.is_spell}
+                        cost={mulliganReplacementCard.cost}
+                        hp={mulliganReplacementCard.hp}
+                        currentImageSrc={mulliganReplacementFrontImageSrc || getCardImageSrc(mulliganReplacementCard)}
                         usingFullCardArt={false}
-                        imgError={mulliganFrontImageError}
-                        onError={onMulliganFrontImageError}
+                        imgError={mulliganReplacementFrontImageError}
+                        onError={onMulliganReplacementFrontImageError}
                     />
-                )}
+                    )
+                ) : null}
               </div>
             </div>
           </div>

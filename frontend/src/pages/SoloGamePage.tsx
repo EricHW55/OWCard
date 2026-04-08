@@ -90,6 +90,7 @@ const SoloGamePage: React.FC = () => {
       handCards={vm.activePlayer.hand}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
       mulliganCinematicCard={vm.mulliganCinematicCard}
+      mulliganReplacementCard={vm.mulliganReplacementCard}
       isMulliganCinematicActive={vm.isMulliganCinematicActive}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}

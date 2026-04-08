@@ -41,6 +41,7 @@ export interface GameScreenProps {
   onHandClick: (card: HandCard, index: number) => void;
   mulliganAnimatingIndex?: number | null;
   mulliganCinematicCard?: HandCard | null;
+  mulliganReplacementCard?: HandCard | null;
   isMulliganCinematicActive?: boolean;
 
   bottomMeta?: ReactNode;

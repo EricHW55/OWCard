@@ -276,6 +276,7 @@ export function useOnlineGameController(gameId: string) {
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
   const [mulliganAnimatingIndex, setMulliganAnimatingIndex] = useState<number | null>(null);
   const [mulliganCinematicCard, setMulliganCinematicCard] = useState<HandCard | null>(null);
+  const [mulliganReplacementCard, setMulliganReplacementCard] = useState<HandCard | null>(null);
   const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
@@ -1016,6 +1017,17 @@ export function useOnlineGameController(gameId: string) {
       || pendingPassive?.type === 'jetpack_cat_extra_place'
       || !!pendingSpellChoice;
 
+  const mulliganBaselineHandSigRef = useRef<string>('');
+  const pendingMulliganReplacementRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMulliganCinematicActive || !pendingMulliganReplacementRef.current || !my?.hand?.length) return;
+    const currentSig = my.hand.map((card: any) => `${card?.id}:${card?.name}`).join('|');
+    if (currentSig === mulliganBaselineHandSigRef.current) return;
+    setMulliganReplacementCard(my.hand[my.hand.length - 1] || null);
+    pendingMulliganReplacementRef.current = false;
+  }, [isMulliganCinematicActive, my]);
+
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (!my) return;
     if (phase === 'mulligan') {
@@ -1247,12 +1259,17 @@ export function useOnlineGameController(gameId: string) {
     const targetIndex = selectedMulligan[0];
     const targetCard = my?.hand?.[targetIndex];
     if (typeof targetIndex === 'number' && targetCard) {
+      mulliganBaselineHandSigRef.current = (my?.hand || []).map((card: any) => `${card?.id}:${card?.name}`).join('|');
+      pendingMulliganReplacementRef.current = true;
       setMulliganAnimatingIndex(targetIndex);
       setMulliganCinematicCard(targetCard);
+      setMulliganReplacementCard(null);
       setIsMulliganCinematicActive(true);
       window.setTimeout(() => {
         setMulliganAnimatingIndex(null);
         setMulliganCinematicCard(null);
+        setMulliganReplacementCard(null);
+        pendingMulliganReplacementRef.current = false;
         setIsMulliganCinematicActive(false);
       }, 1420);
     }
@@ -1317,7 +1334,7 @@ export function useOnlineGameController(gameId: string) {
     session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
     cardEffects,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
-    mulliganAnimatingIndex, mulliganCinematicCard, isMulliganCinematicActive,
+    mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,
