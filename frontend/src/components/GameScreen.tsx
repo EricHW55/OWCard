@@ -3,8 +3,10 @@ import GameBoardLayout from '../components/GameBoardLayout';
 import FieldSection from '../components/FieldSection';
 import HandCardComp from '../components/HandCardComp';
 import CardDetail from '../components/CardDetail';
+import { CardFaceContent } from './CardFaceContent';
 import type { GameScreenProps } from '../types/screen';
-import { getCardImageSrc } from '../utils/heroImage';
+import { getCardBackImageSrc, getCardImageSrc } from '../utils/heroImage';
+import { useCardImage } from '../hooks/useCardImage';
 
 const GameScreen: React.FC<GameScreenProps> = ({
   announcerData,
@@ -34,6 +36,22 @@ const GameScreen: React.FC<GameScreenProps> = ({
   const [showLogModal, setShowLogModal] = React.useState(false);
   const killTimerRef = React.useRef<Record<string, number>>({});
   const focusedHandIndex = handCards.findIndex((_, index) => isHandSelected(index));
+  const {
+    currentImageSrc: mulliganFrontImageSrc,
+    imgError: mulliganFrontImageError,
+    onError: onMulliganFrontImageError,
+    usingFullCardArt: mulliganUsingFullCardArt,
+  } = useCardImage(
+      mulliganCinematicCard as any,
+      'hand',
+      [
+        mulliganCinematicCard?.id,
+        mulliganCinematicCard?.hero_key,
+        mulliganCinematicCard?.name,
+        mulliganCinematicCard?.is_spell,
+        mulliganCinematicCard?.role,
+      ]
+  );
 
   React.useEffect(() => {
     if (!onDismissKillFeedItem) return;
@@ -140,15 +158,30 @@ const GameScreen: React.FC<GameScreenProps> = ({
           <div className="mulligan-cinematic-layer" aria-hidden>
             <div className="mulligan-cinematic-card mulligan-cinematic-card--return">
               <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
-                <img src={getCardImageSrc(mulliganCinematicCard)} alt="" />
+                {mulliganUsingFullCardArt ? (
+                    <img src={mulliganFrontImageSrc} alt="" onError={onMulliganFrontImageError} />
+                ) : (
+                    <CardFaceContent
+                        variant="hand"
+                        name={mulliganCinematicCard.name}
+                        role={mulliganCinematicCard.role}
+                        isSpell={mulliganCinematicCard.is_spell}
+                        cost={mulliganCinematicCard.cost}
+                        hp={mulliganCinematicCard.hp}
+                        currentImageSrc={mulliganFrontImageSrc || getCardImageSrc(mulliganCinematicCard)}
+                        usingFullCardArt={false}
+                        imgError={mulliganFrontImageError}
+                        onError={onMulliganFrontImageError}
+                    />
+                )}
               </div>
               <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
-                <img src="/illustration/card_back.png" alt="" />
+                <img src={getCardBackImageSrc()} alt="" />
               </div>
             </div>
             <div className="mulligan-cinematic-card mulligan-cinematic-card--draw">
               <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
-                <img src="/illustration/card_back.png" alt="" />
+                <img src={getCardBackImageSrc()} alt="" />
               </div>
             </div>
           </div>
