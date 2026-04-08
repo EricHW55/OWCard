@@ -1,0 +1,15 @@
+.field-card-3d.status-hooked {
+    transform: rotate(-3deg);
+}
+
+.field-card-3d.status-hooked .field-status-layer-hooked {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 18%;
+    height: 2px;
+    pointer-events: none;
+    z-index: 4;
+    background: linear-gradient(90deg, rgba(255, 214, 148, 0.1), rgba(255, 214, 148, 0.9), rgba(255, 214, 148, 0.1));
+    box-shadow: 0 0 8px rgba(255, 214, 148, 0.55);
+}

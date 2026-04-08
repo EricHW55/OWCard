@@ -1,0 +1,13 @@
+.field-card-3d.status-stealth {
+    opacity: 0.46;
+    filter: saturate(0.72);
+}
+
+.field-card-3d.status-stealth .field-status-layer-stealth {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(140, 176, 255, 0.08) 0%, rgba(140, 176, 255, 0.2) 45%, rgba(140, 176, 255, 0.05) 100%);
+}

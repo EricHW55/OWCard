@@ -1,0 +1,17 @@
+@import './stealth.css';
+@import './burrowed.css';
+@import './airborne.css';
+@import './gravity-flux-airborne.css';
+@import './pulled.css';
+@import './hooked.css';
+@import './frozen.css';
+@import './skill-silence.css';
+@import './sticky-bomb.css';
+@import './taunt.css';
+@import './barrier.css';
+
+.field-card-3d .field-status-effects {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}

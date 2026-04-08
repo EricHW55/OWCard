@@ -1,0 +1,31 @@
+@keyframes status-barrier-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.field-card-3d.status-barrier {
+    box-shadow: 0 0 0 2px rgba(108, 194, 255, 0.82), 0 0 24px rgba(108, 194, 255, 0.56), 0 0 42px rgba(73, 154, 255, 0.46),
+    0 0 66px rgba(112, 206, 255, 0.23);
+}
+
+.field-card-3d.status-barrier .field-status-layer-barrier-outer {
+    position: absolute;
+    inset: -12px;
+    border-radius: calc(var(--field-card-radius) + 14px);
+    pointer-events: none;
+    z-index: 1;
+    background: conic-gradient(from 12deg, rgba(96, 226, 255, 0.22), rgba(68, 169, 255, 0.72), rgba(129, 239, 255, 0.2), rgba(96, 226, 255, 0.22));
+    box-shadow: 0 0 18px rgba(104, 205, 255, 0.55), inset 0 0 14px rgba(181, 243, 255, 0.3);
+    animation: status-barrier-spin 2.2s linear infinite;
+}
+
+.field-card-3d.status-barrier .field-status-layer-barrier-inner {
+    position: absolute;
+    inset: -5px;
+    border-radius: calc(var(--field-card-radius) + 8px);
+    pointer-events: none;
+    z-index: 2;
+    border: 2px solid rgba(136, 227, 255, 0.72);
+    box-shadow: 0 0 14px rgba(136, 227, 255, 0.42);
+}

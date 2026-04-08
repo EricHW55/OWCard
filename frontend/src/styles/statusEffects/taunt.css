@@ -1,0 +1,13 @@
+.field-card-3d.status-taunt {
+    box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.78), 0 0 20px rgba(255, 209, 102, 0.55), 0 0 38px rgba(255, 189, 58, 0.42),
+    0 0 62px rgba(255, 212, 118, 0.26);
+}
+
+.field-card-3d.status-taunt .field-status-layer-taunt {
+    position: absolute;
+    inset: -6px;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: calc(var(--field-card-radius) + 8px);
+    border: 1px solid rgba(255, 214, 124, 0.55);
+}

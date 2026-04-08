@@ -1,0 +1,36 @@
+@keyframes status-frozen-shimmer {
+    from {
+        transform: translateX(-3px);
+        opacity: 0.8;
+    }
+    to {
+        transform: translateX(3px);
+        opacity: 0.95;
+    }
+}
+
+.field-card-3d.status-frozen {
+    filter: saturate(0.82) contrast(1.08);
+    box-shadow: 0 0 0 2px rgba(145, 225, 255, 0.84), 0 0 22px rgba(122, 213, 255, 0.5), inset 0 0 22px rgba(167, 236, 255, 0.34);
+}
+
+.field-card-3d.status-frozen .field-status-layer-frozen-base {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(114, 191, 255, 0.72) 0%, rgba(74, 151, 230, 0.68) 52%, rgba(52, 118, 196, 0.7) 100%);
+}
+
+.field-card-3d.status-frozen .field-status-layer-frozen-shimmer {
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    z-index: 4;
+    border-radius: calc(var(--field-card-radius) + 2px);
+    background: linear-gradient(125deg, rgba(205, 247, 255, 0.42), rgba(122, 211, 255, 0.12) 45%, rgba(170, 235, 255, 0.4)),
+    repeating-linear-gradient(115deg, rgba(232, 252, 255, 0.25) 0 8px, rgba(140, 220, 255, 0.12) 8px 13px);
+    mix-blend-mode: screen;
+    animation: status-frozen-shimmer 2.2s linear infinite;
+}

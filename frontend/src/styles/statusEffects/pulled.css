@@ -1,0 +1,21 @@
+@keyframes status-pulled-toward-enemy {
+    from {
+        transform: translateY(-7px);
+    }
+    to {
+        transform: translateY(-17px);
+    }
+}
+
+.field-card-3d.status-pulled {
+    animation: status-pulled-toward-enemy 0.95s ease-in-out infinite alternate;
+}
+
+.field-card-3d.status-pulled .field-status-layer-pulled {
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--field-card-radius) + 4px);
+    pointer-events: none;
+    z-index: 4;
+    border: 1px dashed rgba(255, 187, 87, 0.75);
+}

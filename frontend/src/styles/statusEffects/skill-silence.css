@@ -1,0 +1,32 @@
+.field-card-3d.status-skill-silence {
+    box-shadow: 0 0 0 2px rgba(177, 192, 225, 0.7), 0 0 24px rgba(140, 157, 198, 0.4), inset 0 0 18px rgba(96, 114, 153, 0.28);
+}
+
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain {
+    position: absolute;
+    pointer-events: none;
+    z-index: 8;
+    background-repeat: repeat;
+    border-radius: 999px;
+    background-image: radial-gradient(circle at 8px 50%, rgba(226, 233, 249, 0.96) 0 2px, transparent 2.2px),
+    radial-gradient(circle at 20px 50%, rgba(202, 212, 238, 0.94) 0 2px, transparent 2.2px),
+    linear-gradient(90deg, rgba(214, 222, 244, 0.92) 0 26px, transparent 26px 36px);
+    background-size: 36px 16px;
+    box-shadow: 0 0 8px rgba(175, 190, 225, 0.48), 0 0 2px rgba(244, 248, 255, 0.85), inset 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain.top {
+    left: -18px;
+    right: -10px;
+    top: 24%;
+    height: 18px;
+    transform: rotate(26deg);
+}
+
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain.bottom {
+    left: -9px;
+    right: -22px;
+    top: 58%;
+    height: 18px;
+    transform: rotate(-21deg);
+}

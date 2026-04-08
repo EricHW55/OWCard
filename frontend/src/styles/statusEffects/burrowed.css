@@ -1,0 +1,13 @@
+.field-card-3d.status-burrowed {
+    opacity: 0.46;
+    filter: saturate(0.6) blur(0.4px);
+}
+
+.field-card-3d.status-burrowed .field-status-layer-burrowed {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 115%, rgba(96, 74, 56, 0.6), rgba(96, 74, 56, 0));
+}

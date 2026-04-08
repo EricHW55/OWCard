@@ -4,6 +4,7 @@ import { ROLE_COLOR } from '../types/constants';
 import { useCardImage } from '../hooks/useCardImage';
 import { CardFaceContent } from './CardFaceContent';
 import '../styles/animations/field-card-effects.css';
+import '../styles/statusEffects/index.css';
 
 interface Props {
     card: FieldCard;
@@ -84,14 +85,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
     const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
     const isFrozen = card.statuses?.some((s) => s.name === 'frozen_state');
-    const isAirborne = card.statuses?.some(
-        (s) => s.name === 'airborne' || s.name === 'gravity_flux_airborne'
+    const isGravityFluxAirborne = card.statuses?.some(
+        (s) => s.name === 'gravity_flux_airborne' || s.name === 'gravityfluxariborne'
     );
+    const isAirborne = card.statuses?.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
-    const isHidden = isStealthed || isBurrowed || isFrozen;
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
     const hasSilence = card.statuses?.some(
         (s) => s.name === 'skill_silence' || s.name === 'sleep'
@@ -99,6 +100,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const hasShield = card.statuses?.some(
         (s) => s.name === 'damage_reduction' || s.name === 'next_turn_start_damage_reduction'
     );
+    const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
+    const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
 
@@ -162,12 +165,27 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
 
     let moveBadge: { text: string; cls: string } | null = null;
     if (isFrozen) moveBadge = { text: 'FROZEN', cls: 'frozen' };
+    else if (isGravityFluxAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
     else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
     else if (isExposed) moveBadge = { text: '무시', cls: 'exposed' };
+
+    const cardStatusClasses = [
+        isStealthed ? 'status-stealth' : '',
+        isBurrowed ? 'status-burrowed' : '',
+        isFrozen ? 'status-frozen' : '',
+        isAirborne ? 'status-airborne' : '',
+        isGravityFluxAirborne ? 'status-gravity-flux-airborne' : '',
+        isPulled ? 'status-pulled' : '',
+        isHooked ? 'status-hooked' : '',
+        hasSilence ? 'status-skill-silence' : '',
+        hasStickyBomb ? 'status-sticky-bomb' : '',
+        hasTaunt ? 'status-taunt' : '',
+        hasBarrier ? 'status-barrier' : '',
+    ].filter(Boolean).join(' ');
 
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
         .filter(Boolean)
@@ -220,7 +238,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             )}
             <div
                 onClick={isDestroying ? undefined : onClick}
-                className="field-card-3d"
+                className={`field-card-3d ${cardStatusClasses}`}
                 style={{
                     width: '100%',
                     height: '100%',
@@ -243,10 +261,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         ? 0
                         : 'calc(var(--field-card-width) * 0.05) calc(var(--field-card-width) * 0.03)',
                     cursor: 'pointer',
-                    opacity: isHidden ? 0.45 : 1,
                     boxShadow: finalShadow || 'none',
-                    transform: isAirborne ? 'translateY(-4px)' : undefined,
-                    filter: isBurrowed ? 'saturate(0.75) blur(0.2px)' : undefined,
                     transition: 'all 0.25s',
                     animation: isDestroying ? 'destroyFlipFadeOut 0.75s cubic-bezier(0.22, 0.84, 0.2, 1) forwards' : undefined,
                     pointerEvents: isDestroying ? 'none' : undefined,
@@ -278,6 +293,35 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     }}
                 />
             )}
+
+            <div className="field-status-effects" aria-hidden>
+                {isStealthed && <div className="field-status-layer-stealth" />}
+                {isBurrowed && <div className="field-status-layer-burrowed" />}
+                {isAirborne && <div className="field-status-layer-airborne" />}
+                {isGravityFluxAirborne && <div className="field-status-layer-gravity-flux-airborne" />}
+                {isHooked && <div className="field-status-layer-hooked" />}
+                {isPulled && <div className="field-status-layer-pulled" />}
+                {isFrozen && (
+                    <>
+                        <div className="field-status-layer-frozen-base" />
+                        <div className="field-status-layer-frozen-shimmer" />
+                    </>
+                )}
+                {hasSilence && (
+                    <>
+                        <div className="field-status-layer-silence-chain top" />
+                        <div className="field-status-layer-silence-chain bottom" />
+                    </>
+                )}
+                {hasStickyBomb && <div className="field-status-layer-sticky-bomb" />}
+                {hasTaunt && <div className="field-status-layer-taunt" />}
+                {hasBarrier && (
+                    <>
+                        <div className="field-status-layer-barrier-outer" />
+                        <div className="field-status-layer-barrier-inner" />
+                    </>
+                )}
+            </div>
 
             {moveBadge && (
                 <div className={`field-move-badge ${moveBadge.cls}`}>

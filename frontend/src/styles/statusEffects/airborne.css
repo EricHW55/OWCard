@@ -1,0 +1,26 @@
+@keyframes status-airborne-hover {
+    0%,
+    100% {
+        transform: translateY(-4px);
+    }
+    50% {
+        transform: translateY(-9px);
+    }
+}
+
+.field-card-3d.status-airborne {
+    animation: status-airborne-hover 1.8s ease-in-out infinite;
+}
+
+.field-card-3d.status-airborne .field-status-layer-airborne {
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: -8px;
+    height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(circle, rgba(126, 216, 255, 0.55), rgba(126, 216, 255, 0));
+    filter: blur(1px);
+}
