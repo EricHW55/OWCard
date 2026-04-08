@@ -69,8 +69,8 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     const color = isSpell ? '#ffaa22' : ROLE_COLOR[role] || '#888';
     const fc = isFieldCard(card) ? card : null;
 
-    const hp = fc ? fc.current_hp : ('hp' in card ? card.hp : 0);
-    const maxHp = fc ? fc.max_hp : ('hp' in card ? card.hp : 0);
+    const hp = fc ? (fc.current_hp ?? 0) : ('hp' in card ? (card.hp ?? 0) : 0);
+    const maxHp = fc ? (fc.max_hp ?? 0) : ('hp' in card ? (card.hp ?? 0) : 0);
     const rng = fc ? fc.attack_range : 0;
     const fallbackDescription = ('description' in card ? card.description : '') || '';
 
