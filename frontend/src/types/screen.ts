@@ -43,6 +43,7 @@ export interface GameScreenProps {
   mulliganCinematicCard?: HandCard | null;
   mulliganReplacementCard?: HandCard | null;
   isMulliganCinematicActive?: boolean;
+  onMulliganCinematicComplete?: () => void;
 
   bottomMeta?: ReactNode;
   bottomActions?: ReactNode;

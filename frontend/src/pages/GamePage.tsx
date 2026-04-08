@@ -402,6 +402,7 @@ const GamePage: React.FC = () => {
       mulliganCinematicCard={vm.mulliganCinematicCard}
       mulliganReplacementCard={vm.mulliganReplacementCard}
       isMulliganCinematicActive={vm.isMulliganCinematicActive}
+      onMulliganCinematicComplete={vm.completeMulliganCinematic}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
       bottomMeta={<>패:{vm.my.hand_count} · 덱:{vm.my.draw_pile_count} · 트래시:{vm.my.trash_count}</>}

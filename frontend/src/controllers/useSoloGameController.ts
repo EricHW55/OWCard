@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldCard, FieldState, HandCard, Role } from '../types/game';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
@@ -128,6 +128,7 @@ export function useSoloGameController() {
   const [mulliganCinematicCard, setMulliganCinematicCard] = useState<HandCard | null>(null);
   const [mulliganReplacementCard, setMulliganReplacementCard] = useState<HandCard | null>(null);
   const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
+  const mulliganNextStateRef = useRef<{ nextSide: Side; moveToPlacement: boolean } | null>(null);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [pendingSpellCard, setPendingSpellCard] = useState<HandCard | null>(null);
@@ -269,23 +270,31 @@ export function useSoloGameController() {
           },
         };
       });
-
-      setMulliganAnimatingIndex(null);
-      setMulliganCinematicCard(null);
-      setMulliganReplacementCard(null);
-      setIsMulliganCinematicActive(false);
-
-      const nextSide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
-      if (!players[nextSide].mulliganDone) {
-        setActiveSide(nextSide);
-        return;
-      }
-
-      setPhase('placement');
-      setActiveSide('bottom');
+      const nextSideForMulligan: Side = activeSide === 'bottom' ? 'top' : 'bottom';
+      const nextPlayerState = players?.[nextSideForMulligan];
+      mulliganNextStateRef.current = {
+        nextSide: nextSideForMulligan,
+        moveToPlacement: !!nextPlayerState?.mulliganDone,
+      };
     }, 1420);
   }, [players, activePlayer, phase, activeSide, selectedMulligan]);
   const runMulligan = confirmMulligan;
+
+  const completeMulliganCinematic = useCallback(() => {
+    setMulliganAnimatingIndex(null);
+    setMulliganCinematicCard(null);
+    setMulliganReplacementCard(null);
+    setIsMulliganCinematicActive(false);
+    const nextState = mulliganNextStateRef.current;
+    mulliganNextStateRef.current = null;
+    if (!nextState) return;
+    if (nextState.moveToPlacement) {
+      setPhase('placement');
+      setActiveSide('bottom');
+      return;
+    }
+    setActiveSide(nextState.nextSide);
+  }, []);
 
   const skipMulligan = useCallback(() => {
     if (!players || !activePlayer || phase !== 'mulligan') return;
@@ -655,6 +664,7 @@ export function useSoloGameController() {
     confirmMulligan,
     runMulligan,
     skipMulligan,
+    completeMulliganCinematic,
     placeCard,
     handlePlace,
     useSelectedSpell,

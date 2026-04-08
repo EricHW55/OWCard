@@ -1017,16 +1017,32 @@ export function useOnlineGameController(gameId: string) {
       || pendingPassive?.type === 'jetpack_cat_extra_place'
       || !!pendingSpellChoice;
 
-  const mulliganBaselineHandSigRef = useRef<string>('');
+  const mulliganBaselineHandRef = useRef<any[]>([]);
   const pendingMulliganReplacementRef = useRef(false);
+
+  const pickReplacementCard = useCallback((before: any[], after: any[]) => {
+    if (!after.length) return null;
+    const countMap = new Map<string, number>();
+    before.forEach((card: any) => {
+      const key = `${card?.id}:${card?.name}:${card?.hero_key}`;
+      countMap.set(key, (countMap.get(key) || 0) + 1);
+    });
+    for (const card of after) {
+      const key = `${card?.id}:${card?.name}:${card?.hero_key}`;
+      const left = countMap.get(key) || 0;
+      if (left <= 0) return card;
+      countMap.set(key, left - 1);
+    }
+    return after[0];
+  }, []);
 
   useEffect(() => {
     if (!isMulliganCinematicActive || !pendingMulliganReplacementRef.current || !my?.hand?.length) return;
-    const currentSig = my.hand.map((card: any) => `${card?.id}:${card?.name}`).join('|');
-    if (currentSig === mulliganBaselineHandSigRef.current) return;
-    setMulliganReplacementCard(my.hand[my.hand.length - 1] || null);
+    const replacement = pickReplacementCard(mulliganBaselineHandRef.current, my.hand);
+    if (!replacement) return;
+    setMulliganReplacementCard(replacement);
     pendingMulliganReplacementRef.current = false;
-  }, [isMulliganCinematicActive, my]);
+  }, [isMulliganCinematicActive, my, pickReplacementCard]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (!my) return;
@@ -1259,23 +1275,23 @@ export function useOnlineGameController(gameId: string) {
     const targetIndex = selectedMulligan[0];
     const targetCard = my?.hand?.[targetIndex];
     if (typeof targetIndex === 'number' && targetCard) {
-      mulliganBaselineHandSigRef.current = (my?.hand || []).map((card: any) => `${card?.id}:${card?.name}`).join('|');
+      mulliganBaselineHandRef.current = [...(my?.hand || [])];
       pendingMulliganReplacementRef.current = true;
       setMulliganAnimatingIndex(targetIndex);
       setMulliganCinematicCard(targetCard);
       setMulliganReplacementCard(null);
       setIsMulliganCinematicActive(true);
-      window.setTimeout(() => {
-        setMulliganAnimatingIndex(null);
-        setMulliganCinematicCard(null);
-        setMulliganReplacementCard(null);
-        pendingMulliganReplacementRef.current = false;
-        setIsMulliganCinematicActive(false);
-      }, 1420);
     }
     send({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
     setSelectedMulligan([]);
   }, [send, selectedMulligan, my]);
+  const completeMulliganCinematic = useCallback(() => {
+    setMulliganAnimatingIndex(null);
+    setMulliganCinematicCard(null);
+    setMulliganReplacementCard(null);
+    pendingMulliganReplacementRef.current = false;
+    setIsMulliganCinematicActive(false);
+  }, []);
   const skipMulligan = useCallback(() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }, [send]);
   const selectColumn = useCallback((repUid: string, label: string) => {
     if (columnChoice?.source === 'spell' && pendingSpell) {
@@ -1337,7 +1353,7 @@ export function useOnlineGameController(gameId: string) {
     mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
-    handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,
+    handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan, completeMulliganCinematic,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,

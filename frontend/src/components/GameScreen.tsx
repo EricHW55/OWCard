@@ -26,6 +26,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   mulliganCinematicCard = null,
   mulliganReplacementCard = null,
   isMulliganCinematicActive = false,
+  onMulliganCinematicComplete,
   bottomMeta,
   bottomActions,
   logs = [],
@@ -35,7 +36,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onCloseDetail,
 }) => {
   const [showLogModal, setShowLogModal] = React.useState(false);
+  const [mulliganStage, setMulliganStage] = React.useState<'idle' | 'return' | 'draw' | 'reveal'>('idle');
   const killTimerRef = React.useRef<Record<string, number>>({});
+  const mulliganTimerRef = React.useRef<number[]>([]);
   const focusedHandIndex = handCards.findIndex((_, index) => isHandSelected(index));
   const {
     currentImageSrc: mulliganFrontImageSrc,
@@ -93,6 +96,25 @@ const GameScreen: React.FC<GameScreenProps> = ({
     Object.values(killTimerRef.current).forEach((timerId) => window.clearTimeout(timerId));
     killTimerRef.current = {};
   }, []);
+
+  React.useEffect(() => {
+    mulliganTimerRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    mulliganTimerRef.current = [];
+    if (!isMulliganCinematicActive || !mulliganCinematicCard) {
+      setMulliganStage('idle');
+      return;
+    }
+    setMulliganStage('return');
+    const toDraw = window.setTimeout(() => setMulliganStage('draw'), 760);
+    const toReveal = window.setTimeout(() => setMulliganStage('reveal'), 1520);
+    mulliganTimerRef.current = [toDraw, toReveal];
+    return () => {
+      mulliganTimerRef.current.forEach((timerId) => window.clearTimeout(timerId));
+      mulliganTimerRef.current = [];
+    };
+  }, [isMulliganCinematicActive, mulliganCinematicCard?.id, mulliganCinematicCard?.hero_key, mulliganCinematicCard?.name]);
+
+  const canCloseMulliganCinematic = isMulliganCinematicActive && mulliganStage === 'reveal' && !!mulliganReplacementCard;
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
@@ -172,9 +194,15 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
       {onCloseDetail && <CardDetail card={detailCard || null} onClose={onCloseDetail} />}
       {isMulliganCinematicActive && mulliganCinematicCard && (
-          <div className="mulligan-cinematic-layer" aria-hidden>
-            <div className="mulligan-cinematic-card mulligan-cinematic-card--return">
-              <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
+          <div
+              className="mulligan-cinematic-layer"
+              aria-hidden
+              onClick={() => {
+                if (canCloseMulliganCinematic) onMulliganCinematicComplete?.();
+              }}
+          >
+            <div className={`mulligan-cinematic-card mulligan-cinematic-card--return mulligan-stage-${mulliganStage}`}>
+              <div className="mulligan-cinematic-surface mulligan-cinematic-surface--front">
                 {mulliganUsingFullCardArt ? (
                     <img src={mulliganFrontImageSrc} alt="" onError={onMulliganFrontImageError} />
                 ) : (
@@ -192,15 +220,15 @@ const GameScreen: React.FC<GameScreenProps> = ({
                     />
                 )}
               </div>
-              <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
+              <div className="mulligan-cinematic-surface mulligan-cinematic-surface--back">
                 <img src={getCardBackImageSrc()} alt="" />
               </div>
             </div>
-            <div className="mulligan-cinematic-card mulligan-cinematic-card--draw">
-              <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
+            <div className={`mulligan-cinematic-card mulligan-cinematic-card--draw mulligan-stage-${mulliganStage}`}>
+              <div className="mulligan-cinematic-surface mulligan-cinematic-surface--back">
                 <img src={getCardBackImageSrc()} alt="" />
               </div>
-              <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
+              <div className="mulligan-cinematic-surface mulligan-cinematic-surface--front">
                 {mulliganReplacementCard ? (
                     mulliganReplacementUsingFullCardArt ? (
                         <img src={mulliganReplacementFrontImageSrc} alt="" onError={onMulliganReplacementFrontImageError} />
@@ -221,6 +249,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 ) : null}
               </div>
             </div>
+            {canCloseMulliganCinematic && <div className="mulligan-cinematic-hint">클릭해서 계속</div>}
           </div>
       )}
       {showLogModal && (
