@@ -144,6 +144,11 @@ function needsColumnSelector(card: any, skillKey?: string | null): boolean {
   return hero === 'sojourn' && skillKey === 'skill_2';
 }
 
+function isColumnTargetSpell(heroKey?: string | null): boolean {
+  const key = String(heroKey || '').toLowerCase().trim();
+  return key === 'spell_thorn_volley' || key === 'spell_dragonblade';
+}
+
 function getHeroSkillBlockReason(card: any, skillKey: string): string | null {
   const hero = getHeroKey(card);
   const statuses = card?.statuses || [];
@@ -753,7 +758,7 @@ export function useOnlineGameController(gameId: string) {
             setPendingSpellName(spellName);
             setLocalPendingSpellChoice(null);
             addLog('스킬 카드 대상 선택');
-            if (result?.hero_key === 'spell_thorn_volley') {
+            if (isColumnTargetSpell(result?.hero_key)) {
               setActionMode(null);
               setColumnChoice({ source: 'spell', heroKey: result.hero_key, skillName: spellName });
               showSystemNotice(spellName, '열을 선택하세요', 1200);
