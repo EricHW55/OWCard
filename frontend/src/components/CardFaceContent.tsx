@@ -36,14 +36,20 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         const node = handRootRef.current;
         if (!node) return;
         const updateWidth = () => {
-            const width = node.clientWidth || 72;
+            const measured = Math.round(node.getBoundingClientRect().width);
+            const fallback = props.sizePreset === 'opening' ? 220 : 72;
+            const width = measured > 0 ? measured : fallback;
             setHandWidth(width);
         };
         updateWidth();
         const observer = new ResizeObserver(updateWidth);
         observer.observe(node);
         return () => observer.disconnect();
-    }, [props.variant]);
+    }, [props.variant, props.sizePreset]);
+
+    const effectiveHandWidth = props.sizePreset === 'opening'
+        ? Math.max(handWidth, 180)
+        : handWidth;
 
     if (props.usingFullCardArt) {
         return (
@@ -123,7 +129,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: `${Math.round(handWidth * 0.055)}px ${Math.round(handWidth * 0.042)}px`,
+                padding: `${Math.round(effectiveHandWidth * 0.055)}px ${Math.round(effectiveHandWidth * 0.042)}px`,
                 boxSizing: 'border-box',
             }}
         >
@@ -147,9 +153,9 @@ export const CardFaceContent: React.FC<Props> = (props) => {
 
             <div
                 style={{
-                    width: `${Math.round(handWidth * 0.5)}px`,
-                    height: `${Math.round(handWidth * 0.5)}px`,
-                    borderRadius: `${Math.round(handWidth * 0.1)}px`,
+                    width: `${Math.round(effectiveHandWidth * 0.5)}px`,
+                    height: `${Math.round(effectiveHandWidth * 0.5)}px`,
+                    borderRadius: `${Math.round(effectiveHandWidth * 0.1)}px`,
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',

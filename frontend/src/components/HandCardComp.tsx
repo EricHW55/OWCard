@@ -36,8 +36,8 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
             onClick={onClick}
             className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''}`}
             style={{
-                width: 'clamp(56px, min(9.8vw, 8.9vh), 74px)',
-                height: 'clamp(79px, min(13.9vw, 12.6vh), 104px)',
+                width: 'clamp(60px, min(10.4vw, 9.4vh), 82px)',
+                aspectRatio: '5 / 7',
                 borderRadius: 6,
                 border: `2px solid ${frameColor}`,
                 background: usingFullCardArt ? 'transparent' : (selected ? '#1b2238' : '#0f1528'),
