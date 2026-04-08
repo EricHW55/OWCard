@@ -55,6 +55,8 @@ const GamePage: React.FC = () => {
     setCoinTossStage('spinning');
     setCoinRotationDeg(0);
 
+    void preloadImageAssets([getCardBackImageSrc(), '/illustration/card_back.png'], 1200);
+
     const allCards = [
       ...(vm.gs.my_state?.hand || []),
       ...(vm.gs.my_state?.field?.main || []),
@@ -62,8 +64,13 @@ const GamePage: React.FC = () => {
       ...(vm.gs.opponent_state?.field?.main || []),
       ...(vm.gs.opponent_state?.field?.side || []),
     ];
-    const stage2Sources = Array.from(new Set(allCards.flatMap((card) => getCardArtCandidates(card as any))));
-    void preloadImageAssets(stage2Sources, 3200);
+    const stage2Sources = Array.from(new Set([
+      ...allCards.flatMap((card) => getCardArtCandidates(card as any)),
+      ...allCards.flatMap((card) => getCardImageSrc(card as any)),
+    ]));
+    window.setTimeout(() => {
+      void preloadImageAssets(stage2Sources, 3200);
+    }, 120);
 
     const spinCount = 10;
     const finalRotation = spinCount * 360 + (coinFace === 'front' ? 0 : 180);

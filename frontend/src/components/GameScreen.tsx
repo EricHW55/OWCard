@@ -213,7 +213,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <img src={getCardBackImageSrc()} alt="" />
               </div>
             </div>
-            {canCloseMulliganCinematic && <div className="mulligan-cinematic-hint">클릭해서 계속</div>}
           </div>
       )}
       {showLogModal && (

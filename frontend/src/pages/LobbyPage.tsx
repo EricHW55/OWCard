@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LobbySocket, buildWsUrl, getApiBase } from '../api/ws';
-import { buildCoreImagePreloadList, preloadImageAssets } from '../utils/heroImage';
+import {
+    buildCoreImagePreloadList,
+    getCardArtCandidates,
+    getCardBackImageSrc,
+    getCardImageSrc,
+    getIllustrationCandidates,
+    preloadImageAssets,
+} from '../utils/heroImage';
 import './LobbyPage.css';
 
 interface RoomInfo {
@@ -28,6 +35,14 @@ interface DeckInfo {
     player_id: number;
     name: string;
     cards: Array<{ card_template_id: number; quantity: number }>;
+}
+
+interface CardTemplateLite {
+    id: number;
+    hero_key?: string;
+    name?: string;
+    role?: string;
+    is_spell?: boolean;
 }
 
 type MenuKey = 'play' | 'deck' | 'rules';
@@ -111,6 +126,7 @@ const LobbyPage: React.FC = () => {
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
     const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
     const preloadPromiseRef = useRef<Promise<void> | null>(null);
+    const cardTemplateByIdRef = useRef<Map<number, CardTemplateLite>>(new Map());
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev.slice(-29), `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -122,10 +138,36 @@ const LobbyPage: React.FC = () => {
 
     const ensureGameImageWarmup = useCallback(() => {
         if (!preloadPromiseRef.current) {
-            preloadPromiseRef.current = preloadImageAssets(buildCoreImagePreloadList(), 2200);
+            preloadPromiseRef.current = preloadImageAssets([
+                ...buildCoreImagePreloadList(),
+                getCardBackImageSrc(),
+                '/illustration/card_back.png',
+            ], 2200);
         }
         return preloadPromiseRef.current;
     }, []);
+
+    const preloadDeckImages = useCallback((targetDeckId?: number | null) => {
+        if (!targetDeckId) return;
+        const selectedDeck = decks.find((deck) => deck.id === targetDeckId);
+        if (!selectedDeck) return;
+        const templateById = cardTemplateByIdRef.current;
+        const deckSources = selectedDeck.cards.flatMap((entry) => {
+            const template = templateById.get(Number(entry.card_template_id));
+            if (!template) return [];
+            return [
+                getCardImageSrc(template),
+                ...getIllustrationCandidates(template),
+                ...getCardArtCandidates(template),
+            ];
+        });
+        if (!deckSources.length) return;
+        void preloadImageAssets([
+            getCardBackImageSrc(),
+            '/illustration/card_back.png',
+            ...deckSources,
+        ], 3500);
+    }, [decks]);
 
     useEffect(() => {
         // 로비 진입 시점에 선행 로드해서 게임 진입 시 코인 토스 첫 프레임 깨짐을 줄인다.
@@ -188,6 +230,37 @@ const LobbyPage: React.FC = () => {
         if (!session) return;
         ensureGameImageWarmup();
     }, [session, ensureGameImageWarmup]);
+
+    useEffect(() => {
+        if (!session) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`${getApiBase()}/cards/`);
+                if (!res.ok) return;
+                const list = await res.json();
+                if (cancelled || !Array.isArray(list)) return;
+                cardTemplateByIdRef.current = new Map(
+                    list.map((item: CardTemplateLite) => [Number(item.id), item]),
+                );
+                preloadDeckImages(deckId);
+                preloadDeckImages(quickMatchDeckId);
+            } catch {
+                // ignore warmup errors
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [session, deckId, quickMatchDeckId, preloadDeckImages]);
+
+    useEffect(() => {
+        preloadDeckImages(deckId);
+    }, [deckId, preloadDeckImages]);
+
+    useEffect(() => {
+        preloadDeckImages(quickMatchDeckId);
+    }, [quickMatchDeckId, preloadDeckImages]);
 
     useEffect(() => {
         if (!decks.length) {
