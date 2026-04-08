@@ -1,5 +1,5 @@
 import React from 'react';
-import { ROLE_ICON } from '../types/constants';
+import { ROLE_COLOR, ROLE_ICON } from '../types/constants';
 
 type Role = 'tank' | 'dealer' | 'healer' | string | null | undefined;
 
@@ -28,7 +28,6 @@ interface FieldProps extends BaseProps {
 type Props = HandProps | FieldProps;
 
 export const CardFaceContent: React.FC<Props> = (props) => {
-    const isOpening = props.sizePreset === 'opening';
     if (props.usingFullCardArt) {
         return (
             <img
@@ -97,19 +96,7 @@ export const CardFaceContent: React.FC<Props> = (props) => {
         );
     }
 
-    const isHand = props.variant === 'hand';
-    const costSize = isHand
-        ? (isOpening ? '19.5%' : '24%')
-        : 'calc(var(--field-card-width) * 0.22)';
-    const portraitSize = isHand
-        ? (isOpening ? '50%' : '47%')
-        : 'calc(var(--field-card-width) * 0.45)';
-    const nameFontSize = isHand
-        ? (isOpening ? 'clamp(14px, 4.1vw, 20px)' : 'clamp(9px, 1.7vw, 12px)')
-        : 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)';
-    const hpFontSize = isHand
-        ? (isOpening ? 'clamp(13px, 3.7vw, 18px)' : 'clamp(8px, 1.5vw, 10px)')
-        : 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)';
+    const nameColor = props.isSpell ? '#ffaa22' : (ROLE_COLOR[props.role as keyof typeof ROLE_COLOR] || '#e8ecf8');
 
     return (
         <div
@@ -120,37 +107,31 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: isHand
-                    ? (isOpening ? '10px 10px 12px' : '4px 3px 5px')
-                    : 'calc(var(--field-card-width) * 0.055) calc(var(--field-card-width) * 0.042)',
+                padding: 'calc(var(--field-card-width) * 0.055) calc(var(--field-card-width) * 0.042)',
                 boxSizing: 'border-box',
             }}
         >
             <div
                 style={{
-                    width: costSize,
-                    aspectRatio: '1 / 1',
-                    borderRadius: '50%',
-                    background: '#44aaff',
-                    color: '#fff',
-                    fontSize: isHand
-                        ? (isOpening ? 'clamp(11px, 2.8vw, 15px)' : 'clamp(8px, 1.6vw, 11px)')
-                        : 'clamp(9px, calc(var(--field-card-width) * 0.11), 12px)',
-                    fontWeight: isHand ? 600 : 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: isOpening ? '1.6px solid #0a0e1a' : '2px solid #0a0e1a',
+                    fontSize: 'clamp(10px, calc(var(--field-card-width) * 0.145), 14px)',
+                    fontWeight: 700,
+                    color: nameColor,
+                    textAlign: 'center',
+                    lineHeight: 1.1,
+                    width: '100%',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                 }}
             >
-                {props.cost || 1}
+                {props.name}
             </div>
 
             <div
                 style={{
-                    width: portraitSize,
-                    aspectRatio: '1 / 1',
-                    borderRadius: isHand ? 10 : 'calc(var(--field-card-radius) + 1px)',
+                    width: 'calc(var(--field-card-width) * 0.45)',
+                    height: 'calc(var(--field-card-width) * 0.45)',
+                    borderRadius: 'calc(var(--field-card-radius) + 1px)',
                     overflow: 'hidden',
                     display: 'grid',
                     placeItems: 'center',
@@ -173,32 +154,16 @@ export const CardFaceContent: React.FC<Props> = (props) => {
                         }}
                     />
                 ) : (
-                    <span style={{ fontSize: isHand ? 'clamp(12px, 2vw, 16px)' : 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
+                    <span style={{ fontSize: 'clamp(14px, calc(var(--field-card-width) * 0.22), 22px)', fontWeight: 700 }}>
                         {props.isSpell ? '✦' : ROLE_ICON[props.role as keyof typeof ROLE_ICON]}
                     </span>
                 )}
             </div>
 
-            <div
-                style={{
-                    fontSize: nameFontSize,
-                    fontWeight: isHand ? 600 : 700,
-                    color: '#e8ecf8',
-                    textAlign: 'center',
-                    lineHeight: 1.1,
-                    width: '100%',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                }}
-            >
-                {props.name}
-            </div>
-
             {props.isSpell ? (
-                <div style={{ fontSize: hpFontSize, color: '#ffaa22', fontWeight: isHand ? 600 : 700 }}>스킬</div>
+                <div style={{ fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', color: '#ffaa22', fontWeight: 700 }}>스킬</div>
             ) : (
-                <div style={{ display: 'flex', gap: isHand ? (isOpening ? 4 : 2) : 'calc(var(--field-card-width) * 0.042)', fontSize: hpFontSize, fontWeight: isHand ? 600 : 700 }}>
+                <div style={{ display: 'flex', gap: 'calc(var(--field-card-width) * 0.042)', fontSize: 'clamp(9px, calc(var(--field-card-width) * 0.13), 12px)', fontWeight: 700 }}>
                     <span style={{ color: '#22dd77' }}>♥{props.hp || 0}</span>
                 </div>
             )}
