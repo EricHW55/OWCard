@@ -124,6 +124,9 @@ export function useSoloGameController() {
   const [selectedHandIdx, setSelectedHandIdx] = useState<number | null>(null);
   const [selectedFieldUid, setSelectedFieldUid] = useState<string | null>(null);
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
+  const [mulliganAnimatingIndex, setMulliganAnimatingIndex] = useState<number | null>(null);
+  const [mulliganCinematicCard, setMulliganCinematicCard] = useState<HandCard | null>(null);
+  const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [pendingSpellCard, setPendingSpellCard] = useState<HandCard | null>(null);
@@ -231,39 +234,52 @@ export function useSoloGameController() {
 
   const confirmMulligan = useCallback(() => {
     if (!players || !activePlayer || phase !== 'mulligan') return;
-
-    setPlayers((prev) => {
-      if (!prev) return prev;
-      const cur = prev[activeSide];
-      const selectedSet = new Set(selectedMulligan);
-      const keep = cur.hand.filter((_, idx) => !selectedSet.has(idx));
-      const back = cur.hand.filter((_, idx) => selectedSet.has(idx));
-      const shuffled = shuffle([...cur.drawPile, ...back]);
-      const redrawn = shuffled.slice(0, back.length);
-
-      return {
-        ...prev,
-        [activeSide]: {
-          ...cur,
-          hand: [...keep, ...redrawn],
-          drawPile: shuffled.slice(back.length),
-          mulliganDone: true,
-        },
-      };
-    });
+    const targetIndex = selectedMulligan[0];
+    const targetCard = activePlayer.hand[targetIndex];
+    if (typeof targetIndex === 'number' && targetCard) {
+      setMulliganAnimatingIndex(targetIndex);
+      setMulliganCinematicCard(targetCard);
+      setIsMulliganCinematicActive(true);
+    }
 
     setSelectedMulligan([]);
     setSelectedHandIdx(null);
     setSelectedFieldUid(null);
 
-    const nextSide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
-    if (!players[nextSide].mulliganDone) {
-      setActiveSide(nextSide);
-      return;
-    }
+    window.setTimeout(() => {
+      setPlayers((prev) => {
+        if (!prev) return prev;
+        const cur = prev[activeSide];
+        const selectedSet = new Set(selectedMulligan);
+        const keep = cur.hand.filter((_, idx) => !selectedSet.has(idx));
+        const back = cur.hand.filter((_, idx) => selectedSet.has(idx));
+        const shuffled = shuffle([...cur.drawPile, ...back]);
+        const redrawn = shuffled.slice(0, back.length);
 
-    setPhase('placement');
-    setActiveSide('bottom');
+        return {
+          ...prev,
+          [activeSide]: {
+            ...cur,
+            hand: [...keep, ...redrawn],
+            drawPile: shuffled.slice(back.length),
+            mulliganDone: true,
+          },
+        };
+      });
+
+      setMulliganAnimatingIndex(null);
+      setMulliganCinematicCard(null);
+      setIsMulliganCinematicActive(false);
+
+      const nextSide: Side = activeSide === 'bottom' ? 'top' : 'bottom';
+      if (!players[nextSide].mulliganDone) {
+        setActiveSide(nextSide);
+        return;
+      }
+
+      setPhase('placement');
+      setActiveSide('bottom');
+    }, 820);
   }, [players, activePlayer, phase, activeSide, selectedMulligan]);
   const runMulligan = confirmMulligan;
 
@@ -615,6 +631,9 @@ export function useSoloGameController() {
     activePlayer,
     selectedHandIdx,
     selectedMulligan,
+    mulliganAnimatingIndex,
+    mulliganCinematicCard,
+    isMulliganCinematicActive,
     selectedFieldUid,
     selectedHandCard,
     selectedMyFieldCard,

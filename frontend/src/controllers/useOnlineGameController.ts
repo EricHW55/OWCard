@@ -274,6 +274,9 @@ export function useOnlineGameController(gameId: string) {
   const [selectedHandIdx, setSelectedHandIdx] = useState<number | null>(null);
   const [selectedFieldUid, setSelectedFieldUid] = useState<string | null>(null);
   const [selectedMulligan, setSelectedMulligan] = useState<number[]>([]);
+  const [mulliganAnimatingIndex, setMulliganAnimatingIndex] = useState<number | null>(null);
+  const [mulliganCinematicCard, setMulliganCinematicCard] = useState<HandCard | null>(null);
+  const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [logs, setLogs] = useState<string[]>(['게임 서버에 연결 중...']);
@@ -1241,9 +1244,21 @@ export function useOnlineGameController(gameId: string) {
 
   const runMulligan = useCallback(() => {
     if (selectedMulligan.length === 0) return;
+    const targetIndex = selectedMulligan[0];
+    const targetCard = my?.hand?.[targetIndex];
+    if (typeof targetIndex === 'number' && targetCard) {
+      setMulliganAnimatingIndex(targetIndex);
+      setMulliganCinematicCard(targetCard);
+      setIsMulliganCinematicActive(true);
+      window.setTimeout(() => {
+        setMulliganAnimatingIndex(null);
+        setMulliganCinematicCard(null);
+        setIsMulliganCinematicActive(false);
+      }, 1250);
+    }
     send({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
     setSelectedMulligan([]);
-  }, [send, selectedMulligan]);
+  }, [send, selectedMulligan, my]);
   const skipMulligan = useCallback(() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }, [send]);
   const selectColumn = useCallback((repUid: string, label: string) => {
     if (columnChoice?.source === 'spell' && pendingSpell) {
@@ -1302,6 +1317,7 @@ export function useOnlineGameController(gameId: string) {
     session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
     cardEffects,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
+    mulliganAnimatingIndex, mulliganCinematicCard, isMulliganCinematicActive,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan,

@@ -30,6 +30,7 @@ export interface OnlineContextPanelProps {
   phase: string;
   mulliganDone: boolean;
   selectedMulligan: number[];
+  isMulliganAnimating?: boolean;
   onRunMulligan: () => void;
   onSkipMulligan: () => void;
 
@@ -71,6 +72,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
   phase,
   mulliganDone,
   selectedMulligan,
+  isMulliganAnimating = false,
   onRunMulligan,
   onSkipMulligan,
   selectedFieldName,
@@ -182,7 +184,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
             </span>
               </div>
               <div className="game-context-actions">
-                <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0}>멀리건 실행</button>
+                <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0 || isMulliganAnimating}>멀리건 실행</button>
                 <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
               </div>
             </div>

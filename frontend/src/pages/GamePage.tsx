@@ -366,6 +366,7 @@ const GamePage: React.FC = () => {
           phase={vm.phase}
           mulliganDone={vm.my.mulligan_done}
           selectedMulligan={vm.selectedMulligan}
+          isMulliganAnimating={vm.isMulliganCinematicActive}
           onRunMulligan={vm.runMulligan}
           onSkipMulligan={vm.skipMulligan}
           selectedFieldName={vm.selectedMyFieldCard?.name}
@@ -397,6 +398,9 @@ const GamePage: React.FC = () => {
         />
       )}
       handCards={visibleHandCards}
+      mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
+      mulliganCinematicCard={vm.mulliganCinematicCard}
+      isMulliganCinematicActive={vm.isMulliganCinematicActive}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
       bottomMeta={<>패:{vm.my.hand_count} · 덱:{vm.my.draw_pile_count} · 트래시:{vm.my.trash_count}</>}

@@ -7,6 +7,7 @@ type Props = Pick<
     | 'show'
     | 'phase'
     | 'selectedMulligan'
+    | 'isMulliganAnimating'
     | 'onRunMulligan'
     | 'onSkipMulligan'
     | 'selectedFieldName'
@@ -28,6 +29,7 @@ const SoloContextPanel: React.FC<Props> = ({
   show,
   phase,
   selectedMulligan,
+  isMulliganAnimating = false,
   onRunMulligan,
   onSkipMulligan,
   selectedFieldName,
@@ -52,7 +54,7 @@ const SoloContextPanel: React.FC<Props> = ({
             <span className="game-context-subtext">선택 {selectedMulligan.length}/2</span>
           </div>
           <div className="game-context-actions">
-            <button style={BTN_SM} onClick={onRunMulligan}>멀리건 실행</button>
+            <button style={BTN_SM} onClick={onRunMulligan} disabled={isMulliganAnimating}>멀리건 실행</button>
             <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
           </div>
         </div>

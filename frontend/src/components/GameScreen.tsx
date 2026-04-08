@@ -20,6 +20,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
   handCards,
   isHandSelected,
   onHandClick,
+  mulliganAnimatingIndex = null,
+  mulliganCinematicCard = null,
+  isMulliganCinematicActive = false,
   bottomMeta,
   bottomActions,
   logs = [],
@@ -118,6 +121,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
               key={`${card.id}-${index}`}
               card={card}
               selected={isHandSelected(index)}
+              hidden={mulliganAnimatingIndex === index}
               index={index}
               total={handCards.length}
               focusedIndex={focusedHandIndex}
@@ -132,6 +136,23 @@ const GameScreen: React.FC<GameScreenProps> = ({
       </div>
 
       {onCloseDetail && <CardDetail card={detailCard || null} onClose={onCloseDetail} />}
+      {isMulliganCinematicActive && mulliganCinematicCard && (
+          <div className="mulligan-cinematic-layer" aria-hidden>
+            <div className="mulligan-cinematic-card mulligan-cinematic-card--return">
+              <div className="mulligan-cinematic-face mulligan-cinematic-face--front">
+                <img src={getCardImageSrc(mulliganCinematicCard)} alt="" />
+              </div>
+              <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
+                <img src="/illustration/card_back.png" alt="" />
+              </div>
+            </div>
+            <div className="mulligan-cinematic-card mulligan-cinematic-card--draw">
+              <div className="mulligan-cinematic-face mulligan-cinematic-face--back">
+                <img src="/illustration/card_back.png" alt="" />
+              </div>
+            </div>
+          </div>
+      )}
       {showLogModal && (
           <div className="game-log-modal-backdrop" onClick={() => setShowLogModal(false)}>
             <div className="game-log-modal" onClick={(e) => e.stopPropagation()}>

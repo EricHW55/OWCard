@@ -58,6 +58,7 @@ const SoloGamePage: React.FC = () => {
               phase={vm.phase}
               mulliganDone={!!vm.activePlayer?.mulliganDone}
               selectedMulligan={vm.selectedMulligan}
+              isMulliganAnimating={vm.isMulliganCinematicActive}
               onRunMulligan={vm.runMulligan}
               onSkipMulligan={vm.skipMulligan}
               selectedFieldName={vm.selectedMyFieldCard?.name}
@@ -87,6 +88,9 @@ const SoloGamePage: React.FC = () => {
           />
       }
       handCards={vm.activePlayer.hand}
+      mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
+      mulliganCinematicCard={vm.mulliganCinematicCard}
+      isMulliganCinematicActive={vm.isMulliganCinematicActive}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}
       bottomMeta={<>패: {vm.activePlayer.hand.length}장 · 덱: {vm.activePlayer.drawPile.length}장 · 배치 {vm.activePlayer.placementUsed}/2</>}

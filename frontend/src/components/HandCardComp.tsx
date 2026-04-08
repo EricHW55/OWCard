@@ -8,12 +8,13 @@ interface Props {
     card: HandCard;
     selected?: boolean;
     onClick?: () => void;
+    hidden?: boolean;
     index: number;
     total: number;
     focusedIndex: number;
 }
 
-const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, focusedIndex }) => {
+const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index, total, focusedIndex }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
@@ -57,7 +58,9 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, index, total, 
                 zIndex: selected ? 320 : baseZIndex,
                 transform: `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`,
                 transformOrigin: 'center 130%',
-                transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+                transition: 'transform 0.22s ease, box-shadow 0.22s ease, opacity 0.16s ease',
+                opacity: hidden ? 0 : 1,
+                pointerEvents: hidden ? 'none' : 'auto',
             }}
         >
             <CardFaceContent
