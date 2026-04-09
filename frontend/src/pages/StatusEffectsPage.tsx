@@ -142,6 +142,7 @@ const StatusEffectsPage: React.FC = () => {
     const [selectedEffectKey, setSelectedEffectKey] = useState(EFFECTS[0].key);
     const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+    const [particleBarrierBreakSeq, setParticleBarrierBreakSeq] = useState(0);
 
     const selectedHero = useMemo(() => {
         const directPreset = HERO_PRESETS.find((hero) => hero.hero_key === selectedHeroKey);
@@ -172,6 +173,7 @@ const StatusEffectsPage: React.FC = () => {
 
     const previewCard = useMemo<FieldCard>(() => {
         const hpAfterEffect = selectedEffect.key === 'frozen_state' ? 1 : selectedHero.max_hp;
+        const shouldShowParticleBarrierBreak = selectedEffect.key === 'particle_barrier';
         return {
             uid: `status-demo-${selectedHero.hero_key}`,
             template_id: 999001,
@@ -194,12 +196,16 @@ const StatusEffectsPage: React.FC = () => {
             extra: {
                 _hero_key: selectedHero.hero_key,
                 ...(selectedEffect.extra ?? {}),
+                ...(shouldShowParticleBarrierBreak ? { particle_barrier_break_seq: particleBarrierBreakSeq } : {}),
             },
         };
-    }, [selectedHero, selectedEffect]);
+    }, [selectedHero, selectedEffect, particleBarrierBreakSeq]);
 
     const handleSelectEffect = (effectKey: string) => {
         setSelectedEffectKey(effectKey);
+        if (effectKey === 'particle_barrier') {
+            setParticleBarrierBreakSeq((prev) => prev + 1);
+        }
         setIsMobileDrawerOpen(false);
     };
 
@@ -257,6 +263,17 @@ const StatusEffectsPage: React.FC = () => {
                     <div className="status-effects-preview-stage">
                         <FieldCardComp card={previewCard} />
                     </div>
+                    {selectedEffect.key === 'particle_barrier' && (
+                        <div className="status-effects-card-selector">
+                            <button
+                                type="button"
+                                className="hero-change-button"
+                                onClick={() => setParticleBarrierBreakSeq((prev) => prev + 1)}
+                            >
+                                파괴 연출 다시 보기
+                            </button>
+                        </div>
+                    )}
 
                     <div className="status-effects-card-selector">
                         <button type="button" className="hero-change-button" onClick={() => setIsHeroModalOpen(true)}>
