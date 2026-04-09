@@ -166,7 +166,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
 
     let moveBadge: { text: string; cls: string } | null = null;
     if (isFrozen) moveBadge = { text: 'FROZEN', cls: 'frozen' };
-    else if (isGravityFluxAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
+    // else if (isGravityFluxAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
@@ -179,7 +179,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         isBurrowed ? 'status-burrowed' : '',
         isFrozen ? 'status-frozen' : '',
         isAirborne ? 'status-airborne' : '',
-        isGravityFluxAirborne ? 'status-gravity-flux-airborne' : '',
+        // isGravityFluxAirborne ? 'status-gravity-flux-airborne' : '',
         isPulled ? 'status-pulled' : '',
         isHooked ? 'status-hooked' : '',
         hasSilence ? 'status-skill-silence' : '',
@@ -299,7 +299,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 {isStealthed && <div className="field-status-layer-stealth" />}
                 {isBurrowed && <div className="field-status-layer-burrowed" />}
                 {isAirborne && <div className="field-status-layer-airborne" />}
-                {isGravityFluxAirborne && <div className="field-status-layer-gravity-flux-airborne" />}
+                {/*{isGravityFluxAirborne && <div className="field-status-layer-gravity-flux-airborne" />}*/}
                 {isHooked && <div className="field-status-layer-hooked" />}
                 {isPulled && <div className="field-status-layer-pulled" />}
                 {isFrozen && (

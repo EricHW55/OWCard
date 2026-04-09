@@ -15,6 +15,13 @@ type HeroPreset = {
     description: string;
 };
 
+type HeroOption = {
+    hero_key: string;
+    name: string;
+    role: FieldCard['role'];
+    iconSrc: string;
+};
+
 type EffectPreview = {
     key: string;
     label: string;
@@ -33,6 +40,52 @@ const HERO_PRESETS: HeroPreset[] = [
     { hero_key: 'mei', name: '메이', role: 'dealer', max_hp: 12, attack: 3, attack_range: 2, description: '빙결 특화 딜러' },
     { hero_key: 'orisa', name: '오리사', role: 'tank', max_hp: 17, attack: 3, attack_range: 2, description: '방어강화 탱커' },
     { hero_key: 'roadhog', name: '로드호그', role: 'tank', max_hp: 16, attack: 4, attack_range: 1, description: '근접 압박 탱커' },
+];
+
+const HERO_OPTIONS: HeroOption[] = [
+    { hero_key: 'ana', name: '아나', role: 'healer', iconSrc: '/heroes/ana.png' },
+    { hero_key: 'anran', name: '안란', role: 'dealer', iconSrc: '/heroes/anran.png' },
+    { hero_key: 'ashe', name: '애쉬', role: 'dealer', iconSrc: '/heroes/ashe.png' },
+    { hero_key: 'baptiste', name: '바티스트', role: 'healer', iconSrc: '/heroes/baptiste.png' },
+    { hero_key: 'bastion', name: '바스티온', role: 'dealer', iconSrc: '/heroes/bastion.png' },
+    { hero_key: 'brigitte', name: '브리기테', role: 'healer', iconSrc: '/heroes/brigitte.png' },
+    { hero_key: 'cassidy', name: '캐서디', role: 'dealer', iconSrc: '/heroes/cassidy.png' },
+    { hero_key: 'dva', name: 'D.Va', role: 'tank', iconSrc: '/heroes/dva.png' },
+    { hero_key: 'doomfist', name: '둠피스트', role: 'tank', iconSrc: '/heroes/doomfist.png' },
+    { hero_key: 'echo', name: '에코', role: 'dealer', iconSrc: '/heroes/echo.png' },
+    { hero_key: 'genji', name: '겐지', role: 'dealer', iconSrc: '/heroes/genji.png' },
+    { hero_key: 'hanzo', name: '한조', role: 'dealer', iconSrc: '/heroes/hanzo.png' },
+    { hero_key: 'hazard', name: '해저드', role: 'tank', iconSrc: '/heroes/hazard.png' },
+    { hero_key: 'illari', name: '일리아리', role: 'healer', iconSrc: '/heroes/illari.png' },
+    { hero_key: 'junker_queen', name: '정커퀸', role: 'tank', iconSrc: '/heroes/junker_queen.png' },
+    { hero_key: 'junkrat', name: '정크랫', role: 'dealer', iconSrc: '/heroes/junkrat.png' },
+    { hero_key: 'kiriko', name: '키리코', role: 'healer', iconSrc: '/heroes/kiriko.png' },
+    { hero_key: 'lifeweaver', name: '라이프위버', role: 'healer', iconSrc: '/heroes/lifeweaver.png' },
+    { hero_key: 'lucio', name: '루시우', role: 'healer', iconSrc: '/heroes/lucio.png' },
+    { hero_key: 'mauga', name: '마우가', role: 'tank', iconSrc: '/heroes/mauga.png' },
+    { hero_key: 'mei', name: '메이', role: 'dealer', iconSrc: '/heroes/mei.png' },
+    { hero_key: 'mercy', name: '메르시', role: 'healer', iconSrc: '/heroes/mercy.png' },
+    { hero_key: 'moira', name: '모이라', role: 'healer', iconSrc: '/heroes/moira.png' },
+    { hero_key: 'orisa', name: '오리사', role: 'tank', iconSrc: '/heroes/orisa.png' },
+    { hero_key: 'pharah', name: '파라', role: 'dealer', iconSrc: '/heroes/pharah.png' },
+    { hero_key: 'ramattra', name: '라마트라', role: 'tank', iconSrc: '/heroes/ramattra.png' },
+    { hero_key: 'reaper', name: '리퍼', role: 'dealer', iconSrc: '/heroes/reaper.png' },
+    { hero_key: 'reinhardt', name: '라인하르트', role: 'tank', iconSrc: '/heroes/reinhardt.png' },
+    { hero_key: 'roadhog', name: '로드호그', role: 'tank', iconSrc: '/heroes/roadhog.png' },
+    { hero_key: 'sigma', name: '시그마', role: 'tank', iconSrc: '/heroes/sigma.png' },
+    { hero_key: 'sojourn', name: '소전', role: 'dealer', iconSrc: '/heroes/sojourn.png' },
+    { hero_key: 'soldier_76', name: '솔저: 76', role: 'dealer', iconSrc: '/heroes/soldier_76.png' },
+    { hero_key: 'sombra', name: '솜브라', role: 'dealer', iconSrc: '/heroes/sombra.png' },
+    { hero_key: 'symmetra', name: '시메트라', role: 'dealer', iconSrc: '/heroes/symmetra.png' },
+    { hero_key: 'torbjorn', name: '토르비욘', role: 'dealer', iconSrc: '/heroes/torbjorn.png' },
+    { hero_key: 'tracer', name: '트레이서', role: 'dealer', iconSrc: '/heroes/tracer.png' },
+    { hero_key: 'venture', name: '벤처', role: 'dealer', iconSrc: '/heroes/venture.png' },
+    { hero_key: 'widowmaker', name: '위도우메이커', role: 'dealer', iconSrc: '/heroes/widowmaker.png' },
+    { hero_key: 'winston', name: '윈스턴', role: 'tank', iconSrc: '/heroes/winston.png' },
+    { hero_key: 'wrecking_ball', name: '레킹볼', role: 'tank', iconSrc: '/heroes/wrecking_ball.png' },
+    { hero_key: 'wuyang', name: '우양', role: 'healer', iconSrc: '/heroes/wuyang.png' },
+    { hero_key: 'zarya', name: '자리야', role: 'tank', iconSrc: '/heroes/zarya.png' },
+    { hero_key: 'zenyatta', name: '젠야타', role: 'healer', iconSrc: '/heroes/zenyatta.png' },
 ];
 
 const makeStatus = (
@@ -87,10 +140,28 @@ const StatusEffectsPage: React.FC = () => {
     const navigate = useNavigate();
     const [selectedHeroKey, setSelectedHeroKey] = useState(HERO_PRESETS[0].hero_key);
     const [selectedEffectKey, setSelectedEffectKey] = useState(EFFECTS[0].key);
+    const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
 
-    const selectedHero = useMemo(
-        () => HERO_PRESETS.find((hero) => hero.hero_key === selectedHeroKey) ?? HERO_PRESETS[0],
-        [selectedHeroKey],
+    const selectedHero = useMemo(() => {
+        const directPreset = HERO_PRESETS.find((hero) => hero.hero_key === selectedHeroKey);
+        if (directPreset) return directPreset;
+        const pickedOption = HERO_OPTIONS.find((hero) => hero.hero_key === selectedHeroKey) ?? HERO_OPTIONS[0];
+        const roleDefaults = pickedOption.role === 'tank'
+            ? { max_hp: 16, attack: 4, attack_range: 1, description: '전열 탱커' }
+            : pickedOption.role === 'healer'
+                ? { max_hp: 10, attack: 2, attack_range: 3, description: '지원형 힐러' }
+                : { max_hp: 11, attack: 3, attack_range: 2, description: '공격형 딜러' };
+        return {
+            hero_key: pickedOption.hero_key,
+            name: pickedOption.name,
+            role: pickedOption.role,
+            ...roleDefaults,
+        };
+    }, [selectedHeroKey]);
+
+    const selectedHeroOption = useMemo(
+        () => HERO_OPTIONS.find((hero) => hero.hero_key === selectedHero.hero_key) ?? HERO_OPTIONS[0],
+        [selectedHero.hero_key],
     );
 
     const selectedEffect = useMemo(
@@ -101,7 +172,7 @@ const StatusEffectsPage: React.FC = () => {
     const previewCard = useMemo<FieldCard>(() => {
         const hpAfterEffect = selectedEffect.key === 'frozen_state' ? 1 : selectedHero.max_hp;
         return {
-            uid: `status-demo-${selectedHero.hero_key}-${selectedEffect.key}`,
+            uid: `status-demo-${selectedHero.hero_key}`,
             template_id: 999001,
             hero_key: selectedHero.hero_key,
             name: selectedHero.name,
@@ -137,17 +208,14 @@ const StatusEffectsPage: React.FC = () => {
 
                     <div className="status-effects-group">
                         <h2>카드 선택</h2>
-                        <div className="hero-selector">
-                            {HERO_PRESETS.map((hero) => (
-                                <button
-                                    key={hero.hero_key}
-                                    type="button"
-                                    className={hero.hero_key === selectedHero.hero_key ? 'active' : ''}
-                                    onClick={() => setSelectedHeroKey(hero.hero_key)}
-                                >
-                                    {hero.name}
-                                </button>
-                            ))}
+                        <div className="hero-selector-inline">
+                            <button type="button" className="hero-change-button" onClick={() => setIsHeroModalOpen(true)}>
+                                영웅 변경
+                            </button>
+                            <div className="hero-selected-chip">
+                                <img src={selectedHeroOption.iconSrc} alt={selectedHero.name} />
+                                <span>{selectedHero.name}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -191,6 +259,33 @@ const StatusEffectsPage: React.FC = () => {
                     </div>
                 </section>
             </div>
+
+            {isHeroModalOpen && (
+                <div className="hero-modal-overlay" onClick={() => setIsHeroModalOpen(false)}>
+                    <div className="hero-modal" onClick={(event) => event.stopPropagation()}>
+                        <div className="hero-modal-header">
+                            <h3>영웅 선택</h3>
+                            <button type="button" onClick={() => setIsHeroModalOpen(false)}>닫기</button>
+                        </div>
+                        <div className="hero-modal-grid">
+                            {HERO_OPTIONS.map((hero) => (
+                                <button
+                                    key={hero.hero_key}
+                                    type="button"
+                                    className={hero.hero_key === selectedHero.hero_key ? 'active' : ''}
+                                    onClick={() => {
+                                        setSelectedHeroKey(hero.hero_key);
+                                        setIsHeroModalOpen(false);
+                                    }}
+                                >
+                                    <img src={hero.iconSrc} alt={hero.name} />
+                                    <span>{hero.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

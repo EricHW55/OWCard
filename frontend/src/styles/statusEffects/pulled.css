@@ -1,14 +1,14 @@
-@keyframes status-pulled-toward-enemy {
-    from {
-        transform: translateY(-7px);
-    }
-    to {
-        transform: translateY(-17px);
-    }
-}
+/*@keyframes status-pulled-toward-enemy {*/
+/*    from {*/
+/*        transform: translateY(-7px);*/
+/*    }*/
+/*    to {*/
+/*        transform: translateY(-17px);*/
+/*    }*/
+/*}*/
 
 .field-card-3d.status-pulled {
-    animation: status-pulled-toward-enemy 0.95s ease-in-out infinite alternate;
+    transform: translateY(-14px);
 }
 
 .field-card-3d.status-pulled .field-status-layer-pulled {

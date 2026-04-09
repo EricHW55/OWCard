@@ -59,13 +59,13 @@
     color: #a8c3ff;
 }
 
-.hero-selector {
+.hero-selector-inline {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 10px;
 }
 
-.hero-selector button,
+.hero-change-button,
 .effects-list button,
 .status-effects-actions button {
     border: 1px solid #44639b;
@@ -75,12 +75,6 @@
     padding: 8px 10px;
     font-weight: 700;
     cursor: pointer;
-}
-
-.hero-selector button.active,
-.effects-list button.active {
-    border-color: #79acff;
-    background: #244684;
 }
 
 .effects-list {
@@ -97,6 +91,11 @@
 .effects-list button small {
     color: #b0c4ef;
     font-weight: 600;
+}
+
+.effects-list button.active {
+    border-color: #79acff;
+    background: #244684;
 }
 
 .status-effects-actions button {
@@ -128,7 +127,109 @@
     background: linear-gradient(180deg, rgba(24, 37, 73, 0.55), rgba(12, 20, 39, 0.35));
     display: grid;
     place-items: center;
+    overflow: visible;
+    padding: 18px;
+}
+
+.hero-selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #47639b;
+    background: rgba(22, 37, 74, 0.8);
+    font-weight: 700;
+    color: #dce9ff;
+}
+
+.hero-selected-chip img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.hero-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(5, 9, 20, 0.72);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.hero-modal {
+    width: min(900px, 100%);
+    max-height: min(80vh, 720px);
+    border-radius: 14px;
+    border: 1px solid #3d5e9b;
+    background: #0f1831;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.42);
     overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr;
+}
+
+.hero-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #314772;
+    background: rgba(16, 28, 56, 0.88);
+}
+
+.hero-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #e8f0ff;
+}
+
+.hero-modal-header button {
+    border: 1px solid #47649c;
+    background: #203966;
+    color: #e7eeff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hero-modal-grid {
+    padding: 14px;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.hero-modal-grid button {
+    border: 1px solid #3e5d97;
+    background: #172b53;
+    color: #e8f0ff;
+    border-radius: 10px;
+    padding: 10px 8px;
+    display: grid;
+    gap: 7px;
+    justify-items: center;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.hero-modal-grid button.active {
+    border-color: #79acff;
+    background: #244684;
+}
+
+.hero-modal-grid button img {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(170, 206, 255, 0.45);
 }
 
 .status-effects-preview-meta {
