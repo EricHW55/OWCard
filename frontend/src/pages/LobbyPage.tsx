@@ -45,7 +45,7 @@ interface CardTemplateLite {
     is_spell?: boolean;
 }
 
-type MenuKey = 'play' | 'deck' | 'rules';
+type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects';
 type PlayMode = 'none' | 'quick' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 
@@ -533,6 +533,10 @@ const LobbyPage: React.FC = () => {
         }
         if (key === 'rules') {
             navigate('/rules');
+            return;
+        }
+        if (key === 'status-effects') {
+            navigate('/status-effects');
         }
     };
 
@@ -693,12 +697,14 @@ const LobbyPage: React.FC = () => {
                                     <button className="lobby-solid-btn" onClick={() => openMenu('play')}>플레이</button>
                                     <button className="lobby-solid-btn" onClick={() => openMenu('deck')}>덱 수정</button>
                                     <button className="lobby-solid-btn" onClick={() => openMenu('rules')}>게임 규칙</button>
+                                    <button className="lobby-solid-btn" onClick={() => openMenu('status-effects')}>상태 효과 정보</button>
                                 </div>
                             ) : (
                                 <div className="desktop-menu-text">
                                     <button className={`menu-text-item ${activeMenu === 'play' ? 'active' : ''}`} onClick={() => openMenu('play')}>플레이</button>
                                     <button className={`menu-text-item ${activeMenu === 'deck' ? 'active' : ''}`} onClick={() => openMenu('deck')}>덱 수정</button>
                                     <button className={`menu-text-item ${activeMenu === 'rules' ? 'active' : ''}`} onClick={() => openMenu('rules')}>게임 규칙</button>
+                                    <button className={`menu-text-item ${activeMenu === 'status-effects' ? 'active' : ''}`} onClick={() => openMenu('status-effects')}>상태 효과 정보</button>
                                 </div>
                             )}
                         </>

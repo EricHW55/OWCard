@@ -1,0 +1,198 @@
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import FieldCardComp from '../components/FieldCardComp';
+import type { FieldCard, StatusEffect } from '../types/game';
+import '../styles/statusEffects/index.css';
+import './StatusEffectsPage.css';
+
+type HeroPreset = {
+    hero_key: string;
+    name: string;
+    role: FieldCard['role'];
+    max_hp: number;
+    attack: number;
+    attack_range: number;
+    description: string;
+};
+
+type EffectPreview = {
+    key: string;
+    label: string;
+    title: string;
+    summary: string;
+    statuses: StatusEffect[];
+    extra?: Record<string, any>;
+};
+
+const HERO_PRESETS: HeroPreset[] = [
+    { hero_key: 'reinhardt', name: '라인하르트', role: 'tank', max_hp: 18, attack: 4, attack_range: 1, description: '전열 유지형 탱커' },
+    { hero_key: 'zarya', name: '자리야', role: 'tank', max_hp: 15, attack: 4, attack_range: 1, description: '방벽/차징 탱커' },
+    { hero_key: 'sojourn', name: '소전', role: 'dealer', max_hp: 11, attack: 4, attack_range: 2, description: '원거리 딜러' },
+    { hero_key: 'sombra', name: '솜브라', role: 'dealer', max_hp: 10, attack: 3, attack_range: 2, description: '교란형 딜러' },
+    { hero_key: 'ana', name: '아나', role: 'healer', max_hp: 9, attack: 2, attack_range: 3, description: '원거리 힐러' },
+    { hero_key: 'mei', name: '메이', role: 'dealer', max_hp: 12, attack: 3, attack_range: 2, description: '빙결 특화 딜러' },
+    { hero_key: 'orisa', name: '오리사', role: 'tank', max_hp: 17, attack: 3, attack_range: 2, description: '방어강화 탱커' },
+    { hero_key: 'roadhog', name: '로드호그', role: 'tank', max_hp: 16, attack: 4, attack_range: 1, description: '근접 압박 탱커' },
+];
+
+const makeStatus = (
+    name: string,
+    duration: number,
+    tags: string[] = [],
+    overrides: Partial<StatusEffect> = {},
+): StatusEffect => ({
+    name,
+    duration,
+    source: 'status_effect_demo',
+    visible: true,
+    tags,
+    ...overrides,
+});
+
+const EFFECTS: EffectPreview[] = [
+    { key: 'barrier', label: 'Barrier', title: '방벽', summary: '별도 방벽 체력으로 피해를 흡수, 옵션에 따라 패싱 공격 차단 및 도발 부여 가능.', statuses: [makeStatus('barrier', 2, ['buff'], { barrier_hp: 8, barrier_max_hp: 8 })] },
+    { key: 'particle_barrier', label: 'ParticleBarrier', title: '자리야 입자 방벽', summary: '첫 피격 1회 무효, 깨질 때 자리야 버프 트리거 가능.', statuses: [makeStatus('barrier', 1, ['buff'], { barrier_hp: 4, barrier_max_hp: 4 })], extra: { particle_barrier_charge: 1 } },
+    { key: 'airborne', label: 'Airborne', title: '공중 상태', summary: '공격 시 거리 1칸 무시, 피격 시 더 쉽게 맞음.', statuses: [makeStatus('airborne', 2, ['buff'])] },
+    { key: 'gravity_flux_airborne', label: 'GravityFluxAirborne', title: '중력붕괴 전용 공중 상태', summary: '공격 시 거리 1칸 무시, 피격 시 더 쉽게 맞음, 종료 시 피해는 엔진이 처리.', statuses: [makeStatus('gravity_flux_airborne', 1, ['debuff'])] },
+    { key: 'stealth', label: 'Stealth', title: '은신', summary: '적용 시 회복, 타겟팅 불가.', statuses: [makeStatus('stealth', 2, ['buff'])] },
+    { key: 'burrowed', label: 'Burrowed', title: '잠복', summary: '타겟팅 불가, 다음 공격 시 거리 1칸 무시.', statuses: [makeStatus('burrowed', 1, ['buff'])] },
+    { key: 'exposed', label: 'Exposed', title: '무시', summary: '자신이 더 쉽게 맞고, 앞라인 차단 역할을 하지 못하게 됨.', statuses: [makeStatus('exposed', 2, ['debuff'])] },
+    { key: 'knockback', label: 'Knockback', title: '넉백', summary: '사거리 -1 용도의 상태값.', statuses: [makeStatus('range_modifier', 1, ['debuff'], { value: -1 })] },
+    { key: 'pulled', label: 'Pulled', title: '끌어당겨짐', summary: '공격자 기준 이 카드까지의 거리 감소.', statuses: [makeStatus('pulled', 1, ['debuff'])] },
+    { key: 'hooked', label: 'Hooked', title: '갈고리', summary: '거의 모든 아군이 거리 무시 수준으로 이 대상을 노릴 수 있게 함.', statuses: [makeStatus('hooked', 1, ['debuff'])] },
+    { key: 'attack_buff', label: 'AttackBuff', title: '공격력 증감', summary: '공격 전에 공격력 수치 보정.', statuses: [makeStatus('attack_buff', 2, ['buff'], { value: 2 })] },
+    { key: 'damage_multiplier', label: 'DamageMultiplier', title: '피해 배율 증감', summary: '스킬 피해 배율을 조정.', statuses: [makeStatus('damage_multiplier', 2, ['buff'], { value: 1.3 })] },
+    { key: 'range_modifier', label: 'RangeModifier', title: '사거리 증감', summary: '사거리 수치를 조정하는 상태값.', statuses: [makeStatus('range_modifier', 2, ['buff'], { value: 1 })] },
+    { key: 'damage_reduction', label: 'DamageReduction', title: '피해 감소', summary: '받는 피해를 퍼센트만큼 감소.', statuses: [makeStatus('damage_reduction', 2, ['buff'], { value: 0.4 })] },
+    { key: 'next_turn_start_damage_reduction', label: 'NextTurnStartDamageReduction', title: '다음 턴 시작 해제형 피해 감소', summary: '자신의 다음 턴 시작 시 사라지는 피해 감소.', statuses: [makeStatus('next_turn_start_damage_reduction', 2, ['buff'], { value: 0.3 })] },
+    { key: 'heal_block', label: 'HealBlock', title: '힐 차단', summary: '회복을 받을 수 없게 함.', statuses: [makeStatus('heal_block', 2, ['debuff'])] },
+    { key: 'heal_amplify', label: 'HealAmplify', title: '힐 증폭', summary: '받는 힐량에 고정 수치 추가.', statuses: [makeStatus('heal_amplify', 2, ['buff'], { value: 2 })] },
+    { key: 'heal_multiplier', label: 'HealMultiplier', title: '힐 배율 증가', summary: '받는 힐량에 배율 적용.', statuses: [makeStatus('heal_multiplier', 2, ['buff'], { value: 1.3 })] },
+    { key: 'discord_orb', label: 'DiscordOrb', title: '부조화', summary: '받는 피해 증가.', statuses: [makeStatus('discord_orb', 2, ['debuff'])] },
+    { key: 'taunt', label: 'Taunt', title: '도발', summary: '이 카드를 우선 공격해야 함.', statuses: [makeStatus('taunt', 2, ['buff'])] },
+    { key: 'skill_silence', label: 'SkillSilence', title: '스킬 봉쇄', summary: '스킬 사용 불가.', statuses: [makeStatus('skill_silence', 2, ['debuff'])] },
+    { key: 'burn', label: 'Burn', title: '화상', summary: '턴 종료 시 지속 피해.', statuses: [makeStatus('burn', 2, ['debuff'])] },
+    { key: 'sticky_bomb', label: 'StickyBomb', title: '점착폭탄', summary: '턴 종료 시 폭발 피해.', statuses: [makeStatus('sticky_bomb', 2, ['debuff'])] },
+    { key: 'frozen_state', label: 'FrozenState', title: '빙결 상태', summary: '무적, 행동 불가, 타겟팅 불가, 앞라인 차단 해제, 조건에 따라 해동 또는 부활.', statuses: [makeStatus('frozen_state', 1, ['debuff'])] },
+    { key: 'frozen_revive', label: 'FrozenRevive', title: '빙결 부활 패시브', summary: '최초 사망 시 HP 1로 빙결 상태가 되고 다음 턴 시작에 부활.', statuses: [makeStatus('frozen_revive', 999, ['buff'])] },
+    { key: 'immortality', label: 'Immortality', title: '불사', summary: '치명 피해를 막고 HP 1로 생존.', statuses: [makeStatus('immortality', 2, ['buff'])] },
+    { key: 'reflect', label: 'Reflect', title: '반사', summary: '치명 피해를 반사하고 1회 생존 보장.', statuses: [makeStatus('reflect', 2, ['buff'])] },
+    { key: 'extra_hp', label: 'ExtraHP', title: '추가 체력', summary: '별도 추가 체력으로 피해를 먼저 흡수.', statuses: [makeStatus('extra_hp', 2, ['buff'], { extra_hp: 6 })] },
+    { key: 'mech_destruction', label: 'MechDestruction', title: '메카 파괴', summary: '메카 상태로 죽으면 송하나 폼으로 전환하며 생존.', statuses: [makeStatus('mech_destruction', 999, ['buff'])] },
+    { key: 'charging', label: 'Charging', title: '차징', summary: '단계별 충전 수치를 쌓아 관리.', statuses: [makeStatus('charging', 3, ['buff'])], extra: { charge_level: 3 } },
+    { key: 'orisa_fortify_passive', label: 'OrisaFortifyPassive', title: '오리사 방어강화 패시브', summary: '체력 임계치 이하에서 디버프 정화, 상태이상 면역, 피해 감소 활성화.', statuses: [makeStatus('orisa_fortify_passive', 999, ['buff']), makeStatus('damage_reduction', 1, ['buff'], { value: 0.4 })] },
+];
+
+const StatusEffectsPage: React.FC = () => {
+    const navigate = useNavigate();
+    const [selectedHeroKey, setSelectedHeroKey] = useState(HERO_PRESETS[0].hero_key);
+    const [selectedEffectKey, setSelectedEffectKey] = useState(EFFECTS[0].key);
+
+    const selectedHero = useMemo(
+        () => HERO_PRESETS.find((hero) => hero.hero_key === selectedHeroKey) ?? HERO_PRESETS[0],
+        [selectedHeroKey],
+    );
+
+    const selectedEffect = useMemo(
+        () => EFFECTS.find((effect) => effect.key === selectedEffectKey) ?? EFFECTS[0],
+        [selectedEffectKey],
+    );
+
+    const previewCard = useMemo<FieldCard>(() => {
+        const hpAfterEffect = selectedEffect.key === 'frozen_state' ? 1 : selectedHero.max_hp;
+        return {
+            uid: `status-demo-${selectedHero.hero_key}-${selectedEffect.key}`,
+            template_id: 999001,
+            hero_key: selectedHero.hero_key,
+            name: selectedHero.name,
+            role: selectedHero.role,
+            description: selectedHero.description,
+            max_hp: selectedHero.max_hp,
+            current_hp: hpAfterEffect,
+            attack: selectedHero.attack,
+            defense: 0,
+            attack_range: selectedHero.attack_range,
+            zone: 'main',
+            statuses: selectedEffect.statuses,
+            skill_cooldowns: {},
+            skill_damages: {},
+            skill_meta: {},
+            placed_this_turn: false,
+            acted_this_turn: false,
+            extra: {
+                _hero_key: selectedHero.hero_key,
+                ...(selectedEffect.extra ?? {}),
+            },
+        };
+    }, [selectedHero, selectedEffect]);
+
+    return (
+        <div className="status-effects-page">
+            <div className="status-effects-shell">
+                <aside className="status-effects-left panel">
+                    <h1>상태 효과 정보</h1>
+                    <p>
+                        왼쪽에서 상태 효과를 선택하면 오른쪽 카드에서 UI와 효과 표현을 바로 확인할 수 있습니다.
+                    </p>
+
+                    <div className="status-effects-group">
+                        <h2>카드 선택</h2>
+                        <div className="hero-selector">
+                            {HERO_PRESETS.map((hero) => (
+                                <button
+                                    key={hero.hero_key}
+                                    type="button"
+                                    className={hero.hero_key === selectedHero.hero_key ? 'active' : ''}
+                                    onClick={() => setSelectedHeroKey(hero.hero_key)}
+                                >
+                                    {hero.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="status-effects-group">
+                        <h2>상태 효과 목록</h2>
+                        <div className="effects-list">
+                            {EFFECTS.map((effect) => (
+                                <button
+                                    key={effect.key}
+                                    type="button"
+                                    className={effect.key === selectedEffect.key ? 'active' : ''}
+                                    onClick={() => setSelectedEffectKey(effect.key)}
+                                >
+                                    <span>{effect.label}</span>
+                                    <small>{effect.title}</small>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="status-effects-actions">
+                        <button type="button" onClick={() => navigate('/')}>로비로 돌아가기</button>
+                    </div>
+                </aside>
+
+                <section className="status-effects-right panel">
+                    <div className="status-effects-preview-header">
+                        <h2>{selectedEffect.label}</h2>
+                        <p>{selectedEffect.title} · {selectedEffect.summary}</p>
+                    </div>
+
+                    <div className="status-effects-preview-stage">
+                        <FieldCardComp card={previewCard} />
+                    </div>
+
+                    <div className="status-effects-preview-meta">
+                        <div><b>카드:</b> {selectedHero.name} ({selectedHero.role})</div>
+                        <div><b>HP:</b> {previewCard.current_hp}/{previewCard.max_hp}</div>
+                        <div><b>공격력:</b> {previewCard.attack}</div>
+                        <div><b>사거리:</b> {previewCard.attack_range}</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+};
+
+export default StatusEffectsPage;

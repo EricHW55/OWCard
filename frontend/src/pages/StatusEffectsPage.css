@@ -1,0 +1,160 @@
+.status-effects-page {
+    --field-card-width: clamp(160px, 24vw, 220px);
+    --field-card-height: calc(var(--field-card-width) * 1.4);
+    --field-card-radius: calc(var(--field-card-width) * 0.08);
+    min-height: 100vh;
+    background:
+            radial-gradient(circle at 20% 15%, rgba(70, 124, 217, 0.24), transparent 36%),
+            radial-gradient(circle at 80% 10%, rgba(99, 65, 201, 0.22), transparent 34%),
+            linear-gradient(155deg, #080d1b 0%, #0f1732 58%, #0b1226 100%);
+    color: #e7eeff;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.status-effects-shell {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 16px;
+}
+
+.panel {
+    border: 1px solid #334d84;
+    border-radius: 14px;
+    background: rgba(14, 24, 48, 0.86);
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.28);
+}
+
+.status-effects-left {
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+}
+
+.status-effects-left h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.status-effects-left p {
+    margin: 0;
+    color: #b4c3e8;
+    line-height: 1.5;
+}
+
+.status-effects-group {
+    border: 1px solid #2b3f6d;
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(11, 19, 38, 0.66);
+}
+
+.status-effects-group h2 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: #a8c3ff;
+}
+
+.hero-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hero-selector button,
+.effects-list button,
+.status-effects-actions button {
+    border: 1px solid #44639b;
+    background: #1a2a4d;
+    color: #e7eeff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hero-selector button.active,
+.effects-list button.active {
+    border-color: #79acff;
+    background: #244684;
+}
+
+.effects-list {
+    display: grid;
+    gap: 6px;
+}
+
+.effects-list button {
+    text-align: left;
+    display: grid;
+    gap: 2px;
+}
+
+.effects-list button small {
+    color: #b0c4ef;
+    font-weight: 600;
+}
+
+.status-effects-actions button {
+    width: 100%;
+}
+
+.status-effects-right {
+    padding: 22px;
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.status-effects-preview-header h2 {
+    margin: 0;
+    font-size: 23px;
+}
+
+.status-effects-preview-header p {
+    margin: 8px 0 0;
+    color: #b8c7ec;
+    line-height: 1.5;
+}
+
+.status-effects-preview-stage {
+    min-height: 360px;
+    border-radius: 12px;
+    border: 1px dashed #40609f;
+    background: linear-gradient(180deg, rgba(24, 37, 73, 0.55), rgba(12, 20, 39, 0.35));
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+.status-effects-preview-meta {
+    border: 1px solid #2d4270;
+    border-radius: 10px;
+    padding: 12px;
+    background: rgba(11, 18, 36, 0.75);
+    display: grid;
+    gap: 5px;
+    color: #d9e4ff;
+}
+
+@media (max-width: 920px) {
+    .status-effects-page {
+        padding: 12px;
+    }
+
+    .status-effects-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .status-effects-left {
+        max-height: none;
+    }
+
+    .status-effects-right {
+        padding: 14px;
+    }
+}

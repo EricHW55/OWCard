@@ -5,6 +5,7 @@ import GamePage from './pages/GamePage';
 import DeckBuilderPage from './pages/DeckBuilderPage';
 import GameRulesPage from './pages/GameRulesPage';
 import SoloGamePage from './pages/SoloGamePage';
+import StatusEffectsPage from './pages/StatusEffectsPage';
 
 const App: React.FC = () => {
     React.useEffect(() => {
@@ -36,6 +37,7 @@ const App: React.FC = () => {
             <Routes>
                 <Route path="/" element={<LobbyPage />} />
                 <Route path="/deck-builder" element={<DeckBuilderPage />} />
+                <Route path="/status-effects" element={<StatusEffectsPage />} />
                 <Route path="/rules" element={<GameRulesPage />} />
                 <Route path="/game/:gameId" element={<GamePage />} />
                 <Route path="/solo-game" element={<SoloGamePage />} />
