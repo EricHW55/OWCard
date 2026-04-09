@@ -141,6 +141,7 @@ const StatusEffectsPage: React.FC = () => {
     const [selectedHeroKey, setSelectedHeroKey] = useState(HERO_PRESETS[0].hero_key);
     const [selectedEffectKey, setSelectedEffectKey] = useState(EFFECTS[0].key);
     const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
+    const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
     const selectedHero = useMemo(() => {
         const directPreset = HERO_PRESETS.find((hero) => hero.hero_key === selectedHeroKey);
@@ -197,27 +198,24 @@ const StatusEffectsPage: React.FC = () => {
         };
     }, [selectedHero, selectedEffect]);
 
+    const handleSelectEffect = (effectKey: string) => {
+        setSelectedEffectKey(effectKey);
+        setIsMobileDrawerOpen(false);
+    };
+
     return (
         <div className="status-effects-page">
             <div className="status-effects-shell">
-                <aside className="status-effects-left panel">
+                <aside className={`status-effects-left panel ${isMobileDrawerOpen ? 'open' : ''}`}>
+                    <div className="status-effects-mobile-drawer-header">
+                        <h2>상태 효과 목록</h2>
+                        <button type="button" onClick={() => setIsMobileDrawerOpen(false)}>닫기</button>
+                    </div>
+
                     <h1>상태 효과 정보</h1>
                     <p>
                         왼쪽에서 상태 효과를 선택하면 오른쪽 카드에서 UI와 효과 표현을 바로 확인할 수 있습니다.
                     </p>
-
-                    <div className="status-effects-group">
-                        <h2>카드 선택</h2>
-                        <div className="hero-selector-inline">
-                            <button type="button" className="hero-change-button" onClick={() => setIsHeroModalOpen(true)}>
-                                영웅 변경
-                            </button>
-                            <div className="hero-selected-chip">
-                                <img src={selectedHeroOption.iconSrc} alt={selectedHero.name} />
-                                <span>{selectedHero.name}</span>
-                            </div>
-                        </div>
-                    </div>
 
                     <div className="status-effects-group">
                         <h2>상태 효과 목록</h2>
@@ -227,7 +225,7 @@ const StatusEffectsPage: React.FC = () => {
                                     key={effect.key}
                                     type="button"
                                     className={effect.key === selectedEffect.key ? 'active' : ''}
-                                    onClick={() => setSelectedEffectKey(effect.key)}
+                                    onClick={() => handleSelectEffect(effect.key)}
                                 >
                                     <span>{effect.label}</span>
                                     <small>{effect.title}</small>
@@ -242,6 +240,15 @@ const StatusEffectsPage: React.FC = () => {
                 </aside>
 
                 <section className="status-effects-right panel">
+                    <button
+                        type="button"
+                        className="status-effects-mobile-drawer-toggle"
+                        onClick={() => setIsMobileDrawerOpen(true)}
+                        aria-label="상태 효과 목록 열기"
+                    >
+                        ☰
+                    </button>
+
                     <div className="status-effects-preview-header">
                         <h2>{selectedEffect.label}</h2>
                         <p>{selectedEffect.title} · {selectedEffect.summary}</p>
@@ -251,18 +258,23 @@ const StatusEffectsPage: React.FC = () => {
                         <FieldCardComp card={previewCard} />
                     </div>
 
-                    <div className="status-effects-preview-meta">
-                        <div><b>카드:</b> {selectedHero.name} ({selectedHero.role})</div>
-                        <div><b>HP:</b> {previewCard.current_hp}/{previewCard.max_hp}</div>
-                        <div><b>공격력:</b> {previewCard.attack}</div>
-                        <div><b>사거리:</b> {previewCard.attack_range}</div>
+                    <div className="status-effects-card-selector">
+                        <button type="button" className="hero-change-button" onClick={() => setIsHeroModalOpen(true)}>
+                            카드 선택
+                        </button>
+                        <div className="hero-selected-chip">
+                            <img src={selectedHeroOption.iconSrc} alt={selectedHero.name} />
+                            <span>{selectedHero.name}</span>
+                        </div>
                     </div>
                 </section>
             </div>
 
+            {isMobileDrawerOpen && <div className="status-effects-mobile-drawer-dim" onClick={() => setIsMobileDrawerOpen(false)} aria-hidden />}
+
             {isHeroModalOpen && (
                 <div className="hero-modal-overlay" onClick={() => setIsHeroModalOpen(false)}>
-                    <div className="hero-modal" onClick={(event) => event.stopPropagation()}>
+                    <div className="hero-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="hero-modal-header">
                             <h3>영웅 선택</h3>
                             <button type="button" onClick={() => setIsHeroModalOpen(false)}>닫기</button>

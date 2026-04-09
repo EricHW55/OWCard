@@ -10,6 +10,7 @@
     color: #e7eeff;
     padding: 18px;
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .status-effects-shell {
@@ -18,6 +19,7 @@
     display: grid;
     grid-template-columns: minmax(320px, 420px) 1fr;
     gap: 16px;
+    align-items: start;
 }
 
 .panel {
@@ -33,6 +35,12 @@
     gap: 12px;
     max-height: calc(100vh - 36px);
     overflow: auto;
+}
+
+.status-effects-mobile-drawer-header,
+.status-effects-mobile-drawer-toggle,
+.status-effects-mobile-drawer-dim {
+    display: none;
 }
 
 .status-effects-left h1 {
@@ -57,12 +65,6 @@
     margin: 0 0 8px;
     font-size: 14px;
     color: #a8c3ff;
-}
-
-.hero-selector-inline {
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 .hero-change-button,
@@ -107,6 +109,7 @@
     display: grid;
     gap: 16px;
     align-content: start;
+    min-height: calc(100vh - 36px);
 }
 
 .status-effects-preview-header h2 {
@@ -129,6 +132,13 @@
     place-items: center;
     overflow: visible;
     padding: 18px;
+}
+
+.status-effects-card-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
 .hero-selected-chip {
@@ -232,19 +242,10 @@
     border: 1px solid rgba(170, 206, 255, 0.45);
 }
 
-.status-effects-preview-meta {
-    border: 1px solid #2d4270;
-    border-radius: 10px;
-    padding: 12px;
-    background: rgba(11, 18, 36, 0.75);
-    display: grid;
-    gap: 5px;
-    color: #d9e4ff;
-}
-
 @media (max-width: 920px) {
     .status-effects-page {
         padding: 12px;
+        overflow-y: auto;
     }
 
     .status-effects-shell {
@@ -252,10 +253,81 @@
     }
 
     .status-effects-left {
-        max-height: none;
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(86vw, 350px);
+        max-height: 100vh;
+        border-radius: 14px 0 0 14px;
+        transform: translateX(102%);
+        transition: transform 0.25s ease;
+        z-index: 1300;
+    }
+
+    .status-effects-left.open {
+        transform: translateX(0);
+    }
+
+    .status-effects-mobile-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .status-effects-mobile-drawer-header h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .status-effects-mobile-drawer-header button {
+        border: 1px solid #44639b;
+        background: #203966;
+        color: #e7eeff;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .status-effects-mobile-drawer-dim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 8, 18, 0.42);
+        z-index: 1200;
     }
 
     .status-effects-right {
+        min-height: 0;
         padding: 14px;
+        position: relative;
+        overflow: visible;
+    }
+
+    .status-effects-mobile-drawer-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        justify-self: end;
+        width: 32px;
+        height: 32px;
+        border: 1px solid #425f98;
+        border-radius: 8px;
+        background: #172b53;
+        color: #deebff;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .status-effects-preview-stage {
+        min-height: 320px;
+    }
+
+    .status-effects-card-selector {
+        flex-direction: column;
     }
 }
