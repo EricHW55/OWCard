@@ -1,56 +1,127 @@
-@keyframes status-taunt-border-shimmer {
-    0%,
-    100% {
-        opacity: 0.72;
-        box-shadow: 0 0 14px rgba(255, 206, 97, 0.42), 0 0 34px rgba(255, 175, 55, 0.28), inset 0 0 10px rgba(255, 226, 148, 0.22);
-    }
-    50% {
-        opacity: 1;
-        box-shadow: 0 0 22px rgba(255, 213, 102, 0.62), 0 0 46px rgba(255, 184, 52, 0.38), inset 0 0 16px rgba(255, 232, 153, 0.32);
-    }
+/* ═══════════════════════════════════════════
+   Skill Silence — 3D chain-wrapped card
+   ═══════════════════════════════════════════ */
+
+.field-card-3d.status-skill-silence {
+    box-shadow:
+            0 0 0 2px rgba(70, 78, 102, 0.72),
+            inset 0 0 18px rgba(30, 34, 52, 0.5);
 }
 
-@keyframes status-taunt-wave {
-    0% {
-        transform: scale(0.9);
-        opacity: 0;
-    }
-    24% {
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(1.18);
-        opacity: 0;
-    }
-}
-
-.field-card-3d.status-taunt {
-    box-shadow: 0 0 0 2px rgba(255, 204, 94, 0.78), 0 0 20px rgba(255, 193, 58, 0.5), 0 0 38px rgba(255, 171, 41, 0.34),
-    0 0 58px rgba(255, 203, 94, 0.2);
-}
-
-.field-card-3d.status-taunt .field-status-layer-taunt {
-    position: absolute;
-    inset: -8px;
-    border-radius: calc(var(--field-card-radius) + 10px);
-    pointer-events: none;
-    z-index: 2;
-    border: 1px solid rgba(255, 217, 126, 0.62);
-    animation: status-taunt-border-shimmer 1.9s ease-in-out infinite;
-}
-
-.field-card-3d.status-taunt .field-status-layer-taunt::before,
-.field-card-3d.status-taunt .field-status-layer-taunt::after {
+/* ── 카드 어둡게 (속박 오버레이) ──────────── */
+.field-card-3d.status-skill-silence::after {
     content: '';
     position: absolute;
-    inset: -2px;
+    inset: 0;
+    z-index: 6;
     border-radius: inherit;
-    border: 2px solid rgba(255, 213, 118, 0.46);
-    box-shadow: 0 0 10px rgba(255, 203, 97, 0.34);
-    transform-origin: center;
-    animation: status-taunt-wave 2.1s ease-out infinite;
+    background:
+            radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(18, 22, 40, 0.35) 100%);
+    pointer-events: none;
 }
 
-.field-card-3d.status-taunt .field-status-layer-taunt::after {
-    animation-delay: 1.05s;
+/* ── 체인 공통 ──────────────────────────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9;
+    background-repeat: repeat-x;
+    background-position: left center;
+
+    /*
+      3D 체인 SVG:
+      - 가로 링크(앞): 타원 + 그라데이션 stroke + 상단 하이라이트
+      - 세로 링크(뒤): 더 작고 어두운 타원 (연결부)
+      - clip-path로 앞 링크가 뒤 링크를 가리는 효과
+    */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='28' viewBox='0 0 52 28'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23c8cee0'/%3E%3Cstop offset='.3' stop-color='%239ca3b8'/%3E%3Cstop offset='.65' stop-color='%236b7490'/%3E%3Cstop offset='1' stop-color='%23454d64'/%3E%3C/linearGradient%3E%3ClinearGradient id='b' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%239098ad'/%3E%3Cstop offset='1' stop-color='%23384058'/%3E%3C/linearGradient%3E%3C/defs%3E%3C!-- 뒤 세로 링크 --%3E%3Cellipse cx='26' cy='14' rx='5.5' ry='11' fill='none' stroke='url(%23b)' stroke-width='3.5' opacity='.62'/%3E%3C!-- 앞 가로 링크 1 --%3E%3Cellipse cx='13' cy='14' rx='11' ry='7' fill='none' stroke='url(%23a)' stroke-width='3.8'/%3E%3Cellipse cx='13' cy='11.5' rx='7.5' ry='3.5' fill='none' stroke='%23dde2ee' stroke-width='.6' opacity='.45'/%3E%3C!-- 앞 가로 링크 2 --%3E%3Cellipse cx='39' cy='14' rx='11' ry='7' fill='none' stroke='url(%23a)' stroke-width='3.8'/%3E%3Cellipse cx='39' cy='11.5' rx='7.5' ry='3.5' fill='none' stroke='%23dde2ee' stroke-width='.6' opacity='.45'/%3E%3C/svg%3E");
+    background-size: 52px 28px;
+
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 2px rgba(0, 0, 0, 0.35));
+}
+
+/* ── 체인 밴드 1: 상단 ─────────────────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain.top {
+    left: -20px;
+    right: -16px;
+    top: 16%;
+    height: 26px;
+    transform: rotate(24deg);
+}
+
+/* ── 체인 밴드 2: 하단 ─────────────────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain.bottom {
+    left: -16px;
+    right: -20px;
+    top: 56%;
+    height: 26px;
+    transform: rotate(-20deg);
+}
+
+/* ── 체인 밴드 3: 가운데 (살짝 수평) ────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-chain.mid {
+    left: -12px;
+    right: -12px;
+    top: 37%;
+    height: 24px;
+    transform: rotate(4deg);
+    opacity: 0.65;
+}
+
+/* ── 카드 가장자리 감김 그림자 ────────────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-edge {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+}
+
+.field-card-3d.status-skill-silence .field-status-layer-silence-edge.left {
+    left: -1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg,
+    rgba(45, 52, 72, 0.65) 0%,
+    rgba(45, 52, 72, 0.18) 50%,
+    transparent 100%
+    );
+}
+
+.field-card-3d.status-skill-silence .field-status-layer-silence-edge.right {
+    right: -1px;
+    border-radius: inherit;
+    background: linear-gradient(270deg,
+    rgba(45, 52, 72, 0.65) 0%,
+    rgba(45, 52, 72, 0.18) 50%,
+    transparent 100%
+    );
+}
+
+/* ── 자물쇠 아이콘 (중앙) ─────────────── */
+.field-card-3d.status-skill-silence .field-status-layer-silence-lock {
+    position: absolute;
+    z-index: 11;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 40%,
+    rgba(80, 88, 116, 0.95),
+    rgba(35, 40, 58, 0.97)
+    );
+    border: 1.5px solid rgba(150, 160, 190, 0.45);
+    box-shadow:
+            0 2px 8px rgba(0, 0, 0, 0.6),
+            0 0 3px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    font-size: 10px;
+    line-height: 1;
+    color: rgba(190, 200, 220, 0.9);
 }
