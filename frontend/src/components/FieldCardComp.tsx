@@ -114,6 +114,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         return false;
     });
     const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
+    const hasChargingStatus = card.statuses?.some((s) => s.name === 'charging') ?? false;
     const showBarrier = hasBarrier && !hasTaunt && !isParticleBarrier;
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
@@ -154,6 +155,10 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         chargeLevel = zaryaCharge;
         chargeMax = 1;
         chargeAuraColor = '#ff2f4f';
+    } else if (hasChargingStatus) {
+        chargeLevel = Math.max(0, Math.min(3, Number(card.extra?.charge_level ?? 0) || 0));
+        chargeMax = 3;
+        chargeAuraColor = '#7a5cff';
     }
     const chargeIntensity = chargeMax > 0 ? chargeLevel / chargeMax : 0;
     const chargeAuraGlow = chargeIntensity > 0
@@ -385,51 +390,37 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             {chargeLevel > 0 && auraSpikes.map((spike, idx) => (
                 <div
                     key={`aura-spike-${idx}`}
+                    className="field-charge-aura-spike"
                     style={{
-                        position: 'absolute',
                         top: `${spike.y}%`,
                         left: `${spike.x}%`,
-                        width: spike.w,
-                        height: spike.h,
-                        borderRadius: 0,
-                        clipPath: 'polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%)',
+                        width: `${spike.w}px`,
+                        height: `${spike.h}px`,
                         transform: `translate(-50%, -50%) rotate(${spike.rotate}deg)`,
-                        transformOrigin: '50% 100%',
                         background: `linear-gradient(180deg, ${hexToRgba(chargeAuraColor, 0.95)} 0%, ${hexToRgba(chargeAuraColor, 0.58)} 45%, ${hexToRgba(chargeAuraColor, 0.18)} 80%, transparent 100%)`,
                         filter: `blur(${0.3 + chargeIntensity * 0.8}px)`,
-                        opacity: 0,
-                        zIndex: -1,
-                        pointerEvents: 'none',
-                        animation: `auraSpikePop ${spike.duration}s ease-in-out ${spike.delay}s infinite`,
+                        animationDuration: `${spike.duration}s`,
+                        animationDelay: `${spike.delay}s`,
                         ['--aura-peak' as string]: String(Math.min(1, spike.peak + chargeIntensity * 0.2)),
-                        ['--aura-rot' as string]: `${spike.rotate}deg`,
                     }}
                 />
             ))}
             {chargeLevel > 0 && (
                 <>
                     <div
+                        className="field-charge-aura-flow"
                         style={{
-                            position: 'absolute',
-                            inset: '-24%',
-                            borderRadius: '30%',
-                            pointerEvents: 'none',
-                            zIndex: -2,
                             background: `radial-gradient(circle, ${hexToRgba(chargeAuraColor, 0.05)} 0%, ${hexToRgba(chargeAuraColor, 0.1)} 42%, ${hexToRgba(chargeAuraColor, 0.35)} 72%, transparent 100%)`,
                             filter: `blur(${4 + chargeIntensity * 10}px)`,
-                            animation: `auraFlow ${3 - chargeIntensity * 0.55}s linear infinite`,
+                            animationDuration: `${3 - chargeIntensity * 0.55}s`,
                         }}
                     />
                     <div
+                        className="field-charge-aura-sweep"
                         style={{
-                            position: 'absolute',
-                            inset: '-30%',
-                            borderRadius: '42%',
-                            pointerEvents: 'none',
-                            zIndex: -3,
                             background: `conic-gradient(from 0deg, transparent 0deg, ${hexToRgba(chargeAuraColor, 0.4)} 70deg, transparent 150deg, ${hexToRgba(chargeAuraColor, 0.3)} 240deg, transparent 320deg)`,
                             filter: `blur(${2 + chargeIntensity * 4}px)`,
-                            animation: `auraSweep ${4.8 - chargeIntensity * 0.8}s linear infinite`,
+                            animationDuration: `${4.8 - chargeIntensity * 0.8}s`,
                         }}
                     />
                 </>

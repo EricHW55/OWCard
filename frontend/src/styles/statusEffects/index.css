@@ -11,6 +11,8 @@
 @import './taunt.css';
 @import './barrier.css';
 @import './attack-amplifier.css';
+@import './charging.css';
+
 
 .field-card-3d .field-status-effects {
     position: absolute;

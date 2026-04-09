@@ -162,7 +162,7 @@ class ParticleBarrier(StatusEffect):
                 "damage": 0,
                 "absorbed": True,
                 "particle_barrier_broken": True,
-                "trigger_zarya_buff": self.source_uid if card.uid != self.source_uid else "",
+                "trigger_zarya_buff": self.source_uid,
             }
         return {"damage": damage}
 
