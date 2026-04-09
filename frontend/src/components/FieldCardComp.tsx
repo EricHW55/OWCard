@@ -184,6 +184,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         isPulled ? 'status-pulled' : '',
         isHooked ? 'status-hooked' : '',
         hasSilence ? 'status-skill-silence' : '',
+        hasBurn ? 'status-burn' : '',
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
@@ -312,8 +313,20 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 {hasSilence && (
                     <>
                         <div className="field-status-layer-silence-chain top" />
+                        <div className="field-status-layer-silence-chain mid" />
                         <div className="field-status-layer-silence-chain bottom" />
+                        <div className="field-status-layer-silence-edge left" />
+                        <div className="field-status-layer-silence-edge right" />
+                        {/*<div className="field-status-layer-silence-lock">🔒</div>*/}
                     </>
+                )}
+                {hasBurn && (
+                    <div className="field-status-layer-burn">
+                        <div className="burn-ember" />
+                        <div className="burn-ember" />
+                        <div className="burn-ember" />
+                        <div className="burn-ember" />
+                    </div>
                 )}
                 {hasStickyBomb && <div className="field-status-layer-sticky-bomb" />}
                 {hasTaunt && <div className="field-status-layer-taunt" />}
