@@ -333,8 +333,8 @@ export function getCardArtCandidates(card: CardLike): string[] {
     const normalizedKey = key === 'hana_song' ? 'songhana' : key;
     return [
         `/cards/${roleFolder}/${normalizedKey}.png`,
-        `/cards/${roleFolder}/${normalizedKey}.jpg`,
-        `/cards/${roleFolder}/${normalizedKey}.jpeg`,
+        // `/cards/${roleFolder}/${normalizedKey}.jpg`,
+        // `/cards/${roleFolder}/${normalizedKey}.jpeg`,
     ];
 }
 
@@ -347,8 +347,8 @@ export function getIllustrationCandidates(card: CardLike): string[] {
     const normalizedKey = key === 'hana_song' ? 'songhana' : key;
     return [
         `/illustration/${roleFolder}/${normalizedKey}.png`,
-        `/illustration/${roleFolder}/${normalizedKey}.jpg`,
-        `/illustration/${roleFolder}/${normalizedKey}.jpeg`,
+        // `/illustration/${roleFolder}/${normalizedKey}.jpg`,
+        // `/illustration/${roleFolder}/${normalizedKey}.jpeg`,
     ];
 }
 

@@ -122,6 +122,7 @@ ${desc}` : ''}`;
     }).join('');
     const cardArtSkillRows = skillEntries.map(([key, meta]) => ({
         key,
+        isPassive: key === 'passive',
         title: meta?.name ?? skillSectionLabel(key),
         value: formatDamage(damages[key]),
         desc: meta?.description || '',
@@ -325,7 +326,7 @@ ${desc}` : ''}`;
                                                     fontSize: scaledPx(12.6, 11, 14),
                                                     fontWeight: 900,
                                                     lineHeight: 1.3,
-                                                    color: '#0b0b0b',
+                                                    color: skill.isPassive ? '#b31313' : '#0b0b0b',
                                                     WebkitTextStroke: '0.52px rgba(255,255,255,0.9)',
                                                     paintOrder: 'stroke fill',
                                                 }}
@@ -339,7 +340,7 @@ ${desc}` : ''}`;
                                                         fontSize: scaledPx(10.7, 9, 12),
                                                         fontWeight: 700,
                                                         lineHeight: 1.35,
-                                                        color: '#0b0b0b',
+                                                        color: skill.isPassive ? '#b31313' : '#0b0b0b',
                                                         WebkitTextStroke: '0.45px rgba(255,255,255,0.9)',
                                                         paintOrder: 'stroke fill',
                                                     }}
@@ -482,7 +483,7 @@ ${desc}` : ''}`;
                                             >
                                                 {skillSectionLabel(key)}
                                             </span>
-                                            <span style={{ fontSize: scaledPx(13, 12, 14), fontWeight: 800, color: '#e8ecf8' }}>
+                                            <span style={{ fontSize: scaledPx(13, 12, 14), fontWeight: 800, color: key === 'passive' ? '#b31313' : '#e8ecf8' }}>
                                                 {meta?.name ?? key}
                                             </span>
                                         </div>
@@ -510,7 +511,7 @@ ${desc}` : ''}`;
                                                 <div
                                                     style={{
                                                         fontSize: scaledPx(10, 9, 11),
-                                                        color: key === 'passive' ? '#ff5c5c' : '#9aa6ce',
+                                                        color: key === 'passive' ? '#b31313' : '#9aa6ce',
                                                         lineHeight: 1.5,
                                                     }}
                                                 >
