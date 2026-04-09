@@ -1,0 +1,73 @@
+@keyframes status-range-modification-border-pulse {
+    0%,
+    100% {
+        opacity: 0.8;
+        box-shadow: 0 0 10px rgba(92, 230, 145, 0.45), 0 0 22px rgba(48, 191, 110, 0.28), inset 0 0 8px rgba(170, 255, 205, 0.24);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 14px rgba(121, 244, 167, 0.62), 0 0 30px rgba(44, 205, 114, 0.42), inset 0 0 12px rgba(202, 255, 224, 0.34);
+    }
+}
+
+@keyframes status-range-modification-icon-rise {
+    0% {
+        transform: translate(-50%, 10px) scale(0.82);
+        opacity: 0;
+    }
+    22% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--range-modifier-drift, 0px)), -18px) scale(1.08);
+        opacity: 0;
+    }
+}
+
+.field-card-3d.status-range-modification {
+    box-shadow: 0 0 0 2px rgba(98, 235, 148, 0.82), 0 0 18px rgba(64, 214, 124, 0.42), 0 0 34px rgba(38, 165, 92, 0.24);
+}
+
+.field-card-3d.status-range-modification .field-status-layer-range-modification {
+    position: absolute;
+    inset: -6px;
+    border-radius: calc(var(--field-card-radius) + 8px);
+    border: 2px solid rgba(111, 242, 162, 0.84);
+    pointer-events: none;
+    z-index: 2;
+    animation: status-range-modification-border-pulse 1.55s ease-in-out infinite;
+}
+
+.field-card-3d.status-range-modification .field-status-layer-range-modification-icon {
+    position: absolute;
+    width: var(--range-modifier-size, 16px);
+    height: var(--range-modifier-size, 16px);
+    pointer-events: none;
+    opacity: 0;
+    border-radius: 999px;
+    background: radial-gradient(circle at 38% 30%, rgba(230, 255, 239, 0.96) 0%, rgba(136, 246, 177, 0.94) 35%, rgba(48, 191, 110, 0.94) 68%, rgba(31, 149, 84, 0.95) 100%);
+    box-shadow: 0 0 0 1px rgba(220, 255, 233, 0.86), 0 0 7px rgba(74, 224, 132, 0.78);
+    animation: status-range-modification-icon-rise 2.1s ease-out infinite;
+    animation-delay: var(--range-modifier-delay, 0s);
+}
+
+.field-card-3d.status-range-modification .field-status-layer-range-modification-icon::before,
+.field-card-3d.status-range-modification .field-status-layer-range-modification-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 22%;
+    height: 22%;
+    border-top: 2px solid rgba(245, 255, 249, 0.98);
+    border-right: 2px solid rgba(245, 255, 249, 0.98);
+    transform: translateY(-50%) rotate(45deg);
+    filter: drop-shadow(0 0 1px rgba(12, 94, 45, 0.35));
+}
+
+.field-card-3d.status-range-modification .field-status-layer-range-modification-icon::before {
+    left: 27%;
+}
+
+.field-card-3d.status-range-modification .field-status-layer-range-modification-icon::after {
+    left: 49%;
+}

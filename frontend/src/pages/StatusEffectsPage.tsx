@@ -110,7 +110,7 @@ const EFFECTS: EffectPreview[] = [
     { key: 'stealth', label: 'Stealth', title: '은신', summary: '적용 시 회복, 타겟팅 불가.', statuses: [makeStatus('stealth', 2, ['buff'])] },
     { key: 'burrowed', label: 'Burrowed', title: '잠복', summary: '타겟팅 불가, 다음 공격 시 거리 1칸 무시.', statuses: [makeStatus('burrowed', 1, ['buff'])] },
     { key: 'exposed', label: 'Exposed', title: '무시', summary: '자신이 더 쉽게 맞고, 앞라인 차단 역할을 하지 못하게 됨.', statuses: [makeStatus('exposed', 2, ['debuff'])] },
-    { key: 'knockback', label: 'Knockback', title: '넉백', summary: '사거리 -1 용도의 상태값.', statuses: [makeStatus('range_modifier', 1, ['debuff'], { value: -1 })] },
+    { key: 'knockback', label: 'Knockback', title: '넉백', summary: '넉백 상태로 취급되어 위치/거리 패널티를 유도.', statuses: [makeStatus('knockback', 1, ['debuff'], { value: 1 })] },
     { key: 'pulled', label: 'Pulled', title: '끌어당겨짐', summary: '공격자 기준 이 카드까지의 거리 감소.', statuses: [makeStatus('pulled', 1, ['debuff'])] },
     { key: 'hooked', label: 'Hooked', title: '갈고리', summary: '거의 모든 아군이 거리 무시 수준으로 이 대상을 노릴 수 있게 함.', statuses: [makeStatus('hooked', 1, ['debuff'])] },
     { key: 'attack_buff', label: 'AttackBuff', title: '공격력 증감', summary: '공격 전에 공격력 수치 보정.', statuses: [makeStatus('attack_buff', 2, ['buff'], { value: 2 })] },

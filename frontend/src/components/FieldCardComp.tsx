@@ -92,14 +92,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const isAirborne = card.statuses?.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
-    const isKnockback = card.statuses?.some((s) => {
-        if (s.name === 'knockback') return true;
-        if (s.name === 'range_modifier') {
-            const value = Number((s as any).value);
-            return !Number.isNaN(value) && value < 0;
-        }
-        return false;
-    });
+    const isKnockback = card.statuses?.some((s) => s.name === 'knockback');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
@@ -139,6 +132,11 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
             return value === undefined ? true : Number(value) > 1;
         }
         return false;
+    });
+    const hasRangeModification = card.statuses?.some((s) => {
+        if (s.name !== 'range_modifier') return false;
+        const value = Number((s as any).value);
+        return Number.isNaN(value) ? true : value > 0;
     });
     const hasHealBlock = card.statuses?.some((s) => s.name === 'heal_block');
     const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
@@ -238,6 +236,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         hasFortifyPassive ? 'status-orisa-fortify-passive' : '',
         isFortifyActive ? 'status-orisa-fortify-active' : '',
         hasAttackAmplifier ? 'status-attack-amplifier' : '',
+        hasRangeModification ? 'status-range-modification' : '',
         hasHealAmplifier ? 'status-heal-amplifier' : '',
         hasHealBlock ? 'status-heal-block' : '',
     ].filter(Boolean).join(' ');
@@ -412,6 +411,31 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                                     ['--attack-chevron-drift' as string]: chevron.drift,
                                     ['--attack-chevron-width' as string]: chevron.w,
                                     ['--attack-chevron-height' as string]: chevron.h,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
+                {hasRangeModification && (
+                    <div className="field-status-layer-range-modification">
+                        {[
+                            { x: '12%', y: '80%', d: '0.00s', drift: '-4px', size: '18px' },
+                            { x: '28%', y: '54%', d: '0.30s', drift: '6px', size: '14px' },
+                            { x: '44%', y: '72%', d: '0.66s', drift: '-6px', size: '20px' },
+                            { x: '62%', y: '36%', d: '1.02s', drift: '6px', size: '12px' },
+                            { x: '76%', y: '64%', d: '1.38s', drift: '-7px', size: '16px' },
+                            { x: '88%', y: '42%', d: '1.74s', drift: '5px', size: '15px' },
+                            { x: '22%', y: '24%', d: '2.08s', drift: '-4px', size: '18px' },
+                        ].map((icon, idx) => (
+                            <div
+                                key={`range-modifier-icon-${idx}`}
+                                className="field-status-layer-range-modification-icon"
+                                style={{
+                                    left: icon.x,
+                                    top: icon.y,
+                                    ['--range-modifier-delay' as string]: icon.d,
+                                    ['--range-modifier-drift' as string]: icon.drift,
+                                    ['--range-modifier-size' as string]: icon.size,
                                 }}
                             />
                         ))}
