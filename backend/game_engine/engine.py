@@ -1073,7 +1073,10 @@ class GameEngine:
             direct_log = result.get("damage_log")
             if isinstance(direct_log, dict):
                 combat_logs.append(direct_log)
-            for entry in result.get("affected", []) or []:
+            affected_entries = result.get("affected", []) or []
+            if not isinstance(affected_entries, list):
+                affected_entries = []
+            for entry in affected_entries:
                 if not isinstance(entry, dict):
                     continue
                 entry_log = entry.get("damage_log") or entry.get("damage")
@@ -1096,7 +1099,7 @@ class GameEngine:
             retaliation_targets: list[FieldCard] = []
             if target and isinstance(result.get("damage_log"), dict):
                 retaliation_targets.append(target)
-            for entry in result.get("affected", []) or []:
+            for entry in affected_entries:
                 if not isinstance(entry, dict):
                     continue
                 target_uid_from_log = (
@@ -1124,7 +1127,7 @@ class GameEngine:
                 if target and target.uid == target_card.uid and isinstance(result.get("damage_log"), dict):
                     dmg_log = result.get("damage_log")
                 if dmg_log is None:
-                    for entry in result.get("affected", []) or []:
+                    for entry in affected_entries:
                         if not isinstance(entry, dict):
                             continue
                         uid = entry.get("target") or entry.get("target_uid") or entry.get("uid")

@@ -206,7 +206,12 @@ def junkerqueen_shout(caster: FieldCard, target: FieldCard, game: GameState) -> 
     allies = game.get_my_field(caster).all_cards()
     for a in allies:
         a.add_status(ExtraHP(value=2, duration=2, source_uid=caster.uid))
-    return {"success": True, "skill": "지휘의 외침", "affected": len(allies)}
+    return {
+        "success": True,
+        "skill": "지휘의 외침",
+        "affected": [{"target_uid": a.uid} for a in allies],
+        "affected_count": len(allies),
+    }
 
 # ── 둠피스트 ──────────────────────────────
 @register_skill("doomfist", "skill_1")

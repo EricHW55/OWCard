@@ -562,10 +562,12 @@ class ExtraHP(StatusEffect):
         if self.value <= 0:
             return {"damage": damage}
         # 추가체력도 방벽처럼 모든 데미지 흡수
-        self.value = max(0, self.value - damage)
+        absorbed = min(self.value, max(0, damage))
+        self.value = max(0, self.value - absorbed)
+        remaining = max(0, damage - absorbed)
         if self.value <= 0:
             self.duration = 0
-        return {"damage": 0, "extra_hp_absorbed": damage}
+        return {"damage": remaining, "extra_hp_absorbed": absorbed}
 
     def to_dict(self):
         d = super().to_dict()
