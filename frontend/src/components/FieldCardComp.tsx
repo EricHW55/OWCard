@@ -102,7 +102,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     );
     const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
-    const showBarrier = hasBarrier && !hasTaunt;
+    const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
+    const showBarrier = hasBarrier && !hasTaunt && !isParticleBarrier;
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
 
@@ -270,7 +271,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                     willChange: isDestroying ? 'transform, filter, opacity' : undefined,
                 }}
             >
-            {hasBarrier && (
+            {showBarrier && (
                 <div
                     style={{
                         position: 'absolute',
