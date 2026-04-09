@@ -1,13 +1,56 @@
+@keyframes status-taunt-border-shimmer {
+    0%,
+    100% {
+        opacity: 0.72;
+        box-shadow: 0 0 14px rgba(255, 206, 97, 0.42), 0 0 34px rgba(255, 175, 55, 0.28), inset 0 0 10px rgba(255, 226, 148, 0.22);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 22px rgba(255, 213, 102, 0.62), 0 0 46px rgba(255, 184, 52, 0.38), inset 0 0 16px rgba(255, 232, 153, 0.32);
+    }
+}
+
+@keyframes status-taunt-wave {
+    0% {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    24% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1.18);
+        opacity: 0;
+    }
+}
+
 .field-card-3d.status-taunt {
-    box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.78), 0 0 20px rgba(255, 209, 102, 0.55), 0 0 38px rgba(255, 189, 58, 0.42),
-    0 0 62px rgba(255, 212, 118, 0.26);
+    box-shadow: 0 0 0 2px rgba(255, 204, 94, 0.78), 0 0 20px rgba(255, 193, 58, 0.5), 0 0 38px rgba(255, 171, 41, 0.34),
+    0 0 58px rgba(255, 203, 94, 0.2);
 }
 
 .field-card-3d.status-taunt .field-status-layer-taunt {
     position: absolute;
-    inset: -6px;
+    inset: -8px;
+    border-radius: calc(var(--field-card-radius) + 10px);
     pointer-events: none;
     z-index: 2;
-    border-radius: calc(var(--field-card-radius) + 8px);
-    border: 1px solid rgba(255, 214, 124, 0.55);
+    border: 1px solid rgba(255, 217, 126, 0.62);
+    animation: status-taunt-border-shimmer 1.9s ease-in-out infinite;
+}
+
+.field-card-3d.status-taunt .field-status-layer-taunt::before,
+.field-card-3d.status-taunt .field-status-layer-taunt::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    border: 2px solid rgba(255, 213, 118, 0.46);
+    box-shadow: 0 0 10px rgba(255, 203, 97, 0.34);
+    transform-origin: center;
+    animation: status-taunt-wave 2.1s ease-out infinite;
+}
+
+.field-card-3d.status-taunt .field-status-layer-taunt::after {
+    animation-delay: 1.05s;
 }

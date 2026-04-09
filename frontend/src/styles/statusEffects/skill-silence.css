@@ -1,8 +1,7 @@
 .field-card-3d.status-skill-silence {
     box-shadow:
-            0 0 0 2px rgba(177, 192, 225, 0.72),
-            0 0 24px rgba(140, 157, 198, 0.42),
-            inset 0 0 18px rgba(96, 114, 153, 0.3);
+            0 0 0 2px rgba(95, 107, 136, 0.62),
+            inset 0 0 14px rgba(52, 61, 84, 0.34);
 }
 
 .field-card-3d.status-skill-silence .field-status-layer-silence-chain {
@@ -13,11 +12,9 @@
     background-repeat: repeat-x;
     background-size: 72px 32px;
     background-position: left center;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='32' viewBox='0 0 72 32'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M0 16H72' stroke='%23666d80' stroke-width='7'/%3E%3Cellipse cx='18' cy='16' rx='11' ry='9' stroke='%23c2cada' stroke-width='4.6'/%3E%3Cellipse cx='54' cy='16' rx='11' ry='9' stroke='%23c2cada' stroke-width='4.6'/%3E%3C/g%3E%3C/svg%3E");
-    box-shadow:
-            0 0 8px rgba(134, 145, 177, 0.45),
-            0 0 2px rgba(245, 247, 255, 0.62);
-    filter: drop-shadow(0 0 2px rgba(235, 240, 255, 0.45));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='32' viewBox='0 0 72 32'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M0 16H72' stroke='%23434c63' stroke-width='7'/%3E%3Cellipse cx='18' cy='16' rx='11' ry='9' stroke='%237e889f' stroke-width='4.4'/%3E%3Cellipse cx='54' cy='16' rx='11' ry='9' stroke='%237e889f' stroke-width='4.4'/%3E%3C/g%3E%3C/svg%3E");
+    box-shadow: none;
+    filter: none;
 }
 
 .field-card-3d.status-skill-silence .field-status-layer-silence-chain.top {
