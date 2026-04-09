@@ -82,6 +82,12 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
 
     const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
+    const hasExtraHp = extraHp > 0;
+    const hasBonusHp = hasBarrier || hasExtraHp;
+    const hpTrackWidth = hasBonusHp ? '74%' : '100%';
+    const bonusTrackTotal = Math.max(1, barrierHp + extraHp);
+    const barrierTrackWidth = `${(Math.max(0, barrierHp) / bonusTrackTotal) * 100}%`;
+    const extraHpTrackWidth = `${(Math.max(0, extraHp) / bonusTrackTotal) * 100}%`;
 
     const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
     const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
@@ -622,8 +628,8 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                 }}
             >
                 <span style={{ color: '#22dd77' }}>♥{card.current_hp}</span>
-                {hasBarrier && <span style={{ color: '#22cc88' }}>🛡{barrierHp}</span>}
-                {extraHp > 0 && <span style={{ color: '#ffdd44' }}>+{extraHp}</span>}
+                {hasBarrier && <span style={{ color: '#44aaff' }}>🛡{barrierHp}</span>}
+                {hasExtraHp && <span style={{ color: '#ffdd44' }}>+{extraHp}</span>}
             </div>
 
             <div
@@ -637,24 +643,64 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                     borderRadius: 2,
                     overflow: 'hidden',
                     marginBottom: usingFullCardArt ? 'calc(var(--field-card-width) * 0.05)' : 0,
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    gap: hasBonusHp ? 1 : 0,
                 }}
             >
-                <div
-                    style={{
-                        height: '100%',
-                        width: `${hpPct}%`,
-                        background: hpColor,
-                        borderRadius: 2,
-                        transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
-                    }}
-                />
-                {isImmortalityTriggered && (
+                <div style={{ position: 'relative', width: hpTrackWidth, height: '100%', borderRadius: 2, overflow: 'hidden' }}>
                     <div
-                        className="field-hp-bar-immortality-glow"
                         style={{
-                            width: `${hpPct}%`,
+                            height: '100%',
+                            width: `${Math.max(0, Math.min(100, hpPct))}%`,
+                            background: hpColor,
+                            borderRadius: 2,
+                            transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
                         }}
                     />
+                    {isImmortalityTriggered && (
+                        <div
+                            className="field-hp-bar-immortality-glow"
+                            style={{
+                                width: `${Math.max(0, Math.min(100, hpPct))}%`,
+                            }}
+                        />
+                    )}
+                </div>
+                {hasBonusHp && (
+                    <div
+                        style={{
+                            width: 'calc(26% - 1px)',
+                            height: '100%',
+                            display: 'flex',
+                            gap: 1,
+                        }}
+                    >
+                        {hasBarrier && (
+                            <div
+                                title={`Barrier ${barrierHp}`}
+                                style={{
+                                    width: barrierTrackWidth,
+                                    height: '100%',
+                                    background: '#44aaff',
+                                    borderRadius: 2,
+                                    transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
+                                }}
+                            />
+                        )}
+                        {hasExtraHp && (
+                            <div
+                                title={`Extra HP ${extraHp}`}
+                                style={{
+                                    width: extraHpTrackWidth,
+                                    height: '100%',
+                                    background: '#ffdd44',
+                                    borderRadius: 2,
+                                    transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
+                                }}
+                            />
+                        )}
+                    </div>
                 )}
             </div>
 
