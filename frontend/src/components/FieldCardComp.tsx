@@ -113,6 +113,18 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         }
         return false;
     });
+    const hasHealAmplifier = card.statuses?.some((s) => {
+        if (s.name === 'heal_amplify') {
+            const value = (s as any).value;
+            return value === undefined ? true : Number(value) > 0;
+        }
+        if (s.name === 'heal_multiplier') {
+            const value = (s as any).value;
+            return value === undefined ? true : Number(value) > 1;
+        }
+        return false;
+    });
+    const hasHealBlock = card.statuses?.some((s) => s.name === 'heal_block');
     const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
     const hasChargingStatus = card.statuses?.some((s) => s.name === 'charging') ?? false;
     const showBarrier = hasBarrier && !hasTaunt && !isParticleBarrier;
@@ -205,6 +217,8 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
         hasAttackAmplifier ? 'status-attack-amplifier' : '',
+        hasHealAmplifier ? 'status-heal-amplifier' : '',
+        hasHealBlock ? 'status-heal-block' : '',
     ].filter(Boolean).join(' ');
 
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
@@ -379,6 +393,54 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         ))}
                     </div>
                 )}
+                {hasHealAmplifier && (
+                    <div className="field-status-layer-heal-amplifier">
+                        {[
+                            { x: '16%', y: '78%', d: '0.00s', drift: '-5px', size: '18px' },
+                            { x: '32%', y: '52%', d: '0.38s', drift: '6px', size: '14px' },
+                            { x: '48%', y: '70%', d: '0.76s', drift: '-6px', size: '20px' },
+                            { x: '64%', y: '34%', d: '1.12s', drift: '6px', size: '12px' },
+                            { x: '80%', y: '58%', d: '1.50s', drift: '-7px', size: '16px' },
+                            { x: '24%', y: '28%', d: '1.86s', drift: '-4px', size: '18px' },
+                        ].map((cross, idx) => (
+                            <div
+                                key={`heal-amplifier-cross-${idx}`}
+                                className="field-status-layer-heal-amplifier-cross"
+                                style={{
+                                    left: cross.x,
+                                    top: cross.y,
+                                    ['--heal-cross-delay' as string]: cross.d,
+                                    ['--heal-cross-drift' as string]: cross.drift,
+                                    ['--heal-cross-size' as string]: cross.size,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
+                {hasHealBlock && (
+                    <div className="field-status-layer-heal-block">
+                        {[
+                            { x: '16%', y: '78%', d: '0.00s', drift: '-5px', size: '18px' },
+                            { x: '32%', y: '52%', d: '0.38s', drift: '6px', size: '14px' },
+                            { x: '48%', y: '70%', d: '0.76s', drift: '-6px', size: '20px' },
+                            { x: '64%', y: '34%', d: '1.12s', drift: '6px', size: '12px' },
+                            { x: '80%', y: '58%', d: '1.50s', drift: '-7px', size: '16px' },
+                            { x: '24%', y: '28%', d: '1.86s', drift: '-4px', size: '18px' },
+                        ].map((cross, idx) => (
+                            <div
+                                key={`heal-block-cross-${idx}`}
+                                className="field-status-layer-heal-block-cross"
+                                style={{
+                                    left: cross.x,
+                                    top: cross.y,
+                                    ['--heal-cross-delay' as string]: cross.d,
+                                    ['--heal-cross-drift' as string]: cross.drift,
+                                    ['--heal-cross-size' as string]: cross.size,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {moveBadge && (
@@ -517,6 +579,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             </div>
 
             <div
+                className={hasHealBlock ? 'field-hp-bar-wrap heal-blocked' : 'field-hp-bar-wrap'}
                 style={{
                     position: 'relative',
                     zIndex: 2,

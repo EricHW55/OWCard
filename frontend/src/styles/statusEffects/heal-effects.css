@@ -1,0 +1,139 @@
+@keyframes status-heal-border-pulse {
+    0%,
+    100% {
+        opacity: 0.8;
+        box-shadow: 0 0 10px rgba(255, 218, 100, 0.45), 0 0 22px rgba(255, 196, 54, 0.28), inset 0 0 8px rgba(255, 241, 171, 0.24);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 14px rgba(255, 223, 116, 0.62), 0 0 30px rgba(255, 187, 38, 0.42), inset 0 0 12px rgba(255, 246, 202, 0.38);
+    }
+}
+
+@keyframes status-heal-block-border-pulse {
+    0%,
+    100% {
+        opacity: 0.8;
+        box-shadow: 0 0 10px rgba(225, 120, 255, 0.42), 0 0 24px rgba(182, 82, 255, 0.28), inset 0 0 8px rgba(238, 184, 255, 0.24);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 16px rgba(234, 145, 255, 0.6), 0 0 30px rgba(193, 77, 255, 0.4), inset 0 0 12px rgba(245, 204, 255, 0.34);
+    }
+}
+
+@keyframes status-heal-cross-rise {
+    0% {
+        transform: translate(-50%, 10px) scale(0.82);
+        opacity: 0;
+    }
+    22% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--heal-cross-drift, 0px)), -18px) scale(1.08);
+        opacity: 0;
+    }
+}
+
+.field-card-3d.status-heal-amplifier {
+    box-shadow: 0 0 0 2px rgba(255, 219, 108, 0.82), 0 0 18px rgba(255, 201, 72, 0.42), 0 0 34px rgba(235, 169, 45, 0.24);
+}
+
+.field-card-3d.status-heal-amplifier .field-status-layer-heal-amplifier {
+    position: absolute;
+    inset: -6px;
+    border-radius: calc(var(--field-card-radius) + 8px);
+    border: 2px solid rgba(255, 212, 96, 0.84);
+    pointer-events: none;
+    z-index: 2;
+    animation: status-heal-border-pulse 1.55s ease-in-out infinite;
+}
+
+.field-card-3d.status-heal-block {
+    box-shadow: 0 0 0 2px rgba(218, 116, 255, 0.82), 0 0 18px rgba(190, 87, 255, 0.42), 0 0 34px rgba(153, 63, 235, 0.24);
+}
+
+.field-card-3d.status-heal-block .field-status-layer-heal-block {
+    position: absolute;
+    inset: -6px;
+    border-radius: calc(var(--field-card-radius) + 8px);
+    border: 2px solid rgba(219, 119, 255, 0.84);
+    pointer-events: none;
+    z-index: 2;
+    animation: status-heal-block-border-pulse 1.55s ease-in-out infinite;
+}
+
+.field-card-3d .field-status-layer-heal-amplifier-cross,
+.field-card-3d .field-status-layer-heal-block-cross {
+    position: absolute;
+    width: var(--heal-cross-size, 16px);
+    height: var(--heal-cross-size, 16px);
+    pointer-events: none;
+    opacity: 0;
+    transform-origin: center;
+    animation: status-heal-cross-rise 2.1s ease-out infinite;
+    animation-delay: var(--heal-cross-delay, 0s);
+}
+
+.field-card-3d .field-status-layer-heal-amplifier-cross {
+    filter: drop-shadow(0 0 4px rgba(255, 214, 98, 0.8));
+}
+
+.field-card-3d .field-status-layer-heal-block-cross {
+    filter: drop-shadow(0 0 4px rgba(220, 124, 255, 0.8));
+}
+
+.field-card-3d .field-status-layer-heal-amplifier-cross::before,
+.field-card-3d .field-status-layer-heal-amplifier-cross::after,
+.field-card-3d .field-status-layer-heal-block-cross::before,
+.field-card-3d .field-status-layer-heal-block-cross::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 70%;
+    height: 18%;
+    border-radius: 999px;
+    background: transparent;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+}
+
+.field-card-3d .field-status-layer-heal-amplifier-cross::before,
+.field-card-3d .field-status-layer-heal-amplifier-cross::after {
+    border: 2px solid rgba(255, 216, 106, 0.97);
+    box-shadow: inset 0 0 0 1px rgba(255, 245, 201, 0.88);
+}
+
+.field-card-3d .field-status-layer-heal-block-cross::before,
+.field-card-3d .field-status-layer-heal-block-cross::after {
+    border: 2px solid rgba(224, 149, 255, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(248, 223, 255, 0.88);
+}
+
+.field-card-3d .field-status-layer-heal-amplifier-cross::after,
+.field-card-3d .field-status-layer-heal-block-cross::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.field-card-3d .field-status-layer-heal-block-cross {
+    --slash-color: rgba(80, 18, 116, 0.95);
+}
+
+.field-card-3d .field-status-layer-heal-block-cross {
+    background:
+            linear-gradient(135deg,
+            transparent 34%,
+            var(--slash-color) 35%,
+            var(--slash-color) 49%,
+            transparent 50%);
+    border-radius: 50%;
+}
+
+.field-hp-bar-wrap.heal-blocked {
+    border: 2px solid rgba(219, 104, 255, 0.9);
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(217, 93, 255, 0.45), inset 0 0 6px rgba(245, 199, 255, 0.3);
+    padding: 1px;
+}
