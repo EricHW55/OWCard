@@ -87,6 +87,9 @@ const verticalWallpapers = [
     '/wallpaper/Vertical/5.jpg',
     '/wallpaper/Vertical/6.png',
     '/wallpaper/Vertical/7.jpg',
+    '/wallpaper/Vertical/8.webp',
+    '/wallpaper/Vertical/9.webp',
+    '/wallpaper/Vertical/10.jpg',
 ];
 
 const LobbyPage: React.FC = () => {

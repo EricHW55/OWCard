@@ -102,6 +102,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     );
     const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
+    const showBarrier = hasBarrier && !hasTaunt;
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
     const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
 
@@ -184,7 +185,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         hasSilence ? 'status-skill-silence' : '',
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasTaunt ? 'status-taunt' : '',
-        hasBarrier ? 'status-barrier' : '',
+        showBarrier ? 'status-barrier' : '',
     ].filter(Boolean).join(' ');
 
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
@@ -315,7 +316,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 )}
                 {hasStickyBomb && <div className="field-status-layer-sticky-bomb" />}
                 {hasTaunt && <div className="field-status-layer-taunt" />}
-                {hasBarrier && (
+                {showBarrier && (
                     <>
                         <div className="field-status-layer-barrier-outer" />
                         <div className="field-status-layer-barrier-inner" />
