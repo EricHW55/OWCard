@@ -297,6 +297,11 @@ class AttackBuff(StatusEffect):
     def on_before_attack(self, card, target):
         return {"attack_modifier": self.value}
     
+    def to_dict(self):
+        d = super().to_dict()
+        d["value"] = self.value
+        return d
+    
     
 @dataclass
 class DamageMultiplier(StatusEffect):
@@ -305,6 +310,11 @@ class DamageMultiplier(StatusEffect):
     value: float = 1.0
     stackable: bool = True
     tags: list[str] = field(default_factory=lambda: ["buff"])
+    
+    def to_dict(self):
+        d = super().to_dict()
+        d["value"] = self.value
+        return d
 
 
 @dataclass

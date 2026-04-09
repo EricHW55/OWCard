@@ -104,10 +104,12 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
     const hasAttackAmplifier = card.statuses?.some((s) => {
         if (s.name === 'attack_buff') {
-            return Number((s as any).value ?? 0) > 0;
+            const value = (s as any).value;
+            return value === undefined ? true : Number(value) > 0;
         }
         if (s.name === 'damage_multiplier') {
-            return Number((s as any).value ?? 1) > 1;
+            const value = (s as any).value;
+            return value === undefined ? true : Number(value) > 1;
         }
         return false;
     });
