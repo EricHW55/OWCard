@@ -92,7 +92,14 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const isAirborne = card.statuses?.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
-    const isKnockback = card.statuses?.some((s) => s.name === 'knockback');
+    const isKnockback = card.statuses?.some((s) => {
+        if (s.name === 'knockback') return true;
+        if (s.name === 'range_modifier') {
+            const value = Number((s as any).value);
+            return !Number.isNaN(value) && value < 0;
+        }
+        return false;
+    });
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
@@ -104,7 +111,8 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     );
     const hasDamageReduction = hasShield;
     const fortifyPassiveStatus = card.statuses?.find((s) => s.name === 'orisa_fortify_passive');
-    const isFortifyActive = !!fortifyPassiveStatus && Boolean((fortifyPassiveStatus as any).active);
+    const hasFortifyPassive = !!fortifyPassiveStatus;
+    const isFortifyActive = hasFortifyPassive && Boolean((fortifyPassiveStatus as any).active);
     const immortalityStatus = card.statuses?.find((s) => s.name === 'immortality');
     const isImmortalityTriggered = !!immortalityStatus
         && (Boolean((immortalityStatus as any).activated) || Number((immortalityStatus as any).duration) !== -1);
@@ -227,6 +235,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
         hasDamageReduction ? 'status-damage-reduction' : '',
+        hasFortifyPassive ? 'status-orisa-fortify-passive' : '',
         isFortifyActive ? 'status-orisa-fortify-active' : '',
         hasAttackAmplifier ? 'status-attack-amplifier' : '',
         hasHealAmplifier ? 'status-heal-amplifier' : '',

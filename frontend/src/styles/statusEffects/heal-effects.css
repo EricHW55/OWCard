@@ -121,12 +121,6 @@
     --slash-color: rgba(80, 18, 116, 0.95);
 }
 
-.field-hp-bar-wrap.heal-blocked {
-    border: 2px solid rgba(210, 109, 255, 0.95);
-    border-radius: 5px;
-    box-shadow: 0 0 8px rgba(188, 90, 243, 0.42);
-}
-
 .field-card-3d .field-status-layer-heal-block-cross {
     background:
             linear-gradient(135deg,
@@ -135,6 +129,20 @@
             var(--slash-color) 49%,
             transparent 50%);
     border-radius: 50%;
+}
+
+.field-hp-bar-wrap.heal-blocked {
+    position: relative;
+}
+
+.field-hp-bar-wrap.heal-blocked::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(219, 104, 255, 0.9);
+    border-radius: inherit;
+    box-shadow: 0 0 8px rgba(217, 93, 255, 0.45), inset 0 0 6px rgba(245, 199, 255, 0.3);
+    pointer-events: none;
 }
 
 .field-hp-bar-wrap.immortality-triggered .field-hp-bar-immortality-glow {
@@ -146,11 +154,4 @@
     box-shadow: 0 0 7px rgba(77, 167, 255, 0.55), inset 0 0 5px rgba(169, 224, 255, 0.35);
     pointer-events: none;
     z-index: 1;
-}
-
-.field-hp-bar-wrap.heal-blocked {
-    border: 2px solid rgba(219, 104, 255, 0.9);
-    border-radius: 6px;
-    box-shadow: 0 0 8px rgba(217, 93, 255, 0.45), inset 0 0 6px rgba(245, 199, 255, 0.3);
-    padding: 1px;
 }

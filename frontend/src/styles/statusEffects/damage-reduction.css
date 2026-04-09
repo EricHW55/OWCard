@@ -20,14 +20,28 @@
             0 0 14px rgba(173, 191, 230, 0.34);
 }
 
+.field-card-3d.status-orisa-fortify-passive.status-damage-reduction {
+    border-color: rgba(255, 214, 121, 0.98) !important;
+    box-shadow:
+            inset 0 0 18px rgba(255, 229, 142, 0.34),
+            inset 0 -14px 26px rgba(153, 101, 22, 0.35),
+            0 0 18px rgba(255, 198, 96, 0.42);
+}
+
 .field-card-3d .field-status-layer-damage-reduction {
     position: absolute;
-    inset: 0;
-    border-radius: var(--field-card-radius);
+    inset: 1px;
+    border-radius: calc(var(--field-card-radius) - 1px);
     pointer-events: none;
     z-index: 1;
+    overflow: hidden;
     background:
-            linear-gradient(155deg, rgba(224, 232, 248, 0.24) 0%, rgba(112, 130, 167, 0.26) 55%, rgba(58, 69, 92, 0.28) 100%);
+            linear-gradient(145deg, rgba(224, 232, 248, 0.24) 0%, rgba(112, 130, 167, 0.26) 56%, rgba(58, 69, 92, 0.28) 100%);
+}
+
+.field-card-3d.status-orisa-fortify-passive .field-status-layer-damage-reduction {
+    background:
+            linear-gradient(145deg, rgba(255, 244, 182, 0.42) 0%, rgba(225, 171, 58, 0.35) 52%, rgba(150, 104, 30, 0.33) 100%);
 }
 
 .field-card-3d .field-status-layer-damage-reduction::after {
@@ -40,6 +54,11 @@
     background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.68) 48%, transparent 100%);
     filter: blur(3px);
     animation: status-metal-sheen 2.8s linear infinite;
+}
+
+.field-card-3d.status-orisa-fortify-passive .field-status-layer-damage-reduction::after {
+    background: linear-gradient(120deg, transparent 0%, rgba(255, 247, 209, 0.78) 50%, transparent 100%);
+    animation-duration: 2.35s;
 }
 
 .field-card-3d.status-orisa-fortify-active {
