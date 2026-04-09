@@ -102,6 +102,15 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     );
     const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
+    const hasAttackAmplifier = card.statuses?.some((s) => {
+        if (s.name === 'attack_buff') {
+            return Number((s as any).value ?? 0) > 0;
+        }
+        if (s.name === 'damage_multiplier') {
+            return Number((s as any).value ?? 1) > 1;
+        }
+        return false;
+    });
     const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
     const showBarrier = hasBarrier && !hasTaunt && !isParticleBarrier;
     const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
@@ -188,6 +197,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
+        hasAttackAmplifier ? 'status-attack-amplifier' : '',
     ].filter(Boolean).join(' ');
 
     const finalShadow = [chargeAuraGlow, chargeAuraRing, isAirborne ? '0 0 10px rgba(120,207,255,0.45), 0 6px 16px rgba(120,207,255,0.18)' : shadow]
@@ -335,6 +345,32 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         <div className="field-status-layer-barrier-outer" />
                         <div className="field-status-layer-barrier-inner" />
                     </>
+                )}
+                {hasAttackAmplifier && (
+                    <div className="field-status-layer-attack-amplifier">
+                        {[
+                            { x: '12%', y: '82%', d: '0.00s', drift: '-5px', w: '30px', h: '16px' },
+                            { x: '28%', y: '56%', d: '0.34s', drift: '7px', w: '22px', h: '12px' },
+                            { x: '44%', y: '74%', d: '0.72s', drift: '-6px', w: '34px', h: '18px' },
+                            { x: '62%', y: '38%', d: '1.08s', drift: '6px', w: '20px', h: '11px' },
+                            { x: '74%', y: '68%', d: '1.46s', drift: '-7px', w: '28px', h: '15px' },
+                            { x: '86%', y: '46%', d: '1.84s', drift: '5px', w: '24px', h: '13px' },
+                            { x: '20%', y: '24%', d: '2.18s', drift: '-4px', w: '32px', h: '17px' },
+                        ].map((chevron, idx) => (
+                            <div
+                                key={`attack-amplifier-chevron-${idx}`}
+                                className="field-status-layer-attack-amplifier-chevron"
+                                style={{
+                                    left: chevron.x,
+                                    top: chevron.y,
+                                    ['--attack-chevron-delay' as string]: chevron.d,
+                                    ['--attack-chevron-drift' as string]: chevron.drift,
+                                    ['--attack-chevron-width' as string]: chevron.w,
+                                    ['--attack-chevron-height' as string]: chevron.h,
+                                }}
+                            />
+                        ))}
+                    </div>
                 )}
             </div>
 
