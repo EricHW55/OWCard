@@ -8,6 +8,7 @@ import '../styles/statusEffects/index.css';
 
 interface Props {
     card: FieldCard;
+    isOpponent?: boolean;
     selected?: boolean;
     glowing?: boolean;
     effect?: CardVisualEffect;
@@ -60,7 +61,7 @@ function getAuraSpikes(level: number): AuraSpike[] {
     });
 }
 
-const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onClick }) => {
+const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, glowing, effect, onClick }) => {
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
         'field',
@@ -91,6 +92,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const isAirborne = card.statuses?.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
     const isExposed = card.statuses?.some((s) => s.name === 'exposed');
     const isPulled = card.statuses?.some((s) => s.name === 'pulled');
+    const isKnockback = card.statuses?.some((s) => s.name === 'knockback');
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
@@ -100,6 +102,12 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     const hasShield = card.statuses?.some(
         (s) => s.name === 'damage_reduction' || s.name === 'next_turn_start_damage_reduction'
     );
+    const hasDamageReduction = hasShield;
+    const fortifyPassiveStatus = card.statuses?.find((s) => s.name === 'orisa_fortify_passive');
+    const isFortifyActive = !!fortifyPassiveStatus && Boolean((fortifyPassiveStatus as any).active);
+    const immortalityStatus = card.statuses?.find((s) => s.name === 'immortality');
+    const isImmortalityTriggered = !!immortalityStatus
+        && (Boolean((immortalityStatus as any).activated) || Number((immortalityStatus as any).duration) !== -1);
     const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
     const hasAttackAmplifier = card.statuses?.some((s) => {
@@ -201,6 +209,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
     else if (isStealthed) moveBadge = { text: '은신', cls: 'stealth' };
     else if (isHooked) moveBadge = { text: 'HOOK', cls: 'hooked' };
     else if (isPulled) moveBadge = { text: 'PULL', cls: 'pulled' };
+    else if (isKnockback) moveBadge = { text: '넉백', cls: 'knockback' };
     else if (isExposed) moveBadge = { text: '무시', cls: 'exposed' };
 
     const cardStatusClasses = [
@@ -209,13 +218,16 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
         isFrozen ? 'status-frozen' : '',
         isAirborne ? 'status-airborne' : '',
         // isGravityFluxAirborne ? 'status-gravity-flux-airborne' : '',
-        isPulled ? 'status-pulled' : '',
+        isPulled ? (isOpponent ? 'status-pulled-opponent' : 'status-pulled-my') : '',
+        isKnockback ? (isOpponent ? 'status-knockback-opponent' : 'status-knockback-my') : '',
         isHooked ? 'status-hooked' : '',
         hasSilence ? 'status-skill-silence' : '',
         hasBurn ? 'status-burn' : '',
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
+        hasDamageReduction ? 'status-damage-reduction' : '',
+        isFortifyActive ? 'status-orisa-fortify-active' : '',
         hasAttackAmplifier ? 'status-attack-amplifier' : '',
         hasHealAmplifier ? 'status-heal-amplifier' : '',
         hasHealBlock ? 'status-heal-block' : '',
@@ -335,6 +347,9 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                 {/*{isGravityFluxAirborne && <div className="field-status-layer-gravity-flux-airborne" />}*/}
                 {isHooked && <div className="field-status-layer-hooked" />}
                 {isPulled && <div className="field-status-layer-pulled" />}
+                {isKnockback && <div className="field-status-layer-knockback" />}
+                {hasDamageReduction && <div className="field-status-layer-damage-reduction" />}
+                {isFortifyActive && <div className="field-status-layer-orisa-fortify-active" />}
                 {isFrozen && (
                     <>
                         <div className="field-status-layer-frozen-base" />
@@ -579,7 +594,7 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
             </div>
 
             <div
-                className={hasHealBlock ? 'field-hp-bar-wrap heal-blocked' : 'field-hp-bar-wrap'}
+                className={`${hasHealBlock ? 'field-hp-bar-wrap heal-blocked' : 'field-hp-bar-wrap'} ${isImmortalityTriggered ? 'immortality-triggered' : ''}`}
                 style={{
                     position: 'relative',
                     zIndex: 2,
@@ -600,6 +615,14 @@ const FieldCardComp: React.FC<Props> = ({ card, selected, glowing, effect, onCli
                         transition: `width ${effect?.hpTransitionMs ?? 300}ms`,
                     }}
                 />
+                {isImmortalityTriggered && (
+                    <div
+                        className="field-hp-bar-immortality-glow"
+                        style={{
+                            width: `${hpPct}%`,
+                        }}
+                    />
+                )}
             </div>
 
             <div

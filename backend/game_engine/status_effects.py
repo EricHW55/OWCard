@@ -539,6 +539,11 @@ class Immortality(StatusEffect):
             self.duration = 2
             self.visible_to_opponent = True
         return {"prevent_death": True, "set_hp": 1}
+    
+    def to_dict(self):
+        d = super().to_dict()
+        d["activated"] = self.activated
+        return d
 
 
 @dataclass

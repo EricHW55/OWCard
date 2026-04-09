@@ -182,6 +182,7 @@ const FieldSection: React.FC<Props> = ({
         >
             <FieldCardComp
                 card={card}
+                isOpponent={isOpponent}
                 selected={!hidden && selectedUid === card.uid}
                 glowing={!hidden && canActUids.includes(card.uid)}
                 effect={cardEffects?.[card.uid]}

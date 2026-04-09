@@ -46,6 +46,10 @@ export interface StatusEffect {
   extra_hp?: number;
   value?: number;
   was_hit?: boolean;
+  active?: boolean;
+  activated?: boolean;
+  reduction_percent?: number;
+  hp_threshold?: number;
 }
 
 export interface HandCard {

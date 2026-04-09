@@ -6,16 +6,43 @@
 /*        transform: translateY(-17px);*/
 /*    }*/
 /*}*/
+@keyframes status-cc-outline-pulse {
+    0%,
+    100% {
+        opacity: 0.78;
+    }
+    50% {
+        opacity: 1;
+    }
+}
 
-.field-card-3d.status-pulled {
+.field-card-3d.status-pulled-my {
     transform: translateY(-14px);
 }
 
-.field-card-3d.status-pulled .field-status-layer-pulled {
+.field-card-3d.status-pulled-opponent {
+    transform: translateY(14px);
+}
+
+.field-card-3d.status-knockback-my {
+    transform: translateY(14px);
+}
+
+.field-card-3d.status-knockback-opponent {
+    transform: translateY(-14px);
+}
+
+.field-card-3d .field-status-layer-pulled,
+.field-card-3d .field-status-layer-knockback {
     position: absolute;
     inset: -4px;
     border-radius: calc(var(--field-card-radius) + 4px);
     pointer-events: none;
     z-index: 4;
-    border: 1px dashed rgba(255, 187, 87, 0.75);
+    border: 1px dashed rgba(255, 187, 87, 0.78);
+    animation: status-cc-outline-pulse 1.4s ease-in-out infinite;
+}
+
+.field-card-3d .field-status-layer-knockback {
+    border-color: rgba(109, 207, 255, 0.82);
 }
