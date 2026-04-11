@@ -4,15 +4,25 @@
     grid-template-columns: 320px 1fr;
     background: #131722;
     color: #f4f7ff;
+    position: relative;
 }
 
 .admin-sidebar {
     border-right: 1px solid rgba(255, 255, 255, 0.12);
     padding: 20px;
+    overflow: auto;
+    max-height: 100vh;
 }
 
 .admin-main {
     padding: 24px;
+    overflow: auto;
+}
+
+.admin-mobile-drawer-header,
+.admin-mobile-drawer-toggle,
+.admin-mobile-drawer-dim {
+    display: none;
 }
 
 .admin-card-list {
@@ -32,6 +42,18 @@
     border-radius: 10px;
     padding: 10px;
     cursor: pointer;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-card-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .admin-card-item.active {
@@ -43,6 +65,31 @@
     opacity: 0.75;
 }
 
+.admin-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-header-row h3 {
+    margin: 0;
+}
+
+.admin-view-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    opacity: 0.95;
+}
+
+.admin-view-switch input {
+    width: 16px;
+    height: 16px;
+}
+
 .admin-grid {
     margin-top: 16px;
     display: grid;
@@ -50,8 +97,13 @@
     gap: 12px;
 }
 
+.admin-grid.compact {
+    grid-template-columns: repeat(3, minmax(160px, 260px));
+}
+
 .admin-grid label,
-.admin-json-wrap label {
+.admin-json-wrap label,
+.admin-skills-section label {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -72,6 +124,64 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(180px, 1fr));
     gap: 12px;
+}
+
+.admin-skills-section {
+    margin-top: 16px;
+    border: 1px solid rgba(103, 145, 220, 0.35);
+    border-radius: 12px;
+    background: rgba(20, 30, 52, 0.5);
+    padding: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.admin-section-head h4 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.admin-section-head span {
+    display: block;
+    margin-top: 4px;
+    opacity: 0.8;
+    font-size: 12px;
+}
+
+.admin-skill-list {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-skill-card {
+    border: 1px solid rgba(106, 142, 209, 0.42);
+    border-radius: 10px;
+    background: rgba(11, 19, 35, 0.84);
+    padding: 10px;
+}
+
+.admin-skill-card header h5 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.admin-skill-card header small {
+    opacity: 0.75;
+}
+
+.admin-skill-grid {
+    margin-top: 10px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
+.admin-span-2 {
+    grid-column: span 2;
+}
+
+.admin-global-extra {
+    margin-top: 4px;
 }
 
 .admin-actions {
@@ -100,12 +210,83 @@
     }
 
     .admin-sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(86vw, 340px);
+        max-height: 100vh;
         border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        border-left: 1px solid rgba(255, 255, 255, 0.12);
+        transform: translateX(102%);
+        transition: transform 0.25s ease;
+        z-index: 1300;
+        background: #131722;
     }
 
-    .admin-grid,
+    .admin-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .admin-mobile-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .admin-mobile-drawer-header h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .admin-mobile-drawer-header button {
+        border: 1px solid #44639b;
+        background: #203966;
+        color: #e7eeff;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .admin-mobile-drawer-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid #425f98;
+        border-radius: 8px;
+        background: #172b53;
+        color: #deebff;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        line-height: 1;
+        margin-left: auto;
+    }
+
+    .admin-mobile-drawer-dim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 8, 18, 0.42);
+        z-index: 1200;
+    }
+
+    .admin-header-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin-grid.compact,
+    .admin-skill-grid,
     .admin-json-wrap {
         grid-template-columns: 1fr;
+    }
+
+    .admin-span-2 {
+        grid-column: auto;
     }
 }
