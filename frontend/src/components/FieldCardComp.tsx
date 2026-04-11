@@ -158,6 +158,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         const fromExtra = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0);
         return fromExtra > 0 ? 1 : 0;
     })();
+    const doomfistCharge = (card.extra as any)?.empowered_punch ? 1 : 0;
 
     useEffect(() => {
         const prev = prevParticleBarrierRef.current;
@@ -185,6 +186,10 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         chargeAuraColor = '#356dff';
     } else if (heroKey === 'zarya') {
         chargeLevel = zaryaCharge;
+        chargeMax = 1;
+        chargeAuraColor = '#ff2f4f';
+    } else if (heroKey === 'doomfist') {
+        chargeLevel = doomfistCharge;
         chargeMax = 1;
         chargeAuraColor = '#ff2f4f';
     } else if (hasChargingStatus) {
