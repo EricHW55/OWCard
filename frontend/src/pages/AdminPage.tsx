@@ -56,6 +56,7 @@ const GLOBAL_EXTRA_TO_SKILL_KEY: Record<string, Record<string, string>> = {
     mizuki: { kasa_total_heal: 'skill_2' },
     brigitte: { inspire_heal: 'passive' },
     illari: { turret_hp: 'passive', turret_heal: 'passive' },
+    vendetta: { vendetta_mark_duration: 'passive', vendetta_mark_bonus_damage: 'passive' },
     sound_barrier: { extra_hp: 'skill_1', duration: 'skill_1' },
     bob: { bob_hp: 'skill_1' },
     orbital_ray: { heal: 'skill_1', attack_buff: 'skill_1' },

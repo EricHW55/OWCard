@@ -27,6 +27,13 @@ function formatDamage(val: any): string {
         if (val.damage_multiplier !== undefined) parts.push(`피해x${val.damage_multiplier}`);
         if (val.heal_multiplier !== undefined) parts.push(`치유x${val.heal_multiplier}`);
         if (val.damage_reduction !== undefined) parts.push(`피해감소 ${val.damage_reduction}%`);
+        if (val.vendetta_mark_bonus_damage !== undefined) parts.push(`표적 추가피해 +${val.vendetta_mark_bonus_damage}`);
+        if (val.vendetta_mark_duration !== undefined) {
+            const durationLabel = Number(val.vendetta_mark_duration) === -1
+                ? '영구'
+                : `${val.vendetta_mark_duration}턴`;
+            parts.push(`표적 지속 ${durationLabel}`);
+        }
         return parts.join(' · ');
     }
     return String(val);
