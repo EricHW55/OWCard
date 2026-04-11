@@ -2,7 +2,7 @@
 import os
 from datetime import timedelta
 
-# ── SQLite (로컬 개발용, 나중에 호스팅 DB로 교체) ──
+# ── Database (기본: SQLite, 운영: PostgreSQL 권장) ──
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite+aiosqlite:///./card_battle.db",

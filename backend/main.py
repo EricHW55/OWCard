@@ -82,7 +82,8 @@ async def root():
     return {
         "name": "Card Battle Game API",
         "version": "1.0.0",
-        "db": "SQLite",
+        # "db": "SQLite",
+        "db": os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./card_battle.db").split(":", 1)[0],
         "cors_allow_origins": app.state.cors_allow_origins,
         "endpoints": {
             "docs": "/docs",
