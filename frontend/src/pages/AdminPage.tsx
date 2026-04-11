@@ -30,7 +30,7 @@ type SkillEditorRow = {
     extraText: string;
 };
 
-const SKILL_KEY_REGEX = /^(passive|skill_\d+(?:_.+)?)$/;
+const SKILL_KEY_REGEX = /^(passive|skill_\d+)$/;
 const GLOBAL_EXTRA_TO_SKILL_KEY: Record<string, Record<string, string>> = {
     reinhardt: { barrier_hp: 'passive' },
     winston: { barrier_hp: 'skill_2' },
@@ -225,11 +225,15 @@ const AdminPage: React.FC = () => {
                     extra: parseJsonOrFallback(extraText, {}),
                 };
             } else {
+                const originalSkillDamages = normalizeObject(selectedCard.skill_damages);
+                const originalSkillMeta = normalizeObject(selectedCard.skill_meta);
+                const originalExtra = normalizeObject(selectedCard.extra);
+
                 const skill_damages = skillRows.reduce<Record<string, unknown>>((acc, row) => {
                     if (!row.damageText.trim()) return acc;
                     acc[row.key] = parseJsonOrFallback(row.damageText, null);
                     return acc;
-                }, {});
+                }, { ...originalSkillDamages });
 
                 const skill_meta = skillRows.reduce<Record<string, unknown>>((acc, row) => {
                     const nextMeta: Record<string, unknown> = {};
@@ -238,9 +242,14 @@ const AdminPage: React.FC = () => {
                     if (row.description.trim()) nextMeta.description = row.description.trim();
                     acc[row.key] = nextMeta;
                     return acc;
-                }, {});
+                }, { ...originalSkillMeta });
 
-                const globalExtra = normalizeObject(parseJsonOrFallback(globalExtraText, {}));
+                const globalExtra = {
+                    ...Object.fromEntries(
+                        Object.entries(originalExtra).filter(([key]) => !SKILL_KEY_REGEX.test(key)),
+                    ),
+                    ...normalizeObject(parseJsonOrFallback(globalExtraText, {})),
+                };
                 const globalExtraSkillMap = GLOBAL_EXTRA_TO_SKILL_KEY[selectedCard.hero_key] ?? {};
                 const skillToGlobalKeys = Object.entries(globalExtraSkillMap).reduce<Record<string, string[]>>((acc, [extraKey, skillKey]) => {
                     acc[skillKey] = acc[skillKey] ?? [];
@@ -261,7 +270,9 @@ const AdminPage: React.FC = () => {
                         acc[row.key] = parsed;
                     }
                     return acc;
-                }, {});
+                }, Object.fromEntries(
+                    Object.entries(originalExtra).filter(([key]) => SKILL_KEY_REGEX.test(key)),
+                ));
 
                 payload = {
                     hp: Number(hp),
