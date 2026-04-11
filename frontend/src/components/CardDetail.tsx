@@ -21,7 +21,13 @@ function formatDamage(val: any): string {
         const parts: string[] = [];
         if (val.damage !== undefined) parts.push(`딜 ${val.damage}`);
         if (val.heal !== undefined) parts.push(`힐 ${val.heal}`);
-        return parts.join(' · ') || JSON.stringify(val);
+        if (val.duration !== undefined) parts.push(`지속 ${val.duration}턴`);
+        if (val.silence_duration !== undefined) parts.push(`침묵 ${val.silence_duration}턴`);
+        if (val.extra_hp !== undefined) parts.push(`추가HP ${val.extra_hp}`);
+        if (val.damage_multiplier !== undefined) parts.push(`피해x${val.damage_multiplier}`);
+        if (val.heal_multiplier !== undefined) parts.push(`치유x${val.heal_multiplier}`);
+        if (val.damage_reduction !== undefined) parts.push(`피해감소 ${val.damage_reduction}%`);
+        return parts.join(' · ');
     }
     return String(val);
 }
