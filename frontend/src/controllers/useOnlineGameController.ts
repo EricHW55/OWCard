@@ -707,7 +707,9 @@ export function useOnlineGameController(gameId: string) {
             const serverPendingSpellChoice = gameStateMsg?.state?.my_state?.pending_spell ?? gameStateMsg?.state?.my_state?.pendingSpell ?? null;
             if (serverPendingPassive) setLocalPendingPassive(null);
             if (serverPendingSpellChoice) setLocalPendingSpellChoice(null);
-            if (!serverPendingPassive && !serverPendingSpellChoice && gameStateMsg?.state?.phase !== 'placement') {
+            // 서버 상태에 대기 선택값이 없으면 로컬 임시 pending도 즉시 정리한다.
+            // placement 단계에서 stale pending이 남아 있으면 배치/배치완료가 모두 막히는 문제가 생긴다.
+            if (!serverPendingPassive && !serverPendingSpellChoice) {
               setLocalPendingPassive(null);
               setLocalPendingSpellChoice(null);
               setColumnChoice(null);
