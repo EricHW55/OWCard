@@ -309,27 +309,65 @@ def spell_duplicate(caster: FieldCard, target: FieldCard, game: GameState) -> di
     else:
         preferred_zone = target.zone
         place_zone = preferred_zone if preferred_zone in (Zone.MAIN, Zone.SIDE) else Zone.MAIN
+        
+    enemy_player = game.get_enemy_player(caster)
+    base_template = None
+    if enemy_player:
+        for card_data in enemy_player.deck:
+            if card_data.get("id") == target.template_id:
+                base_template = dict(card_data)
+                break
+        if base_template is None:
+            for card_data in enemy_player.trash:
+                if card_data.get("id") == target.template_id:
+                    base_template = dict(card_data)
+                    break
+
+    if base_template:
+        clone_name = base_template.get("name", target.name)
+        clone_role = Role(base_template.get("role", target.role.value))
+        clone_max_hp = int(base_template.get("hp", target.max_hp))
+        clone_base_attack = int(base_template.get("attack", base_template.get("base_attack", target.base_attack)))
+        clone_base_defense = int(base_template.get("defense", base_template.get("base_defense", target.base_defense)))
+        clone_attack_range = int(base_template.get("attack_range", base_template.get("base_attack_range", target.base_attack_range)))
+        clone_description = base_template.get("description", target.description)
+        clone_skills = dict(base_template.get("skills", target.skills))
+        clone_skill_damages = dict(base_template.get("skill_damages", target.skill_damages))
+        clone_skill_meta = dict(base_template.get("skill_meta", target.skill_meta))
+        clone_extra = dict(base_template.get("extra", {}))
+        clone_extra["_hero_key"] = base_template.get("hero_key", target.extra.get("_hero_key", target.name.lower()))
+    else:
+        clone_name = target.name
+        clone_role = target.role
+        clone_max_hp = target.max_hp
+        clone_base_attack = target.base_attack
+        clone_base_defense = target.base_defense
+        clone_attack_range = target.base_attack_range
+        clone_description = target.description
+        clone_skills = dict(target.skills)
+        clone_skill_damages = dict(target.skill_damages)
+        clone_skill_meta = dict(target.skill_meta)
+        clone_extra = {"_hero_key": target.extra.get("_hero_key", target.name.lower())}
 
     clone = FC(
         uid=uuid.uuid4().hex[:8],
         template_id=target.template_id,
-        name=f"{target.name} (복제)",
-        role=target.role,
-        max_hp=target.max_hp,
-        base_attack=target.base_attack,
-        base_defense=target.base_defense,
-        base_attack_range=target.base_attack_range,
-        description=target.description,
+        name=f"{clone_name} (복제)",
+        role=clone_role,
+        max_hp=clone_max_hp,
+        base_attack=clone_base_attack,
+        base_defense=clone_base_defense,
+        base_attack_range=clone_attack_range,
+        description=clone_description,
         zone=place_zone,
-        skills=dict(target.skills),
-        skill_damages=dict(target.skill_damages),
-        skill_meta=dict(target.skill_meta),
-        extra=dict(target.extra),
+        skills=clone_skills,
+        skill_damages=clone_skill_damages,
+        skill_meta=clone_skill_meta,
+        extra=clone_extra,
     )
-    clone.extra["_hero_key"] = target.extra.get("_hero_key", target.name.lower())
     # 복제 카드는 일반 역할군 제한 카운트에서 제외한다.
     clone.extra["is_token"] = True
-    clone.current_hp = target.current_hp
+    clone.current_hp = clone.max_hp
 
     def _can_place_duplicate(zone: Zone) -> bool:
         if zone == Zone.MAIN:
