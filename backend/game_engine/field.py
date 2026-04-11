@@ -390,7 +390,7 @@ class Field:
 
     def _occupied_main_slots(self, role: Role) -> set[int]:
         occupied: set[int] = set()
-        for card in self._alive(self.main_cards):
+        for card in self.main_cards:
             if card.role != role:
                 continue
             slot = int(card.extra.get("slot_index", 0))
