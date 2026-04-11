@@ -398,9 +398,9 @@ class DiscordOrb(StatusEffect):
 class VendettaMarked(StatusEffect):
     """벤데타 전용 표적 표식.
 
-    - source_uid: 표식을 건 벤데타의 uid
-    - 같은 source_uid를 가진 벤데타에게만 사거리 무시 효과 제공
-    - 같은 source_uid를 가진 벤데타에게 공격받으면 추가 피해 적용
+    - 표적은 모든 벤데타가 공유한다.
+    - 벤데타에게는 사실상 사거리 제한 없이 지정 가능하도록 거리 보정.
+    - 벤데타에게 공격받으면 추가 피해 적용.
     """
     name: str = "vendetta_marked"
     duration: int = 2
@@ -408,13 +408,17 @@ class VendettaMarked(StatusEffect):
     tags: list[str] = field(default_factory=lambda: ["debuff", "mark"])
 
     def on_before_targeted(self, card, attacker):
-        if not attacker or attacker.uid != self.source_uid:
+        if not attacker:
+            return {}
+        attacker_hero = str(attacker.extra.get("_hero_key", "")).lower()
+        if attacker_hero != "vendetta":
             return {}
         return {"distance_modifier": -99}
 
     def on_take_damage(self, card, damage, **kwargs):
-        source_uid = kwargs.get("source_uid")
-        if source_uid and source_uid == self.source_uid:
+        source_uid = str(kwargs.get("source_uid") or "")
+        damage_kind = str(kwargs.get("damage_kind") or "")
+        if source_uid and damage_kind in {"basic_attack", "skill"}:
             return {"damage": max(0, damage + int(self.bonus_damage))}
         return {"damage": damage}
 

@@ -265,12 +265,12 @@ class GameEngine:
     def opponent_player_id(self) -> int:
         return self.player_order[1 - self.current_turn_index]
 
-    def _find_card_by_uid(self, uid: str) -> Optional[FieldCard]:
-        for ps in self.players.values():
-            card = ps.field.find_card(uid)
-            if card is not None:
-                return card
-        return None
+    # def _find_card_by_uid(self, uid: str) -> Optional[FieldCard]:
+    #     for ps in self.players.values():
+    #         card = ps.field.find_card(uid)
+    #         if card is not None:
+    #             return card
+    #     return None
 
     def _spell_requires_choice(self, hero_key: str) -> bool:
         return hero_key in {"spell_rescue", "spell_maximilian"}
@@ -515,7 +515,7 @@ class GameEngine:
 
     def _build_field_card(self, card_data: dict, zone: Zone, *, placed_this_turn: bool = True) -> FieldCard:
         hero_name = card_data.get("hero_key", card_data.get("name", "").lower())
-        card = FieldCard(
+        return FieldCard(
             uid=uuid.uuid4().hex[:8],
             template_id=card_data.get("id", 0),
             name=card_data["name"],
@@ -532,8 +532,53 @@ class GameEngine:
             skill_meta=card_data.get("skill_meta", {}),
             extra={**card_data.get("extra", {}), "_hero_key": hero_name},
         )
-        card.extra["_find_card_by_uid"] = self._find_card_by_uid
-        return card
+        # card.extra["_find_card_by_uid"] = self._find_card_by_uid
+        # return card
+        
+        
+    def _all_field_cards(self) -> list[FieldCard]:
+        cards: list[FieldCard] = []
+        for ps in self.players.values():
+            cards.extend(ps.field.all_cards())
+        return cards
+
+    def _apply_vendetta_mark_if_needed(self, defender: Optional[FieldCard], attacker: Optional[FieldCard], damage_log: Optional[dict]) -> Optional[dict]:
+        if not defender or not attacker or not isinstance(damage_log, dict):
+            return None
+        if int(damage_log.get("final_damage", 0) or 0) <= 0:
+            return None
+        if attacker.uid == defender.uid:
+            return None
+        if str(defender.extra.get("_hero_key", "")).lower() != "vendetta":
+            return None
+        if not attacker.alive:
+            return None
+
+        from game_engine.status_effects import VendettaMarked
+
+        mark_duration = int(defender.extra.get("vendetta_mark_duration", 2) or 2)
+        bonus_damage = int(defender.extra.get("vendetta_mark_bonus_damage", 2) or 2)
+
+        for card in self._all_field_cards():
+            if card.uid == attacker.uid:
+                continue
+            card.statuses = [s for s in card.statuses if s.name != "vendetta_marked"]
+
+        attacker.add_status(
+            VendettaMarked(
+                duration=mark_duration,
+                source_uid=defender.uid,
+                bonus_damage=bonus_damage,
+            )
+        )
+        mark_log = {
+            "source_uid": defender.uid,
+            "target_uid": attacker.uid,
+            "duration": mark_duration,
+            "bonus_damage": bonus_damage,
+        }
+        damage_log["vendetta_mark_applied"] = mark_log
+        return mark_log
 
     def _summon_token(self, ps: PlayerState, token_data: dict, zone: str | Zone) -> Optional[FieldCard]:
         token_zone = zone if isinstance(zone, Zone) else Zone(zone)
@@ -1109,6 +1154,23 @@ class GameEngine:
                 entry_log = entry.get("damage_log") or entry.get("damage")
                 if isinstance(entry_log, dict):
                     combat_logs.append(entry_log)
+            
+            if target and isinstance(result.get("damage_log"), dict):
+                self._apply_vendetta_mark_if_needed(target, caster, result["damage_log"])
+            for entry in affected_entries:
+                if not isinstance(entry, dict):
+                    continue
+                target_uid_from_log = (
+                    entry.get("target")
+                    or entry.get("target_uid")
+                    or entry.get("uid")
+                )
+                if not target_uid_from_log:
+                    continue
+                entry_target = opp.field.find_card(str(target_uid_from_log)) or ps.field.find_card(str(target_uid_from_log))
+                entry_log = entry.get("damage_log") or entry.get("damage")
+                if entry_target and isinstance(entry_log, dict):
+                    self._apply_vendetta_mark_if_needed(entry_target, caster, entry_log)
 
             reflected_total = 0
             for target_card_logs in combat_logs:
@@ -1225,6 +1287,7 @@ class GameEngine:
                 return {"error": "Target is untargetable"}
 
         result = target.take_damage(attacker.attack, source_uid=attacker.uid, damage_kind="basic_attack")
+        self._apply_vendetta_mark_if_needed(target, attacker, result)
         self._apply_particle_barrier_trigger(result)
 
         # 반사 처리
