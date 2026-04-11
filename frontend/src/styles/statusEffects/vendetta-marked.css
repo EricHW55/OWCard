@@ -1,18 +1,13 @@
 @keyframes status-vendetta-marked-breathe {
-    0% {
-        opacity: 0.92;
-        filter: drop-shadow(0 0 2px rgba(255, 126, 154, 0.5)) drop-shadow(0 0 8px rgba(255, 81, 122, 0.34));
-        transform: scale(1);
+    0%, 100% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255, 90, 110, 0.45)) drop-shadow(0 0 6px rgba(255, 40, 64, 0.25));
+        transform: translate(-50%, -50%) scale(0.98);
     }
     50% {
-        opacity: 0.38;
-        filter: drop-shadow(0 0 6px rgba(255, 142, 173, 0.75)) drop-shadow(0 0 16px rgba(255, 72, 120, 0.5));
-        transform: scale(1.03);
-    }
-    100% {
-        opacity: 0.92;
-        filter: drop-shadow(0 0 2px rgba(255, 126, 154, 0.5)) drop-shadow(0 0 8px rgba(255, 81, 122, 0.34));
-        transform: scale(1);
+        opacity: 1;
+        filter: drop-shadow(0 0 5px rgba(255, 130, 150, 0.9)) drop-shadow(0 0 16px rgba(255, 50, 82, 0.8)) drop-shadow(0 0 28px rgba(255, 20, 54, 0.55));
+        transform: translate(-50%, -50%) scale(1.05);
     }
 }
 
@@ -27,15 +22,14 @@
     content: '';
     position: absolute;
     left: 50%;
-    top: 50%;
-    width: 86%;
-    height: 86%;
-    transform: translate(-50%, -50%);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cpath fill='%23ff7f9f' d='M8 71 L46 62 L16 46 L56 55 L79 7 L74 56 L121 26 L89 64 L122 83 L82 76 L66 121 L69 73 L24 103 L46 69 Z'/%3E%3C/svg%3E");
+    top: 16%;
+    width: 38%;
+    height: 24%;
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff3c5a' d='M 4 12 L 46 44 L 30 20 L 40 30 L 54 6 L 52 42 L 96 4 L 58 50 L 92 58 L 62 54 L 84 86 L 56 58 L 50 96 L 46 60 L 8 94 L 42 54 Z M 10 50 L 28 46 L 18 58 Z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
     mix-blend-mode: screen;
-    opacity: 0.88;
-    animation: status-vendetta-marked-breathe 2.2s ease-in-out infinite;
+    animation: status-vendetta-marked-breathe 3.2s ease-in-out infinite;
 }
