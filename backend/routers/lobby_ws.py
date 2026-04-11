@@ -61,7 +61,11 @@ async def lobby_ws(
                 await ws.send_json({"event": "queue_left"})
 
             elif action == "create_room":
-                room = await room_manager.create_room(player_id, username)
+                try:
+                    room = await room_manager.create_room(player_id, username)
+                except ValueError as exc:
+                    await ws.send_json({"event": "error", "message": str(exc)})
+                    continue
                 await ws.send_json({"event": "room_created", "room": room.to_dict()})
 
             elif action == "join_room":

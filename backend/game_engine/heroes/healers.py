@@ -82,7 +82,9 @@ def moira_orb(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("zenyatta", "skill_1")
 def zenyatta_discord(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    target.add_status(DiscordOrb(duration=1, bonus_damage=2, source_uid=caster.uid))
+    skill_data = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
+    bonus_damage = int(skill_data.get("bonus_damage", 2) if isinstance(skill_data, dict) else skill_data)
+    target.add_status(DiscordOrb(duration=1, bonus_damage=bonus_damage, source_uid=caster.uid))
     return {"success": True, "skill": "부조화", "target": target.uid}
 
 @register_skill("zenyatta", "skill_2")
@@ -122,8 +124,9 @@ def mizuki_kasa(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     my = game.get_my_field(caster)
     allies = my.all_cards()
     if not allies: return {"success": False, "message": "아군 없음"}
+    total_heal = int(game.get_skill_damage(caster, "skill_2", apply_attack_buff=False) or 5)
     heals = [0] * len(allies)
-    for _ in range(5):
+    for _ in range(total_heal):
         heals[random.randint(0, len(allies) - 1)] += 1
     logs = [{"uid": allies[i].uid, "healed": allies[i].heal(h)} for i, h in enumerate(heals) if h > 0]
     return {"success": True, "skill": "치유의 삿갓", "healed": logs}

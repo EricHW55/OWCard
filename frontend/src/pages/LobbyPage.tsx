@@ -104,6 +104,7 @@ const LobbyPage: React.FC = () => {
     const [room, setRoom] = useState<RoomInfo | null>(null);
     const [rooms, setRooms] = useState<RoomInfo[]>([]);
     const [roomCode, setRoomCode] = useState('');
+    const [privateRoomLimitMessage, setPrivateRoomLimitMessage] = useState('');
     const [deckId, setDeckId] = useState<number>(1);
     const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
@@ -399,6 +400,7 @@ const LobbyPage: React.FC = () => {
         });
 
         const offRoomCreated = ws.on('room_created', (msg: any) => {
+            setPrivateRoomLimitMessage('');
             setRoom(msg.room);
             addLog(`방 생성 완료 (${msg.room.room_code})`);
             applyDeckToRoom(msg.room.room_id);
@@ -459,6 +461,9 @@ const LobbyPage: React.FC = () => {
         });
 
         const offError = ws.on('error', (msg: any) => {
+            if (typeof msg?.message === 'string' && msg.message.includes('이미 생성한 사설방')) {
+                setPrivateRoomLimitMessage(msg.message);
+            }
             addLog(`오류: ${msg.message}`);
         });
 
@@ -569,6 +574,7 @@ const LobbyPage: React.FC = () => {
             addLog('덱이 없어 방을 만들 수 없습니다. 덱 빌더에서 덱을 먼저 만들어주세요.');
             return;
         }
+        setPrivateRoomLimitMessage('');
         send({ action: 'create_room' });
     };
 
@@ -733,6 +739,11 @@ const LobbyPage: React.FC = () => {
                                 <div className="inline-actions">
                                     <button className="lobby-solid-btn" onClick={handleCreateRoom}>방 만들기</button>
                                 </div>
+                                {privateRoomLimitMessage && (
+                                    <div className="empty-text" style={{ marginTop: 8 }}>
+                                        {privateRoomLimitMessage}
+                                    </div>
+                                )}
 
                                 <div className="join-by-code">
                                     <label>방 코드로 입장</label>

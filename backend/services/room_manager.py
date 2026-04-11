@@ -50,6 +50,9 @@ class RoomManager:
 
     async def create_room(self, host_id: int, host_username: str) -> Room:
         async with self._lock:
+            existing_room = self.find_active_room_by_host(host_id)
+            if existing_room:
+                raise ValueError("이미 생성한 사설방이 있습니다. 기존 방을 이용해주세요.")
             rid = f"room_{uuid.uuid4().hex[:12]}"
             code = uuid.uuid4().hex[:6].upper()
             room = Room(room_id=rid, room_code=code, host_id=host_id, host_username=host_username)
@@ -163,6 +166,13 @@ class RoomManager:
             if room.game_id == game_id:
                 return room
         return None
+    
+    def find_active_room_by_host(self, host_id: int) -> Optional[Room]:
+        for room in self.rooms.values():
+            if room.host_id == host_id and room.status != RoomStatus.FINISHED:
+                return room
+        return None
+
 
     async def close_room_by_game_id(self, game_id: str):
         room = self.find_room_by_game_id(game_id)

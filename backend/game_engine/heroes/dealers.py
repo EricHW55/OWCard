@@ -199,8 +199,10 @@ def sombra_smg(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("sombra", "skill_2")
 def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if caster.extra.get("used_stealth_last"): return {"success": False, "message": "연속 불가"}
-    caster.add_status(Stealth(heal_amount=3, duration=3, source_uid=caster.uid))
-    healed = caster.heal(3)
+    skill_data = game.get_skill_damage(caster, "skill_2", apply_attack_buff=False)
+    heal_amount = int(skill_data.get("heal", 3) if isinstance(skill_data, dict) else skill_data)
+    caster.add_status(Stealth(heal_amount=heal_amount, duration=3, source_uid=caster.uid))
+    healed = caster.heal(heal_amount)
     caster.extra["used_stealth_last"] = True
     return {"success": True, "skill": "은신", "healed": healed}
 
@@ -384,7 +386,7 @@ def torbjorn_rivet(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 
 @register_skill("torbjorn", "skill_2")
 def torbjorn_hammer(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    healed = caster.heal(3)
+    healed = caster.heal(game.get_skill_damage(caster, "skill_2", apply_attack_buff=False))
     return {"success": True, "skill": "대장간 망치", "healed": healed}
 
 # ── 소전 ──────────────────────────────────

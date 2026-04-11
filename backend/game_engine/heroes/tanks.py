@@ -50,6 +50,8 @@ def winston_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> di
 # ── 디바 ──────────────────────────────────
 @register_passive("dva")
 def dva_passive(card: FieldCard, game: GameState) -> dict:
+    hana_hp = int(card.extra.get("hana_hp", 5) or 5)
+    hana_light_gun_damage = int(card.extra.get("hana_light_gun_damage", 1) or 1)
     card.extra["form"] = "mech"
     card.extra["mech_profile"] = {
         "hero_key": "dva",
@@ -62,16 +64,16 @@ def dva_passive(card: FieldCard, game: GameState) -> dict:
     card.extra["hana_profile"] = {
         "hero_key": "hana_song",
         "name": "송하나",
-        "hp": card.extra.get("hana_hp", 5),
+        "hp": hana_hp,
         "attack_range": 1,
-        "skill_damages": {"skill_1": 1},
+        "skill_damages": {"skill_1": hana_light_gun_damage},
         "skill_meta": {
-            "skill_1": {"name": "광선총", "cooldown": 0, "description": "사거리 1에서 1 피해를 준다."},
+             "skill_1": {"name": "광선총", "cooldown": 0, "description": f"사거리 1에서 {hana_light_gun_damage} 피해를 준다."},
             "skill_2": {"name": "메카 호출", "cooldown": 0, "description": "송하나 상태에서 2턴 이후 메카를 다시 호출한다."},
         },
     }
     from game_engine.status_effects import MechDestruction
-    card.add_status(MechDestruction(hana_hp=card.extra.get("hana_hp", 5), source_uid=card.uid))
+    card.add_status(MechDestruction(hana_hp=hana_hp, source_uid=card.uid))
     return {"mech_form": True}
 
 @register_skill("dva", "skill_1")
@@ -115,7 +117,7 @@ def dva_micro_missiles(caster: FieldCard, target: FieldCard, game: GameState) ->
 def hana_light_gun(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target:
         return {"success": False, "message": "대상 필요"}
-    result = target.take_damage(1)
+    result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     return {"success": True, "skill": "광선총", "damage_log": result}
 
 @register_skill("hana_song", "skill_2")
@@ -140,17 +142,27 @@ def zarya_particle_cannon(caster: FieldCard, target: FieldCard, game: GameState)
     if not target: return {"success": False, "message": "대상 필요"}
     base = game.get_skill_damage(caster, "skill_2")
     charge = max(
-        int(caster.extra.get("particle_bonus", 0) or 0),
+        # int(caster.extra.get("particle_bonus", 0) or 0),
         int(caster.extra.get("particle_barrier_charge", 0) or 0),
         int(caster.extra.get("zarya_charge", 0) or 0),
     )
-    bonus = charge * 2
+    # bonus = charge * 2
+    particle_bonus = int(caster.extra.get("particle_bonus", 0) or 0)
+    bonus = particle_bonus if charge > 0 else 0
     result = target.take_damage(base + bonus)
     if charge > 0:
-        caster.extra["particle_bonus"] = 0
+        # caster.extra["particle_bonus"] = 0
         caster.extra["particle_barrier_charge"] = 0
         caster.extra["zarya_charge"] = 0
-    return {"success": True, "skill": "입자포", "base": base, "bonus": bonus, "damage_log": result}
+    # return {"success": True, "skill": "입자포", "base": base, "bonus": bonus, "damage_log": result}
+    return {
+        "success": True,
+        "skill": "입자포",
+        "base": base,
+        "bonus": bonus,
+        "charged": charge > 0,
+        "damage_log": result,
+    }
 
 # ── 레킹볼 ────────────────────────────────
 @register_skill("wrecking_ball", "skill_1")

@@ -84,7 +84,11 @@ class SpectateReq(BaseModel):
 
 @router.post("/rooms/create")
 async def create_room(req: CreateRoomReq):
-    room = await room_manager.create_room(req.player_id, req.username)
+    # room = await room_manager.create_room(req.player_id, req.username)
+    try:
+        room = await room_manager.create_room(req.player_id, req.username)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     return room.to_dict()
 
 

@@ -444,16 +444,23 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
 
 @register_skill("spell_orbital_ray", "skill_1")
 def spell_orbital_ray(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """궤도 광선: 아군 전체 3힐 + 한턴 공격 +2."""
+    """궤도 광선: 아군 전체 힐 + 한턴 공격 버프 (수치는 DB skill_1 기준)."""
     my_field = game.get_my_field(caster)
     allies = my_field.all_cards()
+    skill_data = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
+    if isinstance(skill_data, dict):
+        heal_amount = int(skill_data.get("heal", 3) or 0)
+        attack_buff = int(skill_data.get("attack_buff", 2) or 0)
+    else:
+        heal_amount = int(skill_data or 3)
+        attack_buff = 2
     logs = []
     for ally in allies:
-        healed = ally.heal(3)
+        healed = ally.heal(heal_amount)
         ally.add_status(AttackBuff(
-            value=2, duration=1, source_uid="spell", tags=["buff"],
+            value=attack_buff, duration=1, source_uid="spell", tags=["buff"],
         ))
-        logs.append({"target": ally.uid, "healed": healed, "attack_buffed": 2})
+        logs.append({"target": ally.uid, "healed": healed, "attack_buffed": attack_buff})
 
     return {"success": True, "skill": "궤도 광선", "affected": logs}
 
