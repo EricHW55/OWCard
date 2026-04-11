@@ -125,9 +125,16 @@ def mizuki_kasa(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     allies = my.all_cards()
     if not allies: return {"success": False, "message": "아군 없음"}
     total_heal = int(game.get_skill_damage(caster, "skill_2", apply_attack_buff=False) or 5)
-    heals = [0] * len(allies)
-    for _ in range(total_heal):
-        heals[random.randint(0, len(allies) - 1)] += 1
+    ally_count = len(allies)
+    base_heal = total_heal // ally_count
+    remainder = total_heal % ally_count
+
+    heals = [base_heal] * ally_count
+    if remainder > 0:
+        bonus_indices = random.sample(range(ally_count), remainder)
+        for idx in bonus_indices:
+            heals[idx] += 1
+            
     logs = [{"uid": allies[i].uid, "healed": allies[i].heal(h)} for i, h in enumerate(heals) if h > 0]
     return {"success": True, "skill": "치유의 삿갓", "healed": logs}
 
