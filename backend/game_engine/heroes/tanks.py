@@ -30,11 +30,12 @@ def winston_tesla(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 
     if not target:
         return {"success": False, "message": "대상 필요"}
-    if target.zone == Zone.SIDE:
-        return {"success": False, "message": "테슬라 캐논은 본대 가로줄만 공격 가능"}
 
     enemy = game.get_enemy_field(caster)
-    targets = enemy.get_role_row(target.role, include_side=False)
+    if target.zone == Zone.SIDE:
+        targets = enemy.get_role_row_in_zone(target.role, Zone.SIDE)
+    else:
+        targets = enemy.get_role_row_in_zone(target.role, Zone.MAIN)
     dmg = game.get_skill_damage(caster, "skill_1")
     logs = []
     for card in targets:
