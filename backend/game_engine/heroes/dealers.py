@@ -6,7 +6,6 @@ from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     FrozenRevive, Airborne, Burrowed, Stealth, Burn,
     StickyBomb, Charging, RangeModifier, SkillSilence,
-    VendettaFastRevenge,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard

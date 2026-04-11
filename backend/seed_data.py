@@ -928,10 +928,13 @@ SEED_CARDS = [{'hero_key': 'reinhardt',
 
 
 async def seed_cards(db: AsyncSession):
-    result = await db.execute(select(CardTemplate).limit(1))
-    if result.scalar_one_or_none():
+    existing_keys_result = await db.execute(select(CardTemplate.hero_key))
+    existing_keys = set(existing_keys_result.scalars().all())
+
+    missing_cards = [card_data for card_data in SEED_CARDS if card_data["hero_key"] not in existing_keys]
+    if not missing_cards:
         return
-    for card_data in SEED_CARDS:
+    for card_data in missing_cards:
         db.add(CardTemplate(**card_data))
     await db.commit()
-    print(f"[SEED] {len(SEED_CARDS)} cards inserted.")
+    print(f"[SEED] {len(missing_cards)} cards inserted.")
