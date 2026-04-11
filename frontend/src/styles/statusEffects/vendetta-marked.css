@@ -22,11 +22,11 @@
     content: '';
     position: absolute;
     left: 50%;
-    top: 16%;
-    width: 38%;
-    height: 24%;
+    top: 15%;
+    width: 40%;
+    height: 26%;
 
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff3c5a' d='M 4 12 L 46 44 L 30 20 L 40 30 L 54 6 L 52 42 L 96 4 L 58 50 L 92 58 L 62 54 L 84 86 L 56 58 L 50 96 L 46 60 L 8 94 L 42 54 Z M 10 50 L 28 46 L 18 58 Z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='127' height='119' viewBox='0 0 127 119' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M39.2828 94.8835L41.2828 87.8835L8.78278 117.883L45.7828 66.8835L23.7828 55.3835L35.2828 53.8835L0.282776 29.8835L61.2828 50.8835L97.2828 13.8835L97.7828 20.8835L122.283 0.383453L81.2828 60.8835L126.283 91.8835L66.2828 72.8835L39.2828 94.8835Z' fill='%23ff355f'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
