@@ -1,0 +1,58 @@
+.field-card-3d.status-sleep .field-status-layer-sleep {
+    position: absolute;
+    top: -6px;
+    right: -3px;
+    width: 42%;
+    height: 42%;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.field-card-3d.status-sleep .field-status-layer-sleep-z {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-block;
+    font-weight: 900;
+    font-family: 'Arial Black', 'Inter', sans-serif;
+    line-height: 1;
+    color: #8ee7ff;
+    text-shadow:
+            0 0 6px rgba(124, 232, 255, 0.75),
+            0 0 12px rgba(116, 210, 255, 0.55);
+    opacity: 0;
+    transform: translate(0, 0) scale(0.42) rotate(-8deg);
+    animation: sleepZTrail 1.45s linear infinite;
+}
+
+.field-card-3d.status-sleep .field-status-layer-sleep-z.z1 {
+    font-size: 11px;
+    animation-delay: 0s;
+}
+
+.field-card-3d.status-sleep .field-status-layer-sleep-z.z2 {
+    font-size: 15px;
+    animation-delay: 0.42s;
+}
+
+.field-card-3d.status-sleep .field-status-layer-sleep-z.z3 {
+    font-size: 20px;
+    animation-delay: 0.84s;
+}
+
+@keyframes sleepZTrail {
+    0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.4) rotate(-8deg);
+    }
+    12% {
+        opacity: 0.95;
+    }
+    55% {
+        opacity: 0.78;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(28px, -30px) scale(1.45) rotate(-8deg);
+    }
+}

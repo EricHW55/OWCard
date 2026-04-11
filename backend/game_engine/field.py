@@ -146,7 +146,7 @@ class FieldCard:
 
     @property
     def is_silenced(self) -> bool:
-        return self.has_status("skill_silence") or self.has_status("frozen_state")
+        return self.has_status("skill_silence") or self.has_status("sleep") or self.has_status("frozen_state")
 
     @property
     def is_targetable(self) -> bool:

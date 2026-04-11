@@ -15,7 +15,8 @@ from game_engine.skill_registry import register_skill, get_passive
 from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
-    FrozenState, GravityFluxAirborne, HealMultiplier, DamageMultiplier
+    FrozenState, GravityFluxAirborne, HealMultiplier, DamageMultiplier,
+    Sleep
 )
 
 if TYPE_CHECKING:
@@ -577,17 +578,20 @@ def spell_emp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
 @register_skill("spell_sleep_dart", "skill_1")
 def spell_sleep_dart(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """수면총: 상대 카드 한장을 한턴 행동불가."""
+    """수면총: 상대 카드 한장을 수면(스킬 봉쇄) 상태로 만든다."""
     if not target:
         return {"success": False, "message": "대상을 선택하세요"}
 
-    target.add_status(SkillSilence(
-        name="sleep",
-        duration=1,
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    sleep_duration = int((raw_meta.get("sleep_duration") or raw_meta.get("duration") or 1))
+    target.add_status(Sleep(
+        duration=max(1, sleep_duration),
         source_uid="spell",
         tags=["debuff", "cc", "install"],
     ))
-    return {"success": True, "skill": "수면총", "target": target.uid}
+    return {"success": True, "skill": "수면총", "target": target.uid, "duration": max(1, sleep_duration)}
 
 
 @register_skill("spell_immortality_field", "skill_1")

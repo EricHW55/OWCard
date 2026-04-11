@@ -102,9 +102,8 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const isHooked = card.statuses?.some((s) => s.name === 'hooked');
 
     const hasBurn = card.statuses?.some((s) => s.name === 'burn');
-    const hasSilence = card.statuses?.some(
-        (s) => s.name === 'skill_silence' || s.name === 'sleep'
-    );
+    const hasSilence = card.statuses?.some((s) => s.name === 'skill_silence');
+    const hasSleep = card.statuses?.some((s) => s.name === 'sleep');
     const hasShield = card.statuses?.some(
         (s) => s.name === 'damage_reduction' || s.name === 'next_turn_start_damage_reduction'
     );
@@ -240,6 +239,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         isKnockback ? (isOpponent ? 'status-knockback-opponent' : 'status-knockback-my') : '',
         isHooked ? 'status-hooked' : '',
         hasSilence ? 'status-skill-silence' : '',
+        hasSleep ? 'status-sleep' : '',
         hasBurn ? 'status-burn' : '',
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasVendettaMarked ? 'status-vendetta-marked' : '',
@@ -386,6 +386,13 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                         <div className="field-status-layer-silence-edge right" />
                         {/*<div className="field-status-layer-silence-lock">🔒</div>*/}
                     </>
+                )}
+                {hasSleep && (
+                    <div className="field-status-layer-sleep">
+                        <span className="field-status-layer-sleep-z z1">Z</span>
+                        <span className="field-status-layer-sleep-z z2">Z</span>
+                        <span className="field-status-layer-sleep-z z3">Z</span>
+                    </div>
                 )}
                 {hasBurn && (
                     <div className="field-status-layer-burn">

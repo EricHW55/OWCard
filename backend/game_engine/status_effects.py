@@ -441,6 +441,19 @@ class SkillSilence(StatusEffect):
     name: str = "skill_silence"
     duration: int = 1
     tags: list[str] = field(default_factory=lambda: ["debuff", "cc"])
+    
+    
+@dataclass
+class Sleep(StatusEffect):
+    """수면: 스킬 봉쇄 + 피해를 받으면 즉시 해제."""
+    name: str = "sleep"
+    duration: int = 1
+    tags: list[str] = field(default_factory=lambda: ["debuff", "cc", "sleep"])
+
+    def on_take_damage(self, card, damage, **kwargs):
+        if damage > 0:
+            card.remove_status(self.name)
+        return {"damage": damage}
 
 
 @dataclass
