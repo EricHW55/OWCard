@@ -258,8 +258,9 @@ def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 @register_skill("doomfist", "skill_2")
 def doomfist_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     # 강화 펀치는 1회만 저장(중복 파워블락으로 중첩되지 않음)
+    reduction = int(caster.extra.get("block_reduction", 50) or 50)
     caster.remove_status("next_turn_start_damage_reduction")
-    caster.add_status(NextTurnStartDamageReduction(percent=50, source_uid=caster.uid))
+    caster.add_status(NextTurnStartDamageReduction(percent=reduction, source_uid=caster.uid))
     caster.extra["empowered_punch"] = True
     return {"success": True, "skill": "파워블락"}
 
@@ -299,8 +300,9 @@ def ramattra_form(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 @register_skill("ramattra", "skill_3")
 def ramattra_block(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if caster.extra.get("form") != "nemesis": return {"success": False, "message": "네메시스만"}
+    reduction = int(caster.extra.get("block_reduction", 50) or 50)
     caster.remove_status("next_turn_start_damage_reduction")
-    caster.add_status(NextTurnStartDamageReduction(percent=50, source_uid=caster.uid))
+    caster.add_status(NextTurnStartDamageReduction(percent=reduction, source_uid=caster.uid))
     return {"success": True, "skill": "막기"}
 
 # ── 도미나 (신규) ─────────────────────────
@@ -395,7 +397,9 @@ def mauga_chacha(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 오리사 (신규) ───────────────────────
 @register_passive("orisa")
 def orisa_passive(card: FieldCard, game: GameState) -> dict:
-    card.add_status(OrisaFortifyPassive(source_uid=card.uid))
+    # card.add_status(OrisaFortifyPassive(source_uid=card.uid))
+    reduction = int(card.extra.get("fortify_damage_reduction", 50) or 50)
+    card.add_status(OrisaFortifyPassive(source_uid=card.uid, reduction_percent=reduction))
     return {"fortify_passive": True}
 
 

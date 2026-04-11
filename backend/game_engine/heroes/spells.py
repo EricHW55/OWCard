@@ -188,24 +188,31 @@ def spell_sound_barrier(caster: FieldCard, target: FieldCard, game: GameState) -
 def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """증폭 매트릭스: 한턴 동안 딜량과 힐량 2배.
     아군 전체 스킬 피해/치유 배율 버프로 구현."""
+    damage_multiplier = float(caster.extra.get("damage_multiplier", 2.0) or 2.0)
+    heal_multiplier = float(caster.extra.get("heal_multiplier", 2.0) or 2.0)
+    duration = int(caster.extra.get("duration", 1) or 1)
     my_field = game.get_my_field(caster)
     allies = my_field.all_cards()
     logs = []
     for ally in allies:
-        # 스킬 피해 배율 2배
         ally.add_status(DamageMultiplier(
-            value=2.0,
-            duration=1,
+            value=damage_multiplier,
+            duration=duration,
             source_uid="spell",
             tags=["buff", "amp_matrix"],
         ))
         ally.add_status(HealMultiplier(
-            value=2.0,
-            duration=1,
+            value=heal_multiplier,
+            duration=duration,
             source_uid="spell",
             tags=["buff", "amp_matrix"],
         ))
-        logs.append({"target": ally.uid, "attack_doubled": True, "heal_doubled": True})
+        logs.append({
+            "target": ally.uid,
+            "damage_multiplier": damage_multiplier,
+            "heal_multiplier": heal_multiplier,
+            "duration": duration,
+        })
 
     return {"success": True, "skill": "증폭 매트릭스", "affected": logs}
 
@@ -216,18 +223,20 @@ def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> d
     if not target:
         return {"success": False, "message": "강화할 아군을 선택하세요"}
 
-    # 스킬 피해량 50% 증가 (영구)
+    damage_multiplier = float(caster.extra.get("damage_multiplier", 1.5) or 1.5)
+    damage_reduction = int(caster.extra.get("damage_reduction", 50) or 50)
+    duration = int(caster.extra.get("duration", -1) or -1)
+    
     target.add_status(DamageMultiplier(
-        value=1.5,
-        duration=-1,  # 영구
+        value=damage_multiplier,
+        duration=duration,
         source_uid="spell",
         tags=["buff", "nano"],
     ))
 
-    # 피해 감소 50% (영구)
     target.add_status(DamageReduction(
-        percent=50,
-        duration=-1,
+        percent=damage_reduction,
+        duration=duration,
         source_uid="spell",
         tags=["buff", "nano"],
     ))
@@ -236,8 +245,9 @@ def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "success": True,
         "skill": "나노 강화제",
         "target": target.uid,
-        "attack_bonus": 1.5,
-        "damage_reduction": 50,
+        "attack_bonus": damage_multiplier,
+        "damage_reduction": damage_reduction,
+        "duration": duration,
     }
 
 

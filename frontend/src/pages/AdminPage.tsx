@@ -37,6 +37,7 @@ const GLOBAL_EXTRA_TO_SKILL_KEY: Record<string, Record<string, string>> = {
     dva: { hana_hp: 'passive' },
     zarya: { particle_bonus: 'skill_1' },
     junkerqueen: { shout_extra_hp: 'skill_2' },
+    doomfist: { block_reduction: 'skill_2' },
     sigma: { barrier_hp: 'skill_1', regen_amount: 'skill_2' },
     ramattra: { nemesis_bonus_hp: 'skill_2', block_reduction: 'skill_2' },
     domina: { barrier_hp: 'skill_2' },
