@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { getApiBase } from '../api/ws';
+import { getCardImageSrc } from '../utils/heroImage';
 import './AdminPage.css';
 
 type CardTemplate = {
@@ -30,6 +31,34 @@ type SkillEditorRow = {
 };
 
 const SKILL_KEY_REGEX = /^(passive|skill_\d+(?:_.+)?)$/;
+const GLOBAL_EXTRA_TO_SKILL_KEY: Record<string, Record<string, string>> = {
+    reinhardt: { barrier_hp: 'passive' },
+    winston: { barrier_hp: 'skill_2' },
+    dva: { hana_hp: 'passive' },
+    zarya: { particle_bonus: 'skill_1' },
+    junker_queen: { shout_extra_hp: 'skill_2' },
+    sigma: { barrier_hp: 'skill_1', regen_amount: 'skill_2' },
+    ramattra: { nemesis_bonus_hp: 'skill_2', block_reduction: 'skill_2' },
+    domina: { barrier_hp: 'skill_2' },
+    roadhog: { heal_threshold: 'skill_2' },
+    mauga: { burn_damage: 'skill_1', burn_duration: 'skill_1' },
+    orisa: { fortify_clear_debuffs: 'passive' },
+    hazard: { hazard_retaliate: 'passive', hazard_wall_hp: 'skill_2' },
+    sombra: { stealth_heal: 'skill_1' },
+    ashe: { burn_damage: 'skill_2', burn_duration: 'skill_2' },
+    cassidy: { burn_damage: 'skill_2', burn_duration: 'skill_2' },
+    torbjorn: { turret_hp: 'passive', turret_damage: 'passive', repair_amount: 'skill_2' },
+    kiriko: { swift_step_threshold: 'passive' },
+    zenyatta: { discord_value: 'skill_1' },
+    wuyang: { heal_amplify: 'skill_1', knockback_value: 'skill_2' },
+    mizuki: { kasa_total_heal: 'skill_2' },
+    brigitte: { inspire_heal: 'passive' },
+    illari: { turret_hp: 'passive', turret_heal: 'passive' },
+    sound_barrier: { extra_hp: 'skill_1', duration: 'skill_1' },
+    bob: { bob_hp: 'skill_1' },
+    orbital_ray: { heal: 'skill_1', attack_buff: 'skill_1' },
+    caduceus_staff: { attack_bonus: 'skill_1' },
+};
 
 const normalizeObject = (value: unknown): Record<string, unknown> => (
     value && typeof value === 'object' && !Array.isArray(value)
@@ -140,21 +169,24 @@ const AdminPage: React.FC = () => {
             return a.localeCompare(b, undefined, { numeric: true });
         });
 
+        const globalExtraSkillMap = GLOBAL_EXTRA_TO_SKILL_KEY[selectedCard.hero_key] ?? {};
         const nextRows: SkillEditorRow[] = orderedSkillKeys.map((key) => {
             const rawMeta = normalizeObject(skillMeta[key]);
-            const rowExtra = extra[key];
+            const rowExtra = normalizeObject(extra[key]);
+            const mappedGlobalExtraEntries = Object.entries(extra).filter(([extraKey]) => globalExtraSkillMap[extraKey] === key);
+            const mappedGlobalExtra = Object.fromEntries(mappedGlobalExtraEntries);
             return {
                 key,
                 name: String(rawMeta.name ?? ''),
                 cooldown: rawMeta.cooldown === undefined || rawMeta.cooldown === null ? '' : String(rawMeta.cooldown),
                 description: String(rawMeta.description ?? ''),
                 damageText: JSON.stringify(skillDamages[key] ?? null, null, 2),
-                extraText: JSON.stringify(rowExtra ?? {}, null, 2),
+                extraText: JSON.stringify({ ...rowExtra, ...mappedGlobalExtra }, null, 2),
             };
         });
 
         const globalExtra = Object.fromEntries(
-            Object.entries(extra).filter(([key]) => !SKILL_KEY_REGEX.test(key)),
+            Object.entries(extra).filter(([key]) => !SKILL_KEY_REGEX.test(key) && !(key in globalExtraSkillMap)),
         );
 
         setSkillRows(nextRows);
@@ -207,8 +239,21 @@ const AdminPage: React.FC = () => {
                 }, {});
 
                 const globalExtra = normalizeObject(parseJsonOrFallback(globalExtraText, {}));
+                const globalExtraSkillMap = GLOBAL_EXTRA_TO_SKILL_KEY[selectedCard.hero_key] ?? {};
+                const skillToGlobalKeys = Object.entries(globalExtraSkillMap).reduce<Record<string, string[]>>((acc, [extraKey, skillKey]) => {
+                    acc[skillKey] = acc[skillKey] ?? [];
+                    acc[skillKey].push(extraKey);
+                    return acc;
+                }, {});
                 const skillScopedExtra = skillRows.reduce<Record<string, unknown>>((acc, row) => {
-                    const parsed = parseJsonOrFallback(row.extraText, {});
+                    const parsed = normalizeObject(parseJsonOrFallback(row.extraText, {}));
+                    const mappedGlobalKeys = skillToGlobalKeys[row.key] ?? [];
+                    for (const mappedKey of mappedGlobalKeys) {
+                        if (mappedKey in parsed) {
+                            globalExtra[mappedKey] = parsed[mappedKey];
+                            delete parsed[mappedKey];
+                        }
+                    }
                     const isEmptyObject = typeof parsed === 'object' && parsed && !Array.isArray(parsed) && Object.keys(parsed as Record<string, unknown>).length === 0;
                     if (parsed !== null && parsed !== undefined && !isEmptyObject) {
                         acc[row.key] = parsed;
@@ -275,10 +320,10 @@ const AdminPage: React.FC = () => {
                             }}
                         >
                             <img
-                                src={`/heroes/${card.hero_key}.png`}
+                                src={getCardImageSrc(card)}
                                 alt={card.name}
                                 onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = '/heroes/_unknown.png';
+                                    (e.currentTarget as HTMLImageElement).src = card.is_spell ? '/skills/_unknown.png' : '/heroes/_unknown.png';
                                 }}
                             />
                             <div>
@@ -305,7 +350,18 @@ const AdminPage: React.FC = () => {
                 ) : (
                     <>
                         <div className="admin-header-row">
-                            <h3>{selectedCard.name} ({selectedCard.hero_key})</h3>
+                            <h3>
+                                <span className="admin-selected-title">
+                                    <img
+                                        src={getCardImageSrc(selectedCard)}
+                                        alt={selectedCard.name}
+                                        onError={(e) => {
+                                            (e.currentTarget as HTMLImageElement).src = selectedCard.is_spell ? '/skills/_unknown.png' : '/heroes/_unknown.png';
+                                        }}
+                                    />
+                                    <span>{selectedCard.name} ({selectedCard.hero_key})</span>
+                                </span>
+                            </h3>
                             <label className="admin-view-switch">
                                 <input
                                     type="checkbox"
@@ -386,7 +442,7 @@ const AdminPage: React.FC = () => {
                                         ))}
                                     </div>
 
-                                    <label className="admin-global-extra">공통 추가 데이터(JSON)
+                                    <label className="admin-global-extra">미매핑 공통 추가 데이터(JSON)
                                         <textarea
                                             value={globalExtraText}
                                             onChange={(e) => setGlobalExtraText(e.target.value)}

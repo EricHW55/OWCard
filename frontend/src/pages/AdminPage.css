@@ -1,10 +1,12 @@
 .admin-page {
-    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100dvh;
     display: grid;
     grid-template-columns: 320px 1fr;
     background: #131722;
     color: #f4f7ff;
     position: relative;
+    overflow: hidden;
 }
 
 .admin-sidebar {
@@ -16,7 +18,8 @@
 
 .admin-main {
     padding: 24px;
-    overflow: auto;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .admin-mobile-drawer-header,
@@ -75,6 +78,20 @@
 
 .admin-header-row h3 {
     margin: 0;
+}
+
+.admin-selected-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-selected-title img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .admin-view-switch {
@@ -209,6 +226,14 @@
         grid-template-columns: 1fr;
     }
 
+    .admin-main {
+        position: relative;
+        height: 100dvh;
+        padding: 56px 16px 20px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .admin-sidebar {
         position: fixed;
         top: 0;
@@ -264,7 +289,10 @@
         font-weight: 700;
         cursor: pointer;
         line-height: 1;
-        margin-left: auto;
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 1100;
     }
 
     .admin-mobile-drawer-dim {
