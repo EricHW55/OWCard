@@ -28,6 +28,7 @@ interface SessionInfo {
     player_id: number;
     username: string;
     nickname: string;
+    is_admin: boolean;
 }
 
 interface DeckInfo {
@@ -45,7 +46,7 @@ interface CardTemplateLite {
     is_spell?: boolean;
 }
 
-type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects';
+type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects' | 'admin';
 type PlayMode = 'none' | 'quick' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 
@@ -62,6 +63,7 @@ function getSession(): SessionInfo | null {
         player_id: Number(playerIdRaw),
         username,
         nickname,
+        is_admin: sessionStorage.getItem('is_admin') === 'true',
     };
 }
 
@@ -509,12 +511,14 @@ const LobbyPage: React.FC = () => {
                 player_id: data.player_id,
                 username: data.nickname,
                 nickname: data.nickname,
+                is_admin: Boolean(data.is_admin),
             };
 
             sessionStorage.setItem('access_token', nextSession.token);
             sessionStorage.setItem('player_id', String(nextSession.player_id));
             sessionStorage.setItem('username', nextSession.username);
             sessionStorage.setItem('nickname', nextSession.nickname);
+            sessionStorage.setItem('is_admin', String(nextSession.is_admin));
 
             setSession(nextSession);
             setDeckId(data.default_deck_id ?? 1);
@@ -542,6 +546,10 @@ const LobbyPage: React.FC = () => {
         }
         if (key === 'status-effects') {
             navigate('/status-effects');
+            return;
+        }
+        if (key === 'admin' && session?.is_admin) {
+            navigate('/admin');
         }
     };
 
@@ -704,6 +712,9 @@ const LobbyPage: React.FC = () => {
                                     <button className="lobby-solid-btn" onClick={() => openMenu('deck')}>덱 수정</button>
                                     <button className="lobby-solid-btn" onClick={() => openMenu('rules')}>게임 규칙</button>
                                     <button className="lobby-solid-btn" onClick={() => openMenu('status-effects')}>상태 효과 정보</button>
+                                    {session?.is_admin && (
+                                        <button className="lobby-solid-btn" onClick={() => openMenu('admin')}>관리자 페이지</button>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="desktop-menu-text">
@@ -711,6 +722,9 @@ const LobbyPage: React.FC = () => {
                                     <button className={`menu-text-item ${activeMenu === 'deck' ? 'active' : ''}`} onClick={() => openMenu('deck')}>덱 수정</button>
                                     <button className={`menu-text-item ${activeMenu === 'rules' ? 'active' : ''}`} onClick={() => openMenu('rules')}>게임 규칙</button>
                                     <button className={`menu-text-item ${activeMenu === 'status-effects' ? 'active' : ''}`} onClick={() => openMenu('status-effects')}>상태 효과 정보</button>
+                                    {session?.is_admin && (
+                                        <button className={`menu-text-item ${activeMenu === 'admin' ? 'active' : ''}`} onClick={() => openMenu('admin')}>관리자 페이지</button>
+                                    )}
                                 </div>
                             )}
                         </>

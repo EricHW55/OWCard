@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db, async_session
-from routers import auth, cards, decks, lobby, game_ws, lobby_ws
+from routers import auth, cards, decks, lobby, game_ws, lobby_ws, admin
 from seed_data import seed_cards
 
 
@@ -71,6 +71,7 @@ app.include_router(auth.router)
 app.include_router(cards.router)
 app.include_router(decks.router)
 app.include_router(lobby.router)
+app.include_router(admin.router)
 
 # WebSocket
 app.include_router(game_ws.router)

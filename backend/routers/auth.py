@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE
+from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE, ADMIN_NICKNAME
 from database import get_db
 from models.deck import Deck
 from models.player import Player
@@ -40,6 +40,7 @@ class TokenRes(BaseModel):
     player_id: int
     nickname: str
     default_deck_id: int | None = None
+    is_admin: bool = False
 
 
 def create_token(player_id: int, username: str) -> str:
@@ -56,6 +57,10 @@ def verify_token(token: str) -> dict:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+    
+def is_admin_nickname(nickname: str) -> bool:
+    return bool(ADMIN_NICKNAME) and nickname == ADMIN_NICKNAME
 
 
 async def ensure_default_deck(db: AsyncSession, player: Player) -> int:
@@ -115,6 +120,7 @@ async def register(req: RegisterReq, db: AsyncSession = Depends(get_db)):
         player_id=p.id,
         nickname=p.nickname,
         default_deck_id=p.selected_deck_id,
+        is_admin=is_admin_nickname(p.nickname),
     )
 
 
@@ -132,6 +138,7 @@ async def login(req: LoginReq, db: AsyncSession = Depends(get_db)):
         player_id=p.id,
         nickname=p.nickname,
         default_deck_id=default_deck_id,
+        is_admin=is_admin_nickname(p.nickname),
     )
 
 
@@ -155,6 +162,7 @@ async def guest_login(req: GuestReq, db: AsyncSession = Depends(get_db)):
                 player_id=p.id,
                 nickname=p.nickname,
                 default_deck_id=default_deck_id,
+                is_admin=is_admin_nickname(p.nickname),
             )
 
         # 없으면 새 게스트 생성
@@ -178,6 +186,7 @@ async def guest_login(req: GuestReq, db: AsyncSession = Depends(get_db)):
             player_id=p.id,
             nickname=p.nickname,
             default_deck_id=p.selected_deck_id,
+            is_admin=is_admin_nickname(p.nickname),
         )
 
     except HTTPException:

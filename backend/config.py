@@ -13,6 +13,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-in-production-abc123xyz"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
+ADMIN_NICKNAME = os.getenv("ADMIN_NICKNAME", "").strip()
+
 # ── Game constants ─────────────────────────────
 DECK_SIZE = 20
 HAND_SIZE = 7
