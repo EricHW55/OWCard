@@ -124,6 +124,7 @@ const EFFECTS: EffectPreview[] = [
     { key: 'discord_orb', label: 'DiscordOrb', title: '부조화', summary: '받는 피해 증가.', statuses: [makeStatus('discord_orb', 2, ['debuff'])] },
     { key: 'taunt', label: 'Taunt', title: '도발', summary: '이 카드를 우선 공격해야 함.', statuses: [makeStatus('taunt', 2, ['buff'])] },
     { key: 'skill_silence', label: 'SkillSilence', title: '스킬 봉쇄', summary: '스킬 사용 불가.', statuses: [makeStatus('skill_silence', 2, ['debuff'])] },
+    { key: 'sleep', label: 'Sleep', title: '수면', summary: '스킬 사용 불가. 피해를 받으면 즉시 해제됨.', statuses: [makeStatus('sleep', 2, ['debuff', 'cc', 'sleep'])] },
     { key: 'burn', label: 'Burn', title: '화상', summary: '턴 종료 시 지속 피해.', statuses: [makeStatus('burn', 2, ['debuff'])] },
     { key: 'sticky_bomb', label: 'StickyBomb', title: '점착폭탄', summary: '턴 종료 시 폭발 피해.', statuses: [makeStatus('sticky_bomb', 2, ['debuff'])] },
     { key: 'vendetta_marked', label: 'VendettaMarked', title: '벤데타 표적', summary: '벤데타의 표적 디버프. 벤데타에게 피격시, 거리제한이 없어지고 추가 피해를 받는다.', statuses: [makeStatus('vendetta_marked', -1, ['debuff'])] },
