@@ -26,6 +26,7 @@ type SkillEditorRow = {
     name: string;
     cooldown: string;
     description: string;
+    metaExtraText: string;
     damageText: string;
     extraText: string;
 };
@@ -179,12 +180,14 @@ const AdminPage: React.FC = () => {
             const rawMeta = normalizeObject(skillMeta[key]);
             const rowExtra = normalizeObject(extra[key]);
             const mappedGlobalExtraEntries = Object.entries(extra).filter(([extraKey]) => globalExtraSkillMap[extraKey] === key);
+            const { name: _name, cooldown: _cooldown, description: _description, ...metaExtra } = rawMeta;
             const mappedGlobalExtra = Object.fromEntries(mappedGlobalExtraEntries);
             return {
                 key,
                 name: String(rawMeta.name ?? ''),
                 cooldown: rawMeta.cooldown === undefined || rawMeta.cooldown === null ? '' : String(rawMeta.cooldown),
                 description: String(rawMeta.description ?? ''),
+                metaExtraText: JSON.stringify(metaExtra, null, 2),
                 damageText: JSON.stringify(skillDamages[key] ?? null, null, 2),
                 extraText: JSON.stringify({ ...rowExtra, ...mappedGlobalExtra }, null, 2),
             };
@@ -239,7 +242,7 @@ const AdminPage: React.FC = () => {
                 }, { ...originalSkillDamages });
 
                 const skill_meta = skillRows.reduce<Record<string, unknown>>((acc, row) => {
-                    const nextMeta: Record<string, unknown> = {};
+                    const nextMeta: Record<string, unknown> = normalizeObject(parseJsonOrFallback(row.metaExtraText, {}));
                     if (row.name.trim()) nextMeta.name = row.name.trim();
                     if (row.cooldown.trim()) nextMeta.cooldown = Number(row.cooldown);
                     if (row.description.trim()) nextMeta.description = row.description.trim();
@@ -441,6 +444,13 @@ const AdminPage: React.FC = () => {
                                                             onChange={(e) => updateSkillRow(index, { description: e.target.value })}
                                                             rows={3}
                                                             placeholder="스킬 설명"
+                                                        />
+                                                    </label>
+                                                    <label>스킬 메타 추가(JSON)
+                                                        <textarea
+                                                            value={row.metaExtraText}
+                                                            onChange={(e) => updateSkillRow(index, { metaExtraText: e.target.value })}
+                                                            rows={4}
                                                         />
                                                     </label>
                                                     <label>스킬 데미지(JSON)
