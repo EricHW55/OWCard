@@ -126,7 +126,7 @@ const EFFECTS: EffectPreview[] = [
     { key: 'skill_silence', label: 'SkillSilence', title: '스킬 봉쇄', summary: '스킬 사용 불가.', statuses: [makeStatus('skill_silence', 2, ['debuff'])] },
     { key: 'burn', label: 'Burn', title: '화상', summary: '턴 종료 시 지속 피해.', statuses: [makeStatus('burn', 2, ['debuff'])] },
     { key: 'sticky_bomb', label: 'StickyBomb', title: '점착폭탄', summary: '턴 종료 시 폭발 피해.', statuses: [makeStatus('sticky_bomb', 2, ['debuff'])] },
-    { key: 'vendetta_marked', label: 'VendettaMarked', title: '벤데타 표적', summary: '벤데타의 표적 디버프. 공격 시 추가 피해를 받는 대상 UI.', statuses: [makeStatus('vendetta_marked', -1, ['debuff'])] },
+    { key: 'vendetta_marked', label: 'VendettaMarked', title: '벤데타 표적', summary: '벤데타의 표적 디버프. 벤데타에게 피격시, 거리제한이 없어지고 추가 피해를 받는다.', statuses: [makeStatus('vendetta_marked', -1, ['debuff'])] },
     { key: 'frozen_state', label: 'FrozenState', title: '빙결 상태', summary: '무적, 행동 불가, 타겟팅 불가, 앞라인 차단 해제, 조건에 따라 해동 또는 부활.', statuses: [makeStatus('frozen_state', 1, ['debuff'])] },
     { key: 'frozen_revive', label: 'FrozenRevive', title: '빙결 부활 패시브', summary: '최초 사망 시 HP 1로 빙결 상태가 되고 다음 턴 시작에 부활.', statuses: [makeStatus('frozen_revive', 999, ['buff'])] },
     { key: 'immortality', label: 'Immortality', title: '불사', summary: '치명 피해를 막고 HP 1로 생존.', statuses: [makeStatus('immortality', 2, ['buff'])] },
