@@ -340,6 +340,17 @@ class GameEngine:
             "extra": {},
             "is_spell": True,
         }
+        
+        
+    def _resolve_skill_name(self, caster: FieldCard, skill_key: str, fallback: str | None = None) -> str | None:
+        """스킬 표시 이름을 DB(skill_meta)에서 우선 조회하고, 없으면 fallback을 사용한다."""
+        skill_meta = caster.skill_meta or {}
+        raw = skill_meta.get(skill_key, {}) if isinstance(skill_meta, dict) else {}
+        if isinstance(raw, dict):
+            name = raw.get("name")
+            if isinstance(name, str) and name.strip():
+                return name.strip()
+        return fallback
 
     def _execute_spell_effect(self, ps: PlayerState, hero_key: str, *, target: FieldCard | None = None,
                               trash_index: int | None = None, draw_index: int | None = None,
@@ -373,6 +384,10 @@ class GameEngine:
         ps.field.main_cards.append(dummy_caster)
         try:
             result = spell_fn(dummy_caster, target, self.state)
+            resolved = self._resolve_skill_name(dummy_caster, "skill_1", result.get("skill"))
+            if resolved:
+                result["skill"] = resolved
+                result["skill_name"] = resolved
         finally:
             ps.field.main_cards = [c for c in ps.field.main_cards if c.uid != "spell_dummy"]
         return result
@@ -1053,8 +1068,10 @@ class GameEngine:
         result.setdefault("caster_name", caster.name)
         result.setdefault("caster_hero_key", caster.extra.get("_hero_key", ""))
         result.setdefault("skill_key", skill_key)
-        if result.get("skill") and not result.get("skill_name"):
-            result["skill_name"] = result["skill"]
+        resolved_skill_name = self._resolve_skill_name(caster, skill_key, result.get("skill"))
+        if resolved_skill_name:
+            result["skill"] = resolved_skill_name
+            result["skill_name"] = resolved_skill_name
 
         if result.get("success"):
             # 이번 턴 행동 완료 표시
