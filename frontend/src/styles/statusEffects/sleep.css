@@ -1,11 +1,28 @@
+.field-card-3d.status-sleep {
+    filter: saturate(0.82) brightness(0.92);
+}
+
+.field-card-3d.status-sleep::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 5;
+    backdrop-filter: blur(1.2px);
+    -webkit-backdrop-filter: blur(1.2px);
+    background: rgba(22, 34, 58, 0.14);
+}
+
 .field-card-3d.status-sleep .field-status-layer-sleep {
     position: absolute;
-    top: -6px;
-    right: -3px;
-    width: 42%;
-    height: 42%;
+    top: 8px;
+    right: 8px;
+    width: 44%;
+    height: 44%;
     pointer-events: none;
     overflow: visible;
+    z-index: 11;
 }
 
 .field-card-3d.status-sleep .field-status-layer-sleep-z {
@@ -21,29 +38,29 @@
             0 0 6px rgba(124, 232, 255, 0.75),
             0 0 12px rgba(116, 210, 255, 0.55);
     opacity: 0;
-    transform: translate(0, 0) scale(0.42) rotate(-8deg);
-    animation: sleepZTrail 1.45s linear infinite;
+    transform: translate(0, 0) scale(0.5) rotate(-8deg);
+    animation: sleepZTrail 1.95s linear infinite;
 }
 
 .field-card-3d.status-sleep .field-status-layer-sleep-z.z1 {
-    font-size: 11px;
+    font-size: 13px;
     animation-delay: 0s;
 }
 
 .field-card-3d.status-sleep .field-status-layer-sleep-z.z2 {
-    font-size: 15px;
-    animation-delay: 0.42s;
+    font-size: 18px;
+    animation-delay: 0.62s;
 }
 
 .field-card-3d.status-sleep .field-status-layer-sleep-z.z3 {
-    font-size: 20px;
-    animation-delay: 0.84s;
+    font-size: 24px;
+    animation-delay: 1.24s;
 }
 
 @keyframes sleepZTrail {
     0% {
         opacity: 0;
-        transform: translate(0, 0) scale(0.4) rotate(-8deg);
+        transform: translate(0, 0) scale(0.48) rotate(-8deg);
     }
     12% {
         opacity: 0.95;
@@ -53,6 +70,6 @@
     }
     100% {
         opacity: 0;
-        transform: translate(28px, -30px) scale(1.45) rotate(-8deg);
+        transform: translate(44px, -48px) scale(1.62) rotate(-8deg);
     }
 }
