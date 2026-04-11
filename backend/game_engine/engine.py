@@ -265,6 +265,12 @@ class GameEngine:
     def opponent_player_id(self) -> int:
         return self.player_order[1 - self.current_turn_index]
 
+    def _find_card_by_uid(self, uid: str) -> Optional[FieldCard]:
+        for ps in self.players.values():
+            card = ps.field.find_card(uid)
+            if card is not None:
+                return card
+        return None
 
     def _spell_requires_choice(self, hero_key: str) -> bool:
         return hero_key in {"spell_rescue", "spell_maximilian"}
@@ -509,7 +515,7 @@ class GameEngine:
 
     def _build_field_card(self, card_data: dict, zone: Zone, *, placed_this_turn: bool = True) -> FieldCard:
         hero_name = card_data.get("hero_key", card_data.get("name", "").lower())
-        return FieldCard(
+        card = FieldCard(
             uid=uuid.uuid4().hex[:8],
             template_id=card_data.get("id", 0),
             name=card_data["name"],
@@ -526,6 +532,8 @@ class GameEngine:
             skill_meta=card_data.get("skill_meta", {}),
             extra={**card_data.get("extra", {}), "_hero_key": hero_name},
         )
+        card.extra["_find_card_by_uid"] = self._find_card_by_uid
+        return card
 
     def _summon_token(self, ps: PlayerState, token_data: dict, zone: str | Zone) -> Optional[FieldCard]:
         token_zone = zone if isinstance(zone, Zone) else Zone(zone)
@@ -1216,7 +1224,7 @@ class GameEngine:
             if res.get("untargetable"):
                 return {"error": "Target is untargetable"}
 
-        result = target.take_damage(attacker.attack)
+        result = target.take_damage(attacker.attack, source_uid=attacker.uid, damage_kind="basic_attack")
         self._apply_particle_barrier_trigger(result)
 
         # 반사 처리

@@ -395,6 +395,36 @@ class DiscordOrb(StatusEffect):
 
 
 @dataclass
+class VendettaMarked(StatusEffect):
+    """벤데타 전용 표적 표식.
+
+    - source_uid: 표식을 건 벤데타의 uid
+    - 같은 source_uid를 가진 벤데타에게만 사거리 무시 효과 제공
+    - 같은 source_uid를 가진 벤데타에게 공격받으면 추가 피해 적용
+    """
+    name: str = "vendetta_marked"
+    duration: int = 2
+    bonus_damage: int = 2
+    tags: list[str] = field(default_factory=lambda: ["debuff", "mark"])
+
+    def on_before_targeted(self, card, attacker):
+        if not attacker or attacker.uid != self.source_uid:
+            return {}
+        return {"distance_modifier": -99}
+
+    def on_take_damage(self, card, damage, **kwargs):
+        source_uid = kwargs.get("source_uid")
+        if source_uid and source_uid == self.source_uid:
+            return {"damage": max(0, damage + int(self.bonus_damage))}
+        return {"damage": damage}
+
+    def to_dict(self):
+        d = super().to_dict()
+        d["bonus_damage"] = int(self.bonus_damage)
+        return d
+
+
+@dataclass
 class Taunt(StatusEffect):
     """도발: 이 카드를 우선 공격해야 함."""
     name: str = "taunt"

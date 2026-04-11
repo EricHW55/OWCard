@@ -6,6 +6,7 @@ from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     FrozenRevive, Airborne, Burrowed, Stealth, Burn,
     StickyBomb, Charging, RangeModifier, SkillSilence,
+    VendettaFastRevenge,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -235,6 +236,22 @@ def cassidy_fan(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     dmg = tbl[idx]
     result = target.take_damage(dmg)
     return {"success": True, "skill": "난사", "slot_index": idx, "damage_log": result}
+
+# ── 벤데타 ────────────────────────────────
+@register_passive("vendetta")
+def vendetta_passive(card: FieldCard, game: GameState) -> dict:
+    if card.extra.get("vendetta_passive_initialized"):
+        return {}
+    card.extra["vendetta_passive_initialized"] = True
+    return {"passive": "빠른 복수"}
+
+@register_skill("vendetta", "skill_1")
+def vendetta_rising_slash(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
+    dmg = game.get_skill_damage(caster, "skill_1")
+    result = target.take_damage(dmg, source_uid=caster.uid, damage_kind="skill")
+    return {"success": True, "skill": "치솟는 베기", "damage_log": result}
 
 # ── 리퍼 ──────────────────────────────────
 @register_skill("reaper", "skill_1")

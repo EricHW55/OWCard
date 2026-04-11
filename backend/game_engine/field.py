@@ -158,6 +158,7 @@ class FieldCard:
     def take_damage(self, damage: int, **kwargs) -> dict:
         log = {"original_damage": damage, "target": self.uid}
         current_damage = damage
+        source_uid = str(kwargs.get("source_uid") or "").strip()
 
         for status in list(self.statuses):
             result = status.on_take_damage(self, current_damage, **kwargs)
@@ -187,6 +188,34 @@ class FieldCard:
 
         for s in list(self.statuses):
             s.on_after_damage(self, current_damage)
+            
+        # 벤데타 패시브(빠른 복수): 자신을 때린 적에게 표적 부여
+        # 별도 상태효과가 아니라 카드 고유 규칙으로 처리한다.
+        if (
+            current_damage > 0
+            and str(self.extra.get("_hero_key", "")).lower() == "vendetta"
+            and source_uid
+            and source_uid != self.uid
+        ):
+            finder = self.extra.get("_find_card_by_uid")
+            attacker = finder(source_uid) if callable(finder) else None
+            if attacker is not None and attacker.alive:
+                from game_engine.status_effects import VendettaMarked
+                mark_duration = int(self.extra.get("vendetta_mark_duration", 2) or 2)
+                bonus_damage = int(self.extra.get("vendetta_mark_bonus_damage", 2) or 2)
+                attacker.add_status(
+                    VendettaMarked(
+                        duration=mark_duration,
+                        source_uid=self.uid,
+                        bonus_damage=bonus_damage,
+                    )
+                )
+                log["vendetta_mark_applied"] = {
+                    "source_uid": self.uid,
+                    "target_uid": attacker.uid,
+                    "duration": mark_duration,
+                    "bonus_damage": bonus_damage,
+                }
 
         if self.current_hp <= 0:
             death_result = self._process_death()

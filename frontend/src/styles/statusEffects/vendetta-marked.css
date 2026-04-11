@@ -1,0 +1,41 @@
+@keyframes status-vendetta-marked-breathe {
+    0% {
+        opacity: 0.92;
+        filter: drop-shadow(0 0 2px rgba(255, 126, 154, 0.5)) drop-shadow(0 0 8px rgba(255, 81, 122, 0.34));
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.38;
+        filter: drop-shadow(0 0 6px rgba(255, 142, 173, 0.75)) drop-shadow(0 0 16px rgba(255, 72, 120, 0.5));
+        transform: scale(1.03);
+    }
+    100% {
+        opacity: 0.92;
+        filter: drop-shadow(0 0 2px rgba(255, 126, 154, 0.5)) drop-shadow(0 0 8px rgba(255, 81, 122, 0.34));
+        transform: scale(1);
+    }
+}
+
+.field-card-3d.status-vendetta-marked .field-status-layer-vendetta-marked {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.field-card-3d.status-vendetta-marked .field-status-layer-vendetta-marked::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 86%;
+    height: 86%;
+    transform: translate(-50%, -50%);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cpath fill='%23ff7f9f' d='M8 71 L46 62 L16 46 L56 55 L79 7 L74 56 L121 26 L89 64 L122 83 L82 76 L66 121 L69 73 L24 103 L46 69 Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    mix-blend-mode: screen;
+    opacity: 0.88;
+    animation: status-vendetta-marked-breathe 2.2s ease-in-out infinite;
+}
