@@ -76,7 +76,7 @@ const DeckBuilderPage: React.FC = () => {
             cards
                 .filter(c => (entries[c.id] ?? 0) > 0)
                 .map(c => ({ ...c, quantity: entries[c.id] }))
-                .sort((a, b) => a.name.localeCompare(b.name)),
+                .sort((a, b) => a.id - b.id),
         [cards, entries]
     );
 
@@ -167,7 +167,7 @@ const DeckBuilderPage: React.FC = () => {
         setDeckSize(cfg.deck_size ?? 20);
         setRoleMaxCounts(cfg.deck_role_max_counts ?? {});
         setSpellCardMaxCopies(cfg.spell_card_max_copies ?? 1);
-        setCards(Array.isArray(cardList) ? cardList : []);
+        setCards(Array.isArray(cardList) ? [...cardList].sort((a, b) => a.id - b.id) : []);
         setMyDecks(Array.isArray(deckList) ? deckList : []);
         if (Array.isArray(deckList) && deckList.length > 0) selectDeck(deckList[0]);
         else {

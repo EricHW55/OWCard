@@ -130,7 +130,9 @@ const AdminPage: React.FC = () => {
                     throw new Error(payload.detail || '관리자 카드 정보를 불러오지 못했습니다.');
                 }
                 const data = await res.json();
-                const list = Array.isArray(data) ? data : [];
+                const list = Array.isArray(data)
+                    ? [...data].sort((a, b) => Number(a?.id ?? 0) - Number(b?.id ?? 0))
+                    : [];
                 setCards(list);
                 setSelectedId(list[0]?.id ?? null);
             } catch (e: any) {
@@ -302,7 +304,11 @@ const AdminPage: React.FC = () => {
             }
 
             const updated = await res.json();
-            setCards((prev) => prev.map((card) => (card.id === updated.id ? updated : card)));
+            setCards((prev) =>
+                prev
+                    .map((card) => (card.id === updated.id ? updated : card))
+                    .sort((a, b) => Number(a?.id ?? 0) - Number(b?.id ?? 0)),
+            );
             setNotice(`${updated.name} 저장 완료`);
         } catch (e: any) {
             setError(e.message || '저장 중 오류가 발생했습니다.');
