@@ -197,8 +197,9 @@ const FieldSection: React.FC<Props> = ({
         const cardBySlot = new Map<number, FieldCard>();
         cards.forEach((card, idx) => {
             const raw = card?.extra?.slot_index;
-            const parsed = Number.isInteger(raw) ? Number(raw) : idx;
-            const slot = parsed >= 0 && parsed < max ? parsed : idx;
+            const parsed = Number(raw);
+            const hasValidSlot = Number.isInteger(parsed) && parsed >= 0 && parsed < max;
+            const slot = hasValidSlot ? parsed : idx;
             if (!cardBySlot.has(slot)) {
                 cardBySlot.set(slot, card);
             }
