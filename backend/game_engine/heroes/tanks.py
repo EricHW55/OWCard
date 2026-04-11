@@ -365,7 +365,13 @@ def _mauga_heal_from_burn_damage(caster: FieldCard, target: FieldCard, damage_lo
     dealt = int(damage_log.get("final_damage", 0) or 0)
     if dealt <= 0:
         return 0
-    return caster.heal(dealt)
+    ratio = float(caster.extra.get("lifesteal_vs_burn_ratio", 1.0) or 0.0)
+    if ratio <= 0:
+        return 0
+    heal_amount = max(0, int(dealt * ratio))
+    if heal_amount <= 0:
+        return 0
+    return caster.heal(heal_amount)
 
 
 @register_skill("mauga", "skill_1")
@@ -373,6 +379,7 @@ def mauga_gunny(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target:
         return {"success": False, "message": "대상 필요"}
 
+    was_burning = target.has_status("burn")
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     target.add_status(Burn(
         damage_per_turn=int(caster.extra.get("burn_damage", 2)),
@@ -380,6 +387,7 @@ def mauga_gunny(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         source_uid=caster.uid,
     ))
     healed = _mauga_heal_from_burn_damage(caster, target, result)
+    healed = _mauga_heal_from_burn_damage(caster, target, result) if was_burning else 0
     return {"success": True, "skill": "화염기관포 거니", "damage_log": result, "healed": healed}
 
 

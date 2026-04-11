@@ -1234,6 +1234,14 @@ export function useOnlineGameController(gameId: string) {
 
   const prepareSkill = useCallback((skillKey: string) => {
     if (!selectedMyFieldCard) return;
+    if (selectedHandIdx !== null || pendingSpell) {
+      setSelectedHandIdx(null);
+      setPendingSpell(null);
+      setPendingSpellName(null);
+      setDuplicateTargetUid(null);
+      setDuplicateTargetRole(null);
+      setDuplicateTargetName(null);
+    }
     const caster = selectedMyFieldCard;
     const rawSkillName = getSkillNameFromCard(caster, skillKey);
     const blockReason = getHeroSkillBlockReason(caster, skillKey);
@@ -1273,7 +1281,7 @@ export function useOnlineGameController(gameId: string) {
       return;
     }
     setColumnChoice(null); setActionMode(skillKey); addLog(`${caster.name} — ${rawSkillName} 준비`); showSystemNotice(rawSkillName, `${caster.name} 준비`, 900);
-  }, [selectedMyFieldCard, send, addLog, showSystemNotice, runAfterSkillAnnouncer]);
+  }, [selectedMyFieldCard, selectedHandIdx, pendingSpell, send, addLog, showSystemNotice, runAfterSkillAnnouncer]);
 
   const runMulligan = useCallback(() => {
     if (selectedMulligan.length === 0) return;
