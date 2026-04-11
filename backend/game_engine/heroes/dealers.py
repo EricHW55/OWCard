@@ -5,7 +5,7 @@ import random
 from game_engine.skill_registry import register_skill, register_passive
 from game_engine.status_effects import (
     FrozenRevive, Airborne, Burrowed, Stealth, Burn,
-    StickyBomb, Charging, RangeModifier,
+    StickyBomb, Charging, RangeModifier, SkillSilence,
 )
 if TYPE_CHECKING:
     from game_engine.field import FieldCard
@@ -184,27 +184,29 @@ def venture_drill(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 # ── 솜브라 ────────────────────────────────
 @register_passive("sombra")
 def sombra_passive(card: FieldCard, game: GameState) -> dict:
-    # 배치 시 상대 설치 스킬 유무 탐지 (프론트에서 표시)
-    enemy = game.get_enemy_field(card)
-    has_install = any(any("install" in s.tags for s in c.statuses) for c in enemy.all_cards())
-    return {"passive": "기회주의자", "enemy_has_install": has_install}
+    # 배치 시 1회만 은신 부여 (턴 시작 패시브 루프에서 중복 발동 방지)
+    if card.extra.get("passive_stealth_applied"):
+        return {}
+    duration = int(card.extra.get("passive_stealth_duration", 4) or 4)
+    card.add_status(Stealth(duration=duration, heal_amount=0, source_uid=card.uid))
+    card.extra["passive_stealth_applied"] = True
+    return {"passive": "은신", "duration": duration}
 
 @register_skill("sombra", "skill_1")
 def sombra_smg(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
-    caster.extra["used_stealth_last"] = False
+    # caster.extra["used_stealth_last"] = False
     return {"success": True, "skill": "기관단총", "damage_log": result}
 
 @register_skill("sombra", "skill_2")
-def sombra_stealth(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.extra.get("used_stealth_last"): return {"success": False, "message": "연속 불가"}
+def sombra_hack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if not target:
+        return {"success": False, "message": "대상 필요"}
     skill_data = game.get_skill_damage(caster, "skill_2", apply_attack_buff=False)
-    heal_amount = int(skill_data.get("heal", 3) if isinstance(skill_data, dict) else skill_data)
-    caster.add_status(Stealth(heal_amount=heal_amount, duration=3, source_uid=caster.uid))
-    healed = caster.heal(heal_amount)
-    caster.extra["used_stealth_last"] = True
-    return {"success": True, "skill": "은신", "healed": healed}
+    duration = int(skill_data.get("duration", 2) if isinstance(skill_data, dict) else skill_data)
+    target.add_status(SkillSilence(duration=duration, source_uid=caster.uid))
+    return {"success": True, "skill": "해킹", "target": target.uid, "duration": duration}
 
 # ── 에코 ──────────────────────────────────
 @register_skill("echo", "skill_1")
@@ -450,7 +452,7 @@ def junkrat_grenade_launcher(caster: FieldCard, target: FieldCard, game: GameSta
             bounce_target = random.choice(others)
             br = bounce_target.take_damage(bounce_d)
             logs.append({"target": bounce_target.uid, "bounce_damage": br})
-    return {"success": True, "skill": "사이버 파편 수류탄", "damage_logs": logs}
+    return {"success": True, "skill": "폭탄 발사기", "damage_logs": logs}
 
 # ── 엠레 (신규) ──────────────────────────
 @register_skill("emre", "skill_1")

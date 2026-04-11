@@ -45,7 +45,7 @@ const GLOBAL_EXTRA_TO_SKILL_KEY: Record<string, Record<string, string>> = {
     mauga: { burn_damage: 'skill_1', burn_duration: 'skill_1', lifesteal_vs_burn_ratio: 'passive' },
     orisa: { fortify_clear_debuffs: 'passive' },
     hazard: { hazard_retaliate: 'passive', hazard_wall_hp: 'skill_1' },
-    sombra: { stealth_heal: 'skill_2' },
+    sombra: { passive_stealth_duration: 'passive' },
     anran: { burn_damage: 'skill_2', burn_duration: 'skill_2' },
     ashe: { burn_damage: 'skill_2', burn_duration: 'skill_2' },
     cassidy: { burn_damage: 'skill_2', burn_duration: 'skill_2' },

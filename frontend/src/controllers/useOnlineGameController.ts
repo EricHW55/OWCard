@@ -123,7 +123,6 @@ function isTargetlessSkill(card: any, skillKey: string): boolean {
 
   if (hero === 'tracer' && skillKey === 'skill_2') return true;
   if (hero === 'freja' && skillKey === 'skill_1') return true;
-  if (hero === 'sombra' && skillKey === 'skill_2') return true;
   if (hero === 'venture' && skillKey === 'skill_1') return !hasStatus('burrowed');
   if (hero === 'soldier76' && skillKey === 'skill_1') return true;
   if (hero === 'lucio' && skillKey === 'skill_1') return true;
