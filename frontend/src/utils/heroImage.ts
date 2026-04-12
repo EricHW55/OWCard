@@ -358,7 +358,29 @@ function isMeiCryoFreezeCard(card: CardLike): boolean {
     // status에 is_mei_cryo가 있으면 최우선으로 신뢰.
     // 구버전/지연 동기화 데이터에서는 extra 플래그가 먼저 들어올 수 있어
     // frozen_state와 함께 있을 때만 보조적으로 허용.
-    return hasMeiCryoFrozenState || (hasFrozenState && isPassiveCryo);
+    // return hasMeiCryoFrozenState || (hasFrozenState && isPassiveCryo);
+    const shouldUseCryoFreezeArt = hasMeiCryoFrozenState || (hasFrozenState && isPassiveCryo);
+
+    if (typeof console !== 'undefined') {
+        console.debug('[heroImage] mei cryo-freeze art check', {
+            cardId: card.id ?? null,
+            heroKey,
+            hasFrozenState,
+            hasMeiCryoFrozenState,
+            meiCryoFreezeActive: isPassiveCryo,
+            shouldUseCryoFreezeArt,
+            statuses: Array.isArray(card.statuses)
+                ? card.statuses.map((status) => ({
+                    name: status?.name ?? null,
+                    is_mei_cryo: Boolean(status?.is_mei_cryo),
+                    thaw_on_turn_start: status?.thaw_on_turn_start ?? null,
+                    revive_hp: status?.revive_hp ?? null,
+                }))
+                : [],
+        });
+    }
+
+    return shouldUseCryoFreezeArt;
 }
 
 function resolveHeroArtKey(card: CardLike): string | null {
