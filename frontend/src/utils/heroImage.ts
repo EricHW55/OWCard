@@ -5,7 +5,7 @@ type CardLike = {
     is_spell?: boolean;
     role?: 'tank' | 'dealer' | 'healer' | string | null;
     extra?: Record<string, unknown> | null;
-    statuses?: Array<{ name?: string | null }> | null;
+    statuses?: Array<{ name?: string | null; is_mei_cryo?: boolean | null }> | null;
 };
 
 const HERO_ID_ALIAS: Record<string, string> = {
@@ -342,11 +342,11 @@ function isMeiCryoFreezeCard(card: CardLike): boolean {
 
     const isFrozen = Array.isArray(card.statuses)
         && card.statuses.some((status) => status?.name === 'frozen_state');
-    const hasFrozenRevive = Array.isArray(card.statuses)
-        && card.statuses.some((status) => status?.name === 'frozen_revive');
     const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
+    const hasMeiCryoFrozenState = Array.isArray(card.statuses)
+        && card.statuses.some((status) => status?.name === 'frozen_state' && status?.is_mei_cryo);
 
-    return isFrozen && (isPassiveCryo || hasFrozenRevive);
+    return isFrozen && (isPassiveCryo || hasMeiCryoFrozenState);
 }
 
 function resolveHeroArtKey(card: CardLike): string | null {
