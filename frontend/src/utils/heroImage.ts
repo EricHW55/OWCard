@@ -22,6 +22,7 @@ const HERO_ID_ALIAS: Record<string, string> = {
     illari_pylon: 'illari_pylon',
     hazard_wall: 'hazard_wall',
     cryo_freeze: 'cryo_freeze',
+    bob: 'bob',
 
     reinhardt: 'reinhardt',
     winston: 'winston',
@@ -137,6 +138,8 @@ const HERO_NAME_ALIAS: Record<string, string> = {
     토르비욘포탑: 'torbjorn_turret',
     가시벽: 'hazard_wall',
     급속빙결: 'cryo_freeze',
+    밥: 'bob',
+    B.O.B: 'bob',
 };
 
 const SPELL_ALIAS: Record<string, string> = {
@@ -339,9 +342,11 @@ function isMeiCryoFreezeCard(card: CardLike): boolean {
 
     const isFrozen = Array.isArray(card.statuses)
         && card.statuses.some((status) => status?.name === 'frozen_state');
+    const hasFrozenRevive = Array.isArray(card.statuses)
+        && card.statuses.some((status) => status?.name === 'frozen_revive');
     const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
 
-    return isFrozen && isPassiveCryo;
+    return isFrozen && (isPassiveCryo || hasFrozenRevive);
 }
 
 function resolveHeroArtKey(card: CardLike): string | null {
