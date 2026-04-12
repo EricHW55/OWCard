@@ -405,9 +405,14 @@ export function buildCardImageChain(card: CardLike, mode: CardImageMode): string
     const fallback = getCardImageSrc(card);
     const illustrations = getIllustrationCandidates(card);
     const cardArts = getCardArtCandidates(card);
+    const handPreferred = Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
 
     if (mode === 'detail') {
         return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
+    }
+
+    if (mode === 'hand') {
+        return handPreferred;
     }
 
     if (mode === 'cinematic') {
