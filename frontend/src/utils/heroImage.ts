@@ -5,7 +5,12 @@ type CardLike = {
     is_spell?: boolean;
     role?: 'tank' | 'dealer' | 'healer' | string | null;
     extra?: Record<string, unknown> | null;
-    statuses?: Array<{ name?: string | null; is_mei_cryo?: boolean | null }> | null;
+    statuses?: Array<{
+        name?: string | null;
+        is_mei_cryo?: boolean | null;
+        revive_hp?: number | null;
+        thaw_on_turn_start?: boolean | null;
+    }> | null;
 };
 
 const HERO_ID_ALIAS: Record<string, string> = {
