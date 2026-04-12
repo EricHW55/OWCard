@@ -139,7 +139,7 @@ const HERO_NAME_ALIAS: Record<string, string> = {
     가시벽: 'hazard_wall',
     급속빙결: 'cryo_freeze',
     밥: 'bob',
-    B.O.B: 'bob',
+    // B.O.B: 'bob',
 };
 
 const SPELL_ALIAS: Record<string, string> = {
