@@ -4,6 +4,8 @@ type CardLike = {
     name?: string | number | null;
     is_spell?: boolean;
     role?: 'tank' | 'dealer' | 'healer' | string | null;
+    extra?: Record<string, unknown> | null;
+    statuses?: Array<{ name?: string | null }> | null;
 };
 
 const HERO_ID_ALIAS: Record<string, string> = {
@@ -360,22 +362,38 @@ export function getIllustrationCandidates(card: CardLike): string[] {
 
 export type CardImageMode = 'field' | 'hand' | 'detail' | 'cinematic';
 
+function isMeiCryoFreezeCard(card: CardLike): boolean {
+    if (!card || card.is_spell) return false;
+    const heroKey = resolveHeroKey(card);
+    if (heroKey !== 'mei') return false;
+
+    const isFrozen = Array.isArray(card.statuses)
+        && card.statuses.some((status) => status?.name === 'frozen_state');
+    const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
+
+    return isFrozen && isPassiveCryo;
+}
+
 export function buildCardImageChain(card: CardLike, mode: CardImageMode): string[] {
     if (!card) return [];
 
     const fallback = getCardImageSrc(card);
     const illustrations = getIllustrationCandidates(card);
     const cardArts = getCardArtCandidates(card);
+    const cryoImage = isMeiCryoFreezeCard(card) ? '/cards/dealers/cryo_freeze.png' : '';
 
     if (mode === 'detail') {
-        return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
+        // return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
+        return Array.from(new Set([cryoImage, ...cardArts, ...illustrations, fallback].filter(Boolean)));
     }
 
     if (mode === 'cinematic') {
-        return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
+        // return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
+        return Array.from(new Set([cryoImage, illustrations[0], fallback].filter(Boolean)));
     }
 
-    return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+    // return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+    return Array.from(new Set([cryoImage, ...illustrations, fallback].filter(Boolean)));
 }
 
 export function getHeroImageSrc(card: CardLike): string {

@@ -499,12 +499,15 @@ class FrozenState(StatusEffect):
     revive_hp: int | None = None
     set_frozen_hp: int | None = None
     thaw_on_turn_start: bool = False
+    is_mei_cryo: bool = False
     visible_to_opponent: bool = True
     tags: list[str] = field(default_factory=lambda: ["debuff", "cc", "frozen"])
 
     def on_apply(self, card):
         if self.set_frozen_hp is not None:
             card.current_hp = max(1, min(card.max_hp, self.set_frozen_hp))
+        if self.is_mei_cryo:
+            card.extra["mei_cryo_freeze_active"] = True
         return {
             "frozen": True,
             "current_hp": card.current_hp,
@@ -534,7 +537,13 @@ class FrozenState(StatusEffect):
         d = super().to_dict()
         d["revive_hp"] = self.revive_hp
         d["thaw_on_turn_start"] = self.thaw_on_turn_start
+        d["is_mei_cryo"] = self.is_mei_cryo
         return d
+    
+    def on_remove(self, card):
+        if self.is_mei_cryo:
+            card.extra.pop("mei_cryo_freeze_active", None)
+        return {}
 
 
 @dataclass
@@ -558,6 +567,7 @@ class FrozenRevive(StatusEffect):
                 revive_hp=revive_hp,
                 set_frozen_hp=1,
                 thaw_on_turn_start=True,
+                is_mei_cryo=True,
                 source_uid=self.source_uid,
             ))
         card.remove_status(self.name)
