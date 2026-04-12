@@ -21,6 +21,7 @@ const HERO_ID_ALIAS: Record<string, string> = {
     torbjorn_turret: 'torbjorn_turret',
     illari_pylon: 'illari_pylon',
     hazard_wall: 'hazard_wall',
+    cryo_freeze: 'cryo_freeze',
 
     reinhardt: 'reinhardt',
     winston: 'winston',
@@ -135,6 +136,7 @@ const HERO_NAME_ALIAS: Record<string, string> = {
     힐포탑: 'illari_pylon',
     토르비욘포탑: 'torbjorn_turret',
     가시벽: 'hazard_wall',
+    급속빙결: 'cryo_freeze',
 };
 
 const SPELL_ALIAS: Record<string, string> = {
@@ -330,10 +332,28 @@ function getCardArtRoleFolder(card: CardLike): string {
     return 'dealers';
 }
 
+function isMeiCryoFreezeCard(card: CardLike): boolean {
+    if (!card || card.is_spell) return false;
+    const heroKey = resolveHeroKey(card);
+    if (heroKey !== 'mei') return false;
+
+    const isFrozen = Array.isArray(card.statuses)
+        && card.statuses.some((status) => status?.name === 'frozen_state');
+    const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
+
+    return isFrozen && isPassiveCryo;
+}
+
+function resolveHeroArtKey(card: CardLike): string | null {
+    const heroKey = resolveHeroKey(card);
+    if (!heroKey) return null;
+    return isMeiCryoFreezeCard(card) ? 'cryo_freeze' : heroKey;
+}
+
 export function getCardArtCandidates(card: CardLike): string[] {
     if (!card) return [];
     const roleFolder = getCardArtRoleFolder(card);
-    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroKey(card);
+    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroArtKey(card);
     if (!key) return [];
 
     const normalizedKey = key === 'hana_song' ? 'songhana' : key;
@@ -347,7 +367,7 @@ export function getCardArtCandidates(card: CardLike): string[] {
 export function getIllustrationCandidates(card: CardLike): string[] {
     if (!card) return [];
     const roleFolder = getCardArtRoleFolder(card);
-    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroKey(card);
+    const key = card.is_spell ? resolveSpellKey(card) : resolveHeroArtKey(card);
     if (!key) return [];
 
     const normalizedKey = key === 'hana_song' ? 'songhana' : key;
@@ -362,38 +382,22 @@ export function getIllustrationCandidates(card: CardLike): string[] {
 
 export type CardImageMode = 'field' | 'hand' | 'detail' | 'cinematic';
 
-function isMeiCryoFreezeCard(card: CardLike): boolean {
-    if (!card || card.is_spell) return false;
-    const heroKey = resolveHeroKey(card);
-    if (heroKey !== 'mei') return false;
-
-    const isFrozen = Array.isArray(card.statuses)
-        && card.statuses.some((status) => status?.name === 'frozen_state');
-    const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
-
-    return isFrozen && isPassiveCryo;
-}
-
 export function buildCardImageChain(card: CardLike, mode: CardImageMode): string[] {
     if (!card) return [];
 
     const fallback = getCardImageSrc(card);
     const illustrations = getIllustrationCandidates(card);
     const cardArts = getCardArtCandidates(card);
-    const cryoImage = isMeiCryoFreezeCard(card) ? '/cards/dealers/cryo_freeze.png' : '';
 
     if (mode === 'detail') {
-        // return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
-        return Array.from(new Set([cryoImage, ...cardArts, ...illustrations, fallback].filter(Boolean)));
+        return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
     }
 
     if (mode === 'cinematic') {
-        // return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
-        return Array.from(new Set([cryoImage, illustrations[0], fallback].filter(Boolean)));
+        return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
     }
 
-    // return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
-    return Array.from(new Set([cryoImage, ...illustrations, fallback].filter(Boolean)));
+    return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
 }
 
 export function getHeroImageSrc(card: CardLike): string {
