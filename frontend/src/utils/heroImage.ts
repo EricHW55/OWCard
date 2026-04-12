@@ -266,6 +266,7 @@ const KNOWN_SPELL_KEYS = new Set<string>(Object.values(SPELL_ALIAS));
 
 export function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
+        pickString(card.extra?._hero_key),
         pickString(card.hero_key),
         pickString(card.name),
         pickString(card.id),
