@@ -15,8 +15,10 @@ const HERO_ID_ALIAS: Record<string, string> = {
     wrecking_ball: 'wrecking_ball',
     jetpackcat: 'jetpack_cat',
     jetpack_cat: 'jetpack_cat',
-    torbjorn_turret: 'torbjorn',
-    illari_pylon: 'illari',
+
+    torbjorn_turret: 'torbjorn_turret',
+    illari_pylon: 'illari_pylon',
+    hazard_wall: 'hazard_wall',
 
     reinhardt: 'reinhardt',
     winston: 'winston',
@@ -91,8 +93,6 @@ const HERO_NAME_ALIAS: Record<string, string> = {
     한조: 'hanzo',
     해저드: 'hazard',
     일리아리: 'illari',
-    힐포탑: 'illari',
-    토르비욘포탑: 'torbjorn',
     제트팩캣: 'jetpack_cat',
     정커퀸: 'junker_queen',
     정크랫: 'junkrat',
@@ -129,6 +129,10 @@ const HERO_NAME_ALIAS: Record<string, string> = {
     우양: 'wuyang',
     자리야: 'zarya',
     젠야타: 'zenyatta',
+
+    힐포탑: 'illari_pylon',
+    토르비욘포탑: 'torbjorn_turret',
+    가시벽: 'hazard_wall',
 };
 
 const SPELL_ALIAS: Record<string, string> = {
