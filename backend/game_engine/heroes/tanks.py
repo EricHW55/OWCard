@@ -472,6 +472,7 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
 
     enemy_field = game.get_enemy_field(caster)
     hp = int(caster.extra.get("hazard_wall_hp", 6) or 6)
+    wall_description = str(caster.extra.get("hazard_wall_description") or "해저드 설치물")
 
     cards_in_zone = enemy_field.main_cards if target_zone == Zone.MAIN else enemy_field.side_cards
     for card in cards_in_zone:
@@ -501,7 +502,7 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
         base_defense=0,
         base_attack_range=1,
         zone=Zone.MAIN,
-        description="해저드 설치물",
+        description=wall_description,
     )
     wall.extra["is_token"] = True
     wall.extra["token_kind"] = "hazard_wall"

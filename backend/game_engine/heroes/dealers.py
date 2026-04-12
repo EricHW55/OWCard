@@ -373,6 +373,7 @@ def torbjorn_passive(card: FieldCard, game: GameState) -> dict:
     from game_engine.field import Zone
     if card.zone != Zone.MAIN:
         return {"passive": "포탑 설치", "message": "본대에서만 설치 가능"}
+    turret_description = str(card.extra.get("turret_description") or "내 턴 시작 시 가까운 적 1명에게 자동 공격.")
     return {
         "passive": "포탑 설치",
         "summon_token": {
@@ -383,7 +384,7 @@ def torbjorn_passive(card: FieldCard, game: GameState) -> dict:
             "attack": 0,
             "defense": 0,
             "attack_range": 1,
-            "description": "내 턴 시작 시 가까운 적 1명에게 자동 공격.",
+            "description": turret_description,
             "skill_damages": {"auto": card.extra.get("turret_damage", 2)},
             "skill_meta": {},
             "extra": {

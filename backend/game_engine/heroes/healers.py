@@ -231,6 +231,7 @@ def illari_passive(card: FieldCard, game: GameState) -> dict:
     from game_engine.field import Zone
     if card.zone != Zone.MAIN:
         return {"passive": "힐포탑 설치", "message": "본대에서만 설치 가능"}
+    pylon_description = str(card.extra.get("pylon_description") or "내 턴 시작 시 가장 체력이 낮은 아군 1명 치유.")
     return {
         "passive": "힐포탑 설치",
         "summon_token": {
@@ -241,7 +242,7 @@ def illari_passive(card: FieldCard, game: GameState) -> dict:
             "attack": 0,
             "defense": 0,
             "attack_range": 1,
-            "description": "내 턴 시작 시 가장 체력이 낮은 아군 1명 치유.",
+            "description": pylon_description,
             "skill_damages": {"auto": card.extra.get("turret_heal", 3)},
             "skill_meta": {},
             "extra": {
