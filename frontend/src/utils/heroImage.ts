@@ -341,13 +341,19 @@ function isMeiCryoFreezeCard(card: CardLike): boolean {
     const heroKey = resolveHeroKey(card);
     if (heroKey !== 'mei') return false;
 
-    const isFrozen = Array.isArray(card.statuses)
+    // 패시브 빙결 상태인 동안에만 cryo_freeze 아트를 강제한다.
+    // (반피 부활로 frozen_state가 해제되면 즉시 mei 기본 아트로 복귀)
+    const hasFrozenState = Array.isArray(card.statuses)
         && card.statuses.some((status) => status?.name === 'frozen_state');
-    const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
+    // const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
     const hasMeiCryoFrozenState = Array.isArray(card.statuses)
         && card.statuses.some((status) => status?.name === 'frozen_state' && status?.is_mei_cryo);
+    const isPassiveCryo = Boolean(card.extra?.mei_cryo_freeze_active);
 
-    return isFrozen && (isPassiveCryo || hasMeiCryoFrozenState);
+    // status에 is_mei_cryo가 있으면 최우선으로 신뢰.
+    // 구버전/지연 동기화 데이터에서는 extra 플래그가 먼저 들어올 수 있어
+    // frozen_state와 함께 있을 때만 보조적으로 허용.
+    return hasMeiCryoFrozenState || (hasFrozenState && isPassiveCryo);
 }
 
 function resolveHeroArtKey(card: CardLike): string | null {
@@ -403,12 +409,8 @@ export function buildCardImageChain(card: CardLike, mode: CardImageMode): string
         return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
     }
 
-    return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
-    // if (mode === 'hand') {
-    //     return Array.from(new Set([...cardArts, ...illustrations, fallback].filter(Boolean)));
-    // }
-    //
-    // return Array.from(new Set([...illustrations, ...cardArts, fallback].filter(Boolean)));
+    // return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+    return Array.from(new Set([...illustrations, ...cardArts, fallback].filter(Boolean)));
 }
 
 export function getHeroImageSrc(card: CardLike): string {

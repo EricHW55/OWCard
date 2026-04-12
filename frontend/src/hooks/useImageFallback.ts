@@ -7,11 +7,16 @@ export function useImageFallback(candidates: string[], resetKeys: ReadonlyArray<
     );
     const [imageStep, setImageStep] = useState(0);
     const [imgError, setImgError] = useState(false);
+    const candidateSignature = useMemo(
+        () => normalizedCandidates.join('|'),
+        [normalizedCandidates]
+    );
 
     useEffect(() => {
         setImageStep(0);
         setImgError(false);
-    }, resetKeys);
+    }, [candidateSignature, ...resetKeys]);
+    // }, resetKeys);
 
     const currentImageSrc = normalizedCandidates[imageStep] || '';
 
