@@ -397,7 +397,12 @@ export function buildCardImageChain(card: CardLike, mode: CardImageMode): string
         return Array.from(new Set([illustrations[0], fallback].filter(Boolean)));
     }
 
-    return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+    // return Array.from(new Set([...illustrations, fallback].filter(Boolean)));
+    if (mode === 'hand') {
+        return Array.from(new Set([fallback].filter(Boolean)));
+    }
+
+    return Array.from(new Set([...illustrations, ...cardArts, fallback].filter(Boolean)));
 }
 
 export function getHeroImageSrc(card: CardLike): string {
