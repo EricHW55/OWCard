@@ -82,12 +82,7 @@ def moira_orb(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 @register_skill("zenyatta", "skill_1")
 def zenyatta_discord(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    skill_data = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
     bonus_damage = int(caster.extra.get("discord_value", 2) or 2)
-    if isinstance(skill_data, dict):
-        bonus_damage = int(skill_data.get("bonus_damage", bonus_damage) or bonus_damage)
-    elif isinstance(skill_data, (int, float)):
-        bonus_damage = int(skill_data)
     target.add_status(DiscordOrb(duration=1, bonus_damage=bonus_damage, source_uid=caster.uid))
     return {"success": True, "skill": "부조화", "target": target.uid}
 
