@@ -32,6 +32,29 @@ const App: React.FC = () => {
             document.removeEventListener('dragstart', handleDragStart);
         };
     }, []);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const updateVisibleHeight = () => {
+            const visualHeight = window.visualViewport?.height ?? window.innerHeight;
+            document.documentElement.style.setProperty('--app-visible-height', `${Math.round(visualHeight)}px`);
+        };
+
+        updateVisibleHeight();
+        window.addEventListener('resize', updateVisibleHeight);
+        window.addEventListener('orientationchange', updateVisibleHeight);
+        window.visualViewport?.addEventListener('resize', updateVisibleHeight);
+        window.addEventListener('pageshow', updateVisibleHeight);
+
+        return () => {
+            window.removeEventListener('resize', updateVisibleHeight);
+            window.removeEventListener('orientationchange', updateVisibleHeight);
+            window.visualViewport?.removeEventListener('resize', updateVisibleHeight);
+            window.removeEventListener('pageshow', updateVisibleHeight);
+            document.documentElement.style.removeProperty('--app-visible-height');
+        };
+    }, []);
     
     return (
         <BrowserRouter>

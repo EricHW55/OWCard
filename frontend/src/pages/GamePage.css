@@ -3,15 +3,18 @@
     --field-card-height: calc(var(--field-card-width) * 1.5);
     --field-card-radius: clamp(6px, calc(var(--field-card-width) * 0.11), 10px);
     --field-lane-gap: clamp(3px, calc(var(--field-card-width) * 0.07), 8px);
-    height: 100dvh;
-    min-height: 100dvh;
+    height: var(--app-visible-height, 100dvh);
+    min-height: var(--app-visible-height, 100dvh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
 }
 
 .game-loading-screen {
-    min-height: 100dvh;
+    min-height: var(--app-visible-height, 100dvh);
     display: grid;
     place-items: center;
     background: #0a0e1a;

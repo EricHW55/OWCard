@@ -5,12 +5,13 @@
     font-family: var(--lobby-menu-font);
     position: relative;
     min-height: 100vh;
+    min-height: var(--app-visible-height, 100dvh);
     overflow: hidden;
     color: #eef3ff;
 }
 
 .lobby-page {
-    padding: 24px;
+    padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
 }
 
@@ -87,7 +88,7 @@
 }
 
 .lobby-menu {
-    min-height: calc(100vh - 48px);
+    min-height: calc(var(--app-visible-height, 100dvh) - 48px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -95,7 +96,7 @@
 }
 
 .lobby-menu.main-menu-mode {
-    min-height: calc(100vh - 48px);
+    min-height: calc(var(--app-visible-height, 100dvh) - 48px);
     justify-content: center;
     align-items: center;
     padding-top: 0;
