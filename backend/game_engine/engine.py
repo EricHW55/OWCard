@@ -559,10 +559,10 @@ class GameEngine:
         mark_duration = int(defender.extra.get("vendetta_mark_duration", 2) or 2)
         bonus_damage = int(defender.extra.get("vendetta_mark_bonus_damage", 2) or 2)
 
-        for card in self._all_field_cards():
-            if card.uid == attacker.uid:
-                continue
-            card.statuses = [s for s in card.statuses if s.name != "vendetta_marked"]
+        # for card in self._all_field_cards():
+        #     if card.uid == attacker.uid:
+        #         continue
+        #     card.statuses = [s for s in card.statuses if s.name != "vendetta_marked"]
 
         attacker.add_status(
             VendettaMarked(
@@ -1177,7 +1177,7 @@ class GameEngine:
                 if target_card_logs.get("reflected"):
                     reflect_dmg = int(target_card_logs["reflected"] or 0)
                     if reflect_dmg > 0:
-                        caster.take_raw_damage(reflect_dmg)
+                        caster.take_damage(reflect_dmg, source_uid="reflect", damage_kind="reflect")
                         reflected_total += reflect_dmg
                 self._apply_particle_barrier_trigger(target_card_logs)
             if reflected_total > 0:
@@ -1292,7 +1292,7 @@ class GameEngine:
 
         # 반사 처리
         if result.get("reflected"):
-            attacker.take_raw_damage(result["reflected"])
+            attacker.take_damage(int(result["reflected"] or 0), source_uid="reflect", damage_kind="reflect")
             
         if target.extra.get("hazard_retaliate", 0):
             retaliate = int(target.extra.get("hazard_retaliate", 0) or 0)

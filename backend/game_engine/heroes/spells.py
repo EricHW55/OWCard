@@ -589,7 +589,7 @@ def spell_sleep_dart(caster: FieldCard, target: FieldCard, game: GameState) -> d
     target.add_status(Sleep(
         duration=max(1, sleep_duration),
         source_uid="spell",
-        tags=["debuff", "cc", "install"],
+        tags=["debuff", "cc"],
     ))
     return {"success": True, "skill": "수면총", "target": target.uid, "duration": max(1, sleep_duration)}
 
@@ -631,6 +631,10 @@ def spell_steel_trap(caster: FieldCard, target: FieldCard, game: GameState) -> d
     """강철 덫: 상대 필드에 설치. 다음으로 배치되는 적 1장에 4딜 + 다음 턴까지 스킬 봉쇄."""
     enemy_field = game.get_enemy_field(caster)
     damage = game.get_skill_damage(caster, "skill_1")
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    silence_duration = int(raw_meta.get("silence_duration", 2) or 2)
 
     if not hasattr(enemy_field, "traps"):
         enemy_field.traps = []
@@ -639,7 +643,7 @@ def spell_steel_trap(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "kind": "steel_trap",
         "damage": damage,
         # 이번 턴 종료에 한 번 줄고, 다음 턴까지 막으려면 2가 필요
-        "silence_duration": 2,
+        "silence_duration": silence_duration,
         "source": "spell",
     })
 
@@ -647,6 +651,7 @@ def spell_steel_trap(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "success": True,
         "skill": "강철 덫",
         "damage": damage,
+        "silence_duration": silence_duration,
         "message": "상대가 다음 카드를 배치하면 덫이 발동합니다",
     }
 

@@ -217,13 +217,20 @@ def junkerqueen_jagged(caster: FieldCard, target: FieldCard, game: GameState) ->
 @register_skill("junkerqueen", "skill_2")
 def junkerqueen_shout(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     allies = game.get_my_field(caster).all_cards()
+    shout_extra_hp = int(caster.extra.get("shout_extra_hp", 2) or 2)
+    skill_meta = (caster.skill_meta or {}).get("skill_2", {})
+    if not isinstance(skill_meta, dict):
+        skill_meta = {}
+    shout_duration = int(skill_meta.get("duration", 2) or 2)
     for a in allies:
-        a.add_status(ExtraHP(value=2, duration=2, source_uid=caster.uid))
+        a.add_status(ExtraHP(value=shout_extra_hp, duration=shout_duration, source_uid=caster.uid))
     return {
         "success": True,
         "skill": "지휘의 외침",
         "affected": [{"target_uid": a.uid} for a in allies],
         "affected_count": len(allies),
+        "extra_hp": shout_extra_hp,
+        "duration": shout_duration,
     }
 
 # ── 둠피스트 ──────────────────────────────

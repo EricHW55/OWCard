@@ -418,7 +418,7 @@ class VendettaMarked(StatusEffect):
     def on_take_damage(self, card, damage, **kwargs):
         source_uid = str(kwargs.get("source_uid") or "")
         damage_kind = str(kwargs.get("damage_kind") or "")
-        if source_uid and damage_kind in {"basic_attack", "skill"}:
+        if source_uid and damage_kind in {"basic_attack", "skill"} and source_uid != card.uid:
             return {"damage": max(0, damage + int(self.bonus_damage))}
         return {"damage": damage}
 
@@ -727,7 +727,7 @@ class OrisaFortifyPassive(StatusEffect):
     def _default_clear_list(self) -> list[str]:
         return [
             "knockback", "pulled", "frozen_state", "burn", "discord",
-            "heal_block", "range_modifier", "hooked", "gravity_flux_airborne",
+            "heal_block", "skill_silence", "hooked", "gravity_flux_airborne",
             "airborne",
         ]
 

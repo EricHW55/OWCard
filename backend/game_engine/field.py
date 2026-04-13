@@ -160,7 +160,19 @@ class FieldCard:
         current_damage = damage
         # source_uid = str(kwargs.get("source_uid") or "").strip()
 
-        for status in list(self.statuses):
+        def _damage_hook_priority(status: StatusEffect) -> int:
+            name = status.name
+            if name in ("discord", "vendetta_marked"):
+                return 10
+            if name in ("damage_reduction", "next_turn_start_damage_reduction", "orisa_fortify_passive"):
+                return 20
+            if name in ("barrier", "particle_barrier", "extra_hp", "frozen_state"):
+                return 30
+            if name == "reflect":
+                return 40
+            return 25
+
+        for status in sorted(list(self.statuses), key=_damage_hook_priority):
             result = status.on_take_damage(self, current_damage, **kwargs)
             if result.get("particle_barrier_broken"):
                 log["particle_barrier_broken"] = True
