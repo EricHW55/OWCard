@@ -249,7 +249,13 @@ def vendetta_rising_slash(caster: FieldCard, target: FieldCard, game: GameState)
     if not target:
         return {"success": False, "message": "대상 필요"}
     dmg = game.get_skill_damage(caster, "skill_1")
-    result = target.take_damage(dmg, source_uid=caster.uid, damage_kind="skill")
+    source_damage_multiplier = game.get_damage_multiplier(caster)
+    result = target.take_damage(
+        dmg,
+        source_uid=caster.uid,
+        damage_kind="skill",
+        source_damage_multiplier=source_damage_multiplier,
+    )
     return {"success": True, "skill": "치솟는 베기", "damage_log": result}
 
 # ── 리퍼 ──────────────────────────────────

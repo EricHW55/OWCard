@@ -135,6 +135,10 @@ class GameState:
         damage_multiplier = self._get_damage_multiplier(caster)
         return self._apply_damage_modifiers(base_value, attack_bonus, damage_multiplier)
     
+    def get_damage_multiplier(self, caster: FieldCard) -> float:
+        """현재 카드에 적용된 스킬 피해 배율값(곱연산 결과)을 반환한다."""
+        return self._get_damage_multiplier(caster)
+    
     def get_my_field(self, card: FieldCard) -> Field:
         """이 카드가 속한 플레이어의 필드."""
         for ps in self._engine.players.values():

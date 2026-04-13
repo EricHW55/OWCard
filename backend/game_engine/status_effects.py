@@ -386,7 +386,9 @@ class DiscordOrb(StatusEffect):
     tags: list[str] = field(default_factory=lambda: ["debuff"])
 
     def on_take_damage(self, card, damage, **kwargs):
-        return {"damage": max(0, damage + self.bonus_damage)}
+        source_mult = float(kwargs.get("source_damage_multiplier", 1.0) or 1.0)
+        scaled_bonus = int(self.bonus_damage * source_mult)
+        return {"damage": max(0, damage + scaled_bonus)}
 
     def to_dict(self):
         d = super().to_dict()
@@ -419,7 +421,9 @@ class VendettaMarked(StatusEffect):
         source_uid = str(kwargs.get("source_uid") or "")
         damage_kind = str(kwargs.get("damage_kind") or "")
         if source_uid and damage_kind in {"basic_attack", "skill"} and source_uid != card.uid:
-            return {"damage": max(0, damage + int(self.bonus_damage))}
+            source_mult = float(kwargs.get("source_damage_multiplier", 1.0) or 1.0)
+            scaled_bonus = int(int(self.bonus_damage) * source_mult)
+            return {"damage": max(0, damage + scaled_bonus)}
         return {"damage": damage}
 
     def to_dict(self):

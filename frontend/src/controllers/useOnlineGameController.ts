@@ -246,26 +246,43 @@ const DESTROY_ANIMATION_MS = 500;
 const DAMAGE_FLOAT_MS = 800;
 const PLACEMENT_CINEMATIC_MS = 1220;
 
-function collectDamageMap(node: any, out: Record<string, number> = {}): Record<string, number> {
+function collectDamageMap(
+    node: any,
+    out: Record<string, number> = {},
+    priorityOut: Record<string, number> = {},
+): Record<string, number> {
   if (!node || typeof node !== 'object') return out;
 
-  const pushDelta = (uidValue: unknown, delta: number) => {
+  const pushDelta = (uidValue: unknown, delta: number, priority: number) => {
     if (!uidValue || !Number.isFinite(delta) || delta === 0) return;
     const uid = String(uidValue);
     const rounded = Math.round(delta);
-    const prev = out[uid];
-    if (prev === undefined || Math.abs(rounded) >= Math.abs(prev)) out[uid] = rounded;
+    const prevPriority = priorityOut[uid] ?? -1;
+    if (prevPriority > priority) return;
+    if (prevPriority === priority) {
+      out[uid] = (out[uid] ?? 0) + rounded;
+      return;
+    }
+    out[uid] = rounded;
+    priorityOut[uid] = priority;
   };
 
   const uid = node?.target || node?.target_uid || node?.to_uid || node?.uid || node?.source_uid;
-  const damage = Number(node?.final_damage ?? node?.raw_damage ?? node?.damage ?? node?.amount);
-  if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage);
+  const damageCandidates: Array<[number, number]> = [
+    [Number(node?.final_damage), 4],
+    [Number(node?.raw_damage), 3],
+    [Number(node?.damage), 2],
+    [Number(node?.amount), 1],
+  ];
+  damageCandidates.forEach(([damage, priority]) => {
+    if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage, priority);
+  });
 
   const healed = Number(node?.healed ?? node?.heal ?? node?.final_heal ?? node?.amount_healed);
-  if (uid && Number.isFinite(healed) && healed > 0) pushDelta(uid, -healed);
+  if (uid && Number.isFinite(healed) && healed > 0) pushDelta(uid, -healed, 10);
 
   Object.values(node).forEach((value) => {
-    if (value && typeof value === 'object') collectDamageMap(value, out);
+    if (value && typeof value === 'object') collectDamageMap(value, out, priorityOut);
   });
   return out;
 }
