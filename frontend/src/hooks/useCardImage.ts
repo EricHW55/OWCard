@@ -19,11 +19,10 @@ export function useCardImage(
     const fallbackChain = useMemo(() => buildCardImageChain(card, mode), [card, mode]);
     const { currentImageSrc, imgError, onError } = useImageFallback(fallbackChain, resetKeys);
 
-    const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
-    // const usingFullCardArt = mode !== 'hand'
-    //     && !imgError
-    //     && !!currentImageSrc
-    //     && (currentImageSrc.startsWith('/illustration/') || currentImageSrc.startsWith('/cards/'));
+    // const usingFullCardArt = !imgError && !!currentImageSrc && currentImageSrc.startsWith('/illustration/');
+    const usingFullCardArt = !imgError
+        && !!currentImageSrc
+        && (currentImageSrc.startsWith('/illustration/') || currentImageSrc.startsWith('/cards/'));
 
     return {
         currentImageSrc,
