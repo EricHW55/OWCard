@@ -116,6 +116,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         && (Boolean((immortalityStatus as any).activated) || Number((immortalityStatus as any).duration) !== -1);
     const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
     const hasVendettaMarked = card.statuses?.some((s) => s.name === 'vendetta_marked');
+    const hasDiscordOrb = card.statuses?.some((s) => s.name === 'discord_orb');
     const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
     const hasAttackAmplifier = card.statuses?.some((s) => {
         if (s.name === 'attack_buff') {
@@ -243,6 +244,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         hasBurn ? 'status-burn' : '',
         hasStickyBomb ? 'status-sticky-bomb' : '',
         hasVendettaMarked ? 'status-vendetta-marked' : '',
+        hasDiscordOrb ? 'status-discord-orb' : '',
         hasTaunt ? 'status-taunt' : '',
         showBarrier ? 'status-barrier' : '',
         hasDamageReduction ? 'status-damage-reduction' : '',
@@ -404,6 +406,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                 )}
                 {hasStickyBomb && <div className="field-status-layer-sticky-bomb" />}
                 {hasVendettaMarked && <div className="field-status-layer-vendetta-marked" />}
+                {hasDiscordOrb && <div className="field-status-layer-discord-orb" />}
                 {hasTaunt && <div className="field-status-layer-taunt" />}
                 {showBarrier && (
                     <>

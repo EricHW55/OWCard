@@ -1,0 +1,59 @@
+@keyframes status-discord-orb-pulse {
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(0.96);
+        filter: drop-shadow(0 0 2px rgba(220, 92, 255, 0.45)) drop-shadow(0 0 8px rgba(163, 58, 212, 0.2));
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.04);
+        filter: drop-shadow(0 0 5px rgba(239, 143, 255, 0.95)) drop-shadow(0 0 14px rgba(207, 78, 236, 0.78)) drop-shadow(0 0 22px rgba(140, 41, 192, 0.54));
+    }
+}
+
+@keyframes status-discord-orb-halo {
+    0%,
+    100% {
+        opacity: 0.16;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    50% {
+        opacity: 0.44;
+        transform: translate(-50%, -50%) scale(1.08);
+    }
+}
+
+.field-card-3d.status-discord-orb .field-status-layer-discord-orb {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.field-card-3d.status-discord-orb .field-status-layer-discord-orb::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 15%;
+    width: 43%;
+    aspect-ratio: 1;
+    background-image: url('/UI/discord-orb-status.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    animation: status-discord-orb-pulse 2.8s ease-in-out infinite;
+}
+
+.field-card-3d.status-discord-orb .field-status-layer-discord-orb::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 15%;
+    width: 43%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(203, 90, 236, 0.35) 0%, rgba(203, 90, 236, 0.18) 40%, rgba(203, 90, 236, 0) 72%);
+    mix-blend-mode: screen;
+    animation: status-discord-orb-halo 2.8s ease-in-out infinite;
+}

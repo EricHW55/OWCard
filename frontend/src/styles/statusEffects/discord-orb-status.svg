@@ -1,0 +1,24 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="discordOrbOuter" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(42 36) rotate(48) scale(106)">
+            <stop stop-color="#F19CFF"/>
+            <stop offset="0.56" stop-color="#CB52E8"/>
+            <stop offset="1" stop-color="#A732CB"/>
+        </radialGradient>
+        <linearGradient id="discordOrbRect" x1="35" y1="53" x2="75" y2="53" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#F39FFF"/>
+            <stop offset="1" stop-color="#B44BDC"/>
+        </linearGradient>
+    </defs>
+
+    <circle cx="64" cy="64" r="53" fill="url(#discordOrbOuter)"/>
+
+    <g transform="translate(4 0)">
+        <path
+                d="M58.5 30C75.9 30 89.7 43.4 91.9 60.6C93.7 75.8 87.1 89.7 75.7 98.3C67.6 104.4 55.6 107.2 44.8 104.8C56.4 104.4 63.3 100.4 63.3 93.2C63.3 86.2 58.5 82.2 49.1 81C35.7 79.2 26.9 69.1 27.7 56.5C28.7 41.3 41.2 30 58.5 30Z"
+                fill="#07070B"
+        />
+
+        <path d="M37.2 46.7H77.8L75.1 60.3H34.5L37.2 46.7Z" fill="url(#discordOrbRect)"/>
+    </g>
+</svg>
