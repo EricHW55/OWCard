@@ -1,26 +1,29 @@
-@keyframes status-discord-orb-pulse {
-    0%,
-    100% {
-        opacity: 0.5;
-        transform: translate(-50%, -50%) scale(0.96);
-        filter: drop-shadow(0 0 2px rgba(220, 92, 255, 0.45)) drop-shadow(0 0 8px rgba(163, 58, 212, 0.2));
+@keyframes status-discord-orb-breathe {
+    0%, 100% {
+        filter:
+                drop-shadow(0 0 3px rgba(243, 141, 255, 0.6))
+                drop-shadow(0 0 8px rgba(221, 103, 255, 0.5))
+                drop-shadow(0 0 16px rgba(200, 84, 255, 0.35))
+                drop-shadow(0 0 26px rgba(173, 74, 240, 0.2));
     }
     50% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.04);
-        filter: drop-shadow(0 0 5px rgba(239, 143, 255, 0.95)) drop-shadow(0 0 14px rgba(207, 78, 236, 0.78)) drop-shadow(0 0 22px rgba(140, 41, 192, 0.54));
+        filter:
+                drop-shadow(0 0 5px rgba(243, 141, 255, 0.95))
+                drop-shadow(0 0 14px rgba(221, 103, 255, 0.85))
+                drop-shadow(0 0 26px rgba(200, 84, 255, 0.65))
+                drop-shadow(0 0 44px rgba(173, 74, 240, 0.42))
+                drop-shadow(0 0 64px rgba(150, 60, 220, 0.25));
     }
 }
 
-@keyframes status-discord-orb-halo {
-    0%,
-    100% {
-        opacity: 0.16;
-        transform: translate(-50%, -50%) scale(0.94);
+@keyframes status-discord-orb-bloom {
+    0%, 100% {
+        opacity: 0.55;
+        transform: translate(-50%, -50%) scale(0.96);
     }
     50% {
-        opacity: 0.44;
-        transform: translate(-50%, -50%) scale(1.08);
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.06);
     }
 }
 
@@ -31,29 +34,43 @@
     z-index: 4;
 }
 
+/* 맨 위: SVG 본체 — 검은 콤마가 그대로 빛을 가리는 실루엣이 된다 */
 .field-card-3d.status-discord-orb .field-status-layer-discord-orb::before {
     content: '';
     position: absolute;
-    left: 50%;
+    left: 74%;
     top: 15%;
-    width: 43%;
+    width: min(32%, 62px);
     aspect-ratio: 1;
-    background-image: url('/UI/discord-orb-status.svg');
+    background-image: url('../../../public/UI/discord-orb-status.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    animation: status-discord-orb-pulse 2.8s ease-in-out infinite;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    animation: status-discord-orb-breathe 3.2s ease-in-out infinite;
 }
 
+/* 뒤쪽: 공기 중에 퍼지는 주변광 블룸 */
 .field-card-3d.status-discord-orb .field-status-layer-discord-orb::after {
     content: '';
     position: absolute;
-    left: 50%;
+    left: 74%;
     top: 15%;
-    width: 43%;
+    width: min(72%, 140px);
     aspect-ratio: 1;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(203, 90, 236, 0.35) 0%, rgba(203, 90, 236, 0.18) 40%, rgba(203, 90, 236, 0) 72%);
+    background: radial-gradient(
+            circle,
+            rgba(243, 141, 255, 0.55) 0%,
+            rgba(221, 103, 255, 0.38) 22%,
+            rgba(180, 75, 220, 0.18) 48%,
+            rgba(167, 59, 221, 0.05) 72%,
+            rgba(167, 59, 221, 0) 90%
+    );
+    transform: translate(-50%, -50%);
+    z-index: 1;
     mix-blend-mode: screen;
-    animation: status-discord-orb-halo 2.8s ease-in-out infinite;
+    filter: blur(4px);
+    animation: status-discord-orb-bloom 3.2s ease-in-out infinite;
 }
