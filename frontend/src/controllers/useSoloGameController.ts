@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldCard, FieldState, HandCard, Role } from '../types/game';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
+import { formatSkillValue } from '../utils/skillValue';
 
 type Side = 'top' | 'bottom';
 type SoloPhase = 'mulligan' | 'placement' | 'action' | 'game_over';
@@ -625,6 +626,7 @@ export function useSoloGameController() {
             description: (meta as any)?.description || '',
             onCooldown: false,
             cdLeft: 0,
+            valueText: formatSkillValue((selectedMyFieldCard.skill_damages || {})[key]),
           }))
     : [];
 

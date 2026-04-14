@@ -7,6 +7,7 @@ export type FieldSkill = {
   description: string;
   onCooldown: boolean;
   cdLeft: number;
+  valueText?: string;
 };
 
 export type PendingPassive = any;
@@ -154,7 +155,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
                             setSkillButtonsVisible(false);
                           }}
                       >
-                        <span className="game-skill-choice-name">✦ {skill.name}</span>
+                        <span className="game-skill-choice-name">✦ {skill.name}{skill.valueText ? ` · ${skill.valueText}` : ''}</span>
                         <span className="game-skill-choice-desc">
                       {skill.onCooldown ? `${skill.cdLeft}턴 후 사용` : (skill.description || '탭해서 사용 준비')}
                     </span>

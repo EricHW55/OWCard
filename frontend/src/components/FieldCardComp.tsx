@@ -13,6 +13,7 @@ interface Props {
     glowing?: boolean;
     effect?: CardVisualEffect;
     onClick?: () => void;
+    onLongPress?: () => void;
 }
 
 interface AuraSpike {
@@ -61,7 +62,7 @@ function getAuraSpikes(level: number): AuraSpike[] {
     });
 }
 
-const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, glowing, effect, onClick }) => {
+const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, glowing, effect, onClick, onLongPress }) => {
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
         'field',
@@ -69,6 +70,35 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     );
     const [showParticleBarrierBurst, setShowParticleBarrierBurst] = useState(false);
     const prevParticleBarrierRef = useRef<{ breakSeq: number }>({ breakSeq: 0 });
+
+    const longPressTimerRef = useRef<number | null>(null);
+    const longPressTriggeredRef = useRef(false);
+
+    const clearLongPressTimer = () => {
+        if (longPressTimerRef.current !== null) {
+            window.clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+        }
+    };
+
+    const startLongPress = () => {
+        clearLongPressTimer();
+        longPressTriggeredRef.current = false;
+        longPressTimerRef.current = window.setTimeout(() => {
+            longPressTriggeredRef.current = true;
+            onLongPress?.();
+        }, 450);
+    };
+
+    const endLongPress = () => {
+        clearLongPressTimer();
+    };
+
+    useEffect(() => {
+        return () => {
+            clearLongPressTimer();
+        };
+    }, []);
 
     const color = ROLE_COLOR[card.role] || '#888';
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
@@ -306,7 +336,20 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                 </div>
             )}
             <div
-                onClick={isDestroying ? undefined : onClick}
+                onClick={isDestroying ? undefined : () => {
+                    if (longPressTriggeredRef.current) {
+                        longPressTriggeredRef.current = false;
+                        return;
+                    }
+                    onClick?.();
+                }}
+                onMouseDown={isDestroying ? undefined : startLongPress}
+                onMouseUp={isDestroying ? undefined : endLongPress}
+                onMouseLeave={isDestroying ? undefined : endLongPress}
+                onTouchStart={isDestroying ? undefined : startLongPress}
+                onTouchEnd={isDestroying ? undefined : endLongPress}
+                onTouchCancel={isDestroying ? undefined : endLongPress}
+                onContextMenu={(e) => e.preventDefault()}
                 className={`field-card-3d ${cardStatusClasses}`}
                 style={{
                     width: '100%',

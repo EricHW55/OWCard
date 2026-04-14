@@ -13,6 +13,7 @@ export interface FieldPaneConfig {
   selectedUid: string | null;
   canActUids: string[];
   onCardClick: (card: FieldCard) => void;
+  onCardLongPress?: (card: FieldCard) => void;
   cardEffects?: Record<string, CardVisualEffect>;
   placingCard: HandCard | null;
   onPlaceClick: (zone: PlaceZone, slotIndex?: PlaceSlotIndex) => void;

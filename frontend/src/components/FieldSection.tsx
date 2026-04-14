@@ -13,6 +13,7 @@ interface Props {
     selectedUid: string | null;
     canActUids: string[];
     onCardClick: (card: FieldCard) => void;
+    onCardLongPress?: (card: FieldCard) => void;
     cardEffects?: Record<string, CardVisualEffect>;
     placingCard: HandCardType | null;
     onPlaceClick: (zone: 'main' | 'side', slotIndex?: 0 | 1) => void;
@@ -57,7 +58,7 @@ const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ hi
 
 const FieldSection: React.FC<Props> = ({
                                            field, isOpponent, isMyTurn, phase,
-                                           selectedUid, canActUids, onCardClick, cardEffects,
+                                           selectedUid, canActUids, onCardClick, onCardLongPress, cardEffects,
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
                                            canSelectEmptySlot, onEmptySlotSelect,
                                        }) => {
@@ -188,6 +189,9 @@ const FieldSection: React.FC<Props> = ({
                 effect={cardEffects?.[card.uid]}
                 onClick={() => {
                     if (!hidden) onCardClick(card);
+                }}
+                onLongPress={() => {
+                    if (!hidden) onCardLongPress?.(card);
                 }}
             />
         </div>

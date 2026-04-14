@@ -37,6 +37,7 @@ const SoloGamePage: React.FC = () => {
         selectedUid: vm.activeSide === 'top' ? vm.selectedFieldUid : null,
         canActUids: vm.canActTop,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide !== 'top'),
+        onCardLongPress: (card) => vm.setDetailCard(card),
         placingCard: vm.phase === 'placement' && vm.activeSide === 'top' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}
@@ -48,6 +49,7 @@ const SoloGamePage: React.FC = () => {
         selectedUid: vm.activeSide === 'bottom' ? vm.selectedFieldUid : null,
         canActUids: vm.canActBottom,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide === 'top'),
+        onCardLongPress: (card) => vm.setDetailCard(card),
         placingCard: vm.phase === 'placement' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
       }}

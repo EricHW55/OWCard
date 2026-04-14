@@ -3,6 +3,7 @@ import type { CardVisualEffect, FieldCard, GameState, HandCard, KillFeedItem } f
 import { GameSocket, buildWsUrl } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../utils/ui';
+import { formatSkillValue } from '../utils/skillValue';
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -1006,10 +1007,11 @@ export function useOnlineGameController(gameId: string) {
       : null;
   const canActUids = (phase === 'action' && isMyTurn) ? allMyField.filter((c) => !c.placed_this_turn && !c.acted_this_turn).map((c) => c.uid) : [];
 
-  const fieldSkills: { key: string; name: string; description: string; onCooldown: boolean; cdLeft: number }[] = [];
+  const fieldSkills: { key: string; name: string; description: string; onCooldown: boolean; cdLeft: number; valueText?: string }[] = [];
   if (selectedMyFieldCard && !selectedMyFieldCard.placed_this_turn && !selectedMyFieldCard.acted_this_turn && phase === 'action' && isMyTurn) {
     const meta = selectedMyFieldCard.skill_meta || {};
     const cds = selectedMyFieldCard.skill_cooldowns || {};
+    const skillDamages = selectedMyFieldCard.skill_damages || {};
     const heroKey = getHeroKey(selectedMyFieldCard);
     const chargeLevel = getChargeLevel(selectedMyFieldCard);
     for (const [key, m] of Object.entries(meta)) {
@@ -1022,6 +1024,7 @@ export function useOnlineGameController(gameId: string) {
         description: String((m as any)?.description || ''),
         onCooldown: (cds[key] ?? 0) > 0,
         cdLeft: cds[key] ?? 0,
+        valueText: formatSkillValue((skillDamages as Record<string, unknown>)[key]),
       });
     }
     fieldSkills.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));

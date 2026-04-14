@@ -3,6 +3,7 @@ import type { FieldCard, HandCard } from '../types/game';
 import { ROLE_COLOR, ROLE_ICON, ROLE_LABEL } from '../types/constants';
 import { buildCardImageChain } from '../utils/heroImage';
 import { useImageFallback } from '../hooks/useImageFallback';
+import { formatSkillValue } from '../utils/skillValue';
 
 interface Props {
     card: FieldCard | HandCard | null;
@@ -11,32 +12,6 @@ interface Props {
 
 function isFieldCard(c: FieldCard | HandCard | null): c is FieldCard {
     return !!c && 'uid' in c;
-}
-
-function formatDamage(val: any): string {
-    if (val === undefined || val === null) return '';
-    if (typeof val === 'number') return String(val);
-    if (Array.isArray(val)) return val.join(' / ');
-    if (typeof val === 'object') {
-        const parts: string[] = [];
-        if (val.damage !== undefined) parts.push(`딜 ${val.damage}`);
-        if (val.heal !== undefined) parts.push(`힐 ${val.heal}`);
-        if (val.duration !== undefined) parts.push(`지속 ${val.duration}턴`);
-        if (val.silence_duration !== undefined) parts.push(`침묵 ${val.silence_duration}턴`);
-        if (val.extra_hp !== undefined) parts.push(`추가HP ${val.extra_hp}`);
-        if (val.damage_multiplier !== undefined) parts.push(`피해x${val.damage_multiplier}`);
-        if (val.heal_multiplier !== undefined) parts.push(`치유x${val.heal_multiplier}`);
-        if (val.damage_reduction !== undefined) parts.push(`피해감소 ${val.damage_reduction}%`);
-        if (val.vendetta_mark_bonus_damage !== undefined) parts.push(`표적 추가피해 +${val.vendetta_mark_bonus_damage}`);
-        if (val.vendetta_mark_duration !== undefined) {
-            const durationLabel = Number(val.vendetta_mark_duration) === -1
-                ? '영구'
-                : `${val.vendetta_mark_duration}턴`;
-            parts.push(`표적 지속 ${durationLabel}`);
-        }
-        return parts.join(' · ');
-    }
-    return String(val);
 }
 
 function skillOrder(key: string) {
@@ -128,7 +103,7 @@ const CardDetail: React.FC<Props> = ({ card, onClose }) => {
     };
 
     const skillSummary = skillEntries.slice(0, 2).map(([key, meta]) => {
-        const damage = formatDamage(damages[key]);
+        const damage = formatSkillValue(damages[key]);
         const desc = meta?.description || '';
         return `${meta?.name ?? skillSectionLabel(key)}${damage ? ` · ${damage}` : ''}${desc ? `
 ${desc}` : ''}`;
@@ -137,7 +112,7 @@ ${desc}` : ''}`;
         key,
         isPassive: key === 'passive',
         title: meta?.name ?? skillSectionLabel(key),
-        value: formatDamage(damages[key]),
+        value: formatSkillValue(damages[key]),
         desc: meta?.description || '',
     })).filter((item) => item.title || item.value || item.desc);
 
@@ -345,7 +320,7 @@ ${desc}` : ''}`;
                                                 }}
                                             >
                                                 {skill.title}
-                                                {skill.value ? ` ${skill.value}` : ''}
+                                                {skill.value ? ` · ${skill.value}` : ''}
                                             </div>
                                             {!!skill.desc && (
                                                 <div
@@ -457,7 +432,7 @@ ${desc}` : ''}`;
                         {skillEntries.map(([key, meta]) => {
                             const cd = cooldowns[key] ?? 0;
                             const dmgVal = damages[key];
-                            const dmgStr = formatDamage(dmgVal);
+                            const dmgStr = formatSkillValue(dmgVal);
                             const skillDescription = (meta as any)?.description
                                 || (skillEntries.length === 1 ? fallbackDescription : '');
 
