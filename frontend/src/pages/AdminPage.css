@@ -1,19 +1,23 @@
 .admin-page {
     min-height: 100dvh;
-    height: 100dvh;
+    min-height: var(--app-visible-height, 100dvh);
+    height: var(--app-visible-height, 100dvh);
     display: grid;
     grid-template-columns: 320px 1fr;
     background: #131722;
     color: #f4f7ff;
     position: relative;
     overflow: hidden;
+    padding-top: var(--app-safe-top);
+    padding-bottom: var(--app-safe-bottom);
+    box-sizing: border-box;
 }
 
 .admin-sidebar {
     border-right: 1px solid rgba(255, 255, 255, 0.12);
     padding: 20px;
     overflow: auto;
-    max-height: 100vh;
+    max-height: calc(var(--app-visible-height, 100dvh) - var(--app-safe-top) - var(--app-safe-bottom));
 }
 
 .admin-main {
@@ -33,7 +37,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: calc(100vh - 120px);
+    max-height: calc(var(--app-visible-height, 100dvh) - 120px - var(--app-safe-top) - var(--app-safe-bottom));
     overflow-y: auto;
 }
 
@@ -228,19 +232,19 @@
 
     .admin-main {
         position: relative;
-        height: 100dvh;
-        padding: 56px 16px 20px;
+        height: calc(var(--app-visible-height, 100dvh) - var(--app-safe-top) - var(--app-safe-bottom));
+        padding: calc(56px + var(--app-safe-top)) 16px calc(20px + var(--app-safe-bottom));
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
 
     .admin-sidebar {
         position: fixed;
-        top: 0;
+        top: var(--app-safe-top);
         right: 0;
-        bottom: 0;
+        bottom: var(--app-safe-bottom);
         width: min(86vw, 340px);
-        max-height: 100vh;
+        max-height: calc(var(--app-visible-height, 100dvh) - var(--app-safe-top) - var(--app-safe-bottom));
         border-right: none;
         border-left: 1px solid rgba(255, 255, 255, 0.12);
         transform: translateX(102%);

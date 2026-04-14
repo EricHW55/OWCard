@@ -5,11 +5,12 @@
     --field-lane-gap: clamp(3px, calc(var(--field-card-width) * 0.07), 8px);
     height: var(--app-visible-height, 100dvh);
     min-height: var(--app-visible-height, 100dvh);
+    position: relative;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-top: var(--app-safe-top);
+    padding-bottom: var(--app-safe-bottom);
     box-sizing: border-box;
 }
 
@@ -23,7 +24,7 @@
 
 .game-topbar {
     position: absolute;
-    top: 8px;
+    top: calc(8px + var(--app-safe-top));
     left: 8px;
     right: 8px;
     z-index: 12;
@@ -1029,7 +1030,7 @@
 
 @media (max-width: 768px) {
     .game-topbar {
-        top: 6px;
+        top: calc(6px + var(--app-safe-top));
         left: 6px;
         right: 6px;
         align-items: flex-start;

@@ -1,9 +1,13 @@
 .solo-page {
     min-height: 100dvh;
+    min-height: var(--app-visible-height, 100dvh);
     background: #070c18;
     color: #e8ecf8;
     display: flex;
     flex-direction: column;
+    padding-top: var(--app-safe-top);
+    padding-bottom: var(--app-safe-bottom);
+    box-sizing: border-box;
 }
 
 .solo-center {

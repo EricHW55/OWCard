@@ -2,13 +2,15 @@
     --field-card-width: clamp(160px, 24vw, 220px);
     --field-card-height: calc(var(--field-card-width) * 1.4);
     --field-card-radius: calc(var(--field-card-width) * 0.08);
-    min-height: 100vh;
+    --status-effects-safe-top: env(safe-area-inset-top, 0px);
+    --status-effects-safe-bottom: env(safe-area-inset-bottom, 0px);
+    min-height: var(--app-visible-height, 100dvh);
     background:
             radial-gradient(circle at 20% 15%, rgba(70, 124, 217, 0.24), transparent 36%),
             radial-gradient(circle at 80% 10%, rgba(99, 65, 201, 0.22), transparent 34%),
             linear-gradient(155deg, #080d1b 0%, #0f1732 58%, #0b1226 100%);
     color: #e7eeff;
-    padding: 18px;
+    padding: calc(18px + var(--status-effects-safe-top)) 18px calc(18px + var(--status-effects-safe-bottom));
     box-sizing: border-box;
     overflow-x: hidden;
 }
@@ -33,7 +35,7 @@
     padding: 16px;
     display: grid;
     gap: 12px;
-    max-height: calc(100vh - 36px);
+    max-height: calc(var(--app-visible-height, 100dvh) - 36px - var(--status-effects-safe-top) - var(--status-effects-safe-bottom));
     overflow: auto;
 }
 
@@ -109,7 +111,7 @@
     display: grid;
     gap: 16px;
     align-content: start;
-    min-height: calc(100vh - 36px);
+    min-height: calc(var(--app-visible-height, 100dvh) - 36px - var(--status-effects-safe-top) - var(--status-effects-safe-bottom));
 }
 
 .status-effects-preview-header h2 {
@@ -244,7 +246,7 @@
 
 @media (max-width: 920px) {
     .status-effects-page {
-        padding: 12px;
+        padding: calc(12px + var(--status-effects-safe-top)) 12px calc(12px + var(--status-effects-safe-bottom));
         overflow-y: auto;
     }
 
@@ -254,11 +256,11 @@
 
     .status-effects-left {
         position: fixed;
-        top: 0;
+        top: var(--status-effects-safe-top);
         right: 0;
-        bottom: 0;
+        bottom: var(--status-effects-safe-bottom);
         width: min(86vw, 350px);
-        max-height: 100vh;
+        max-height: calc(var(--app-visible-height, 100dvh) - var(--status-effects-safe-top) - var(--status-effects-safe-bottom));
         border-radius: 14px 0 0 14px;
         transform: translateX(102%);
         transition: transform 0.25s ease;
