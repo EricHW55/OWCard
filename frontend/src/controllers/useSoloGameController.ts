@@ -92,7 +92,7 @@ function canPlaceToZone(field: FieldState, role: Role, zone: 'main' | 'side') {
 }
 
 function phaseLabel(phase: SoloPhase): string {
-  if (phase === 'mulligan') return '멀리건';
+  if (phase === 'mulligan') return '다시 뽑기';
   if (phase === 'placement') return '배치';
   if (phase === 'action') return '행동';
   return '종료';
@@ -255,9 +255,9 @@ export function useSoloGameController() {
         const cur = prev[activeSide];
         const selectedSet = new Set(selectedMulligan);
         const keep = cur.hand.filter((_, idx) => !selectedSet.has(idx));
-        const back = cur.hand.filter((_, idx) => selectedSet.has(idx));
-        const shuffled = shuffle([...cur.drawPile, ...back]);
-        const redrawn = shuffled.slice(0, back.length);
+        const redrawCount = cur.hand.filter((_, idx) => selectedSet.has(idx)).length;
+        const shuffled = shuffle([...cur.drawPile]);
+        const redrawn = shuffled.slice(0, redrawCount);
         setMulliganReplacementCard(redrawn[0] || null);
 
         return {
@@ -265,7 +265,7 @@ export function useSoloGameController() {
           [activeSide]: {
             ...cur,
             hand: [...keep, ...redrawn],
-            drawPile: shuffled.slice(back.length),
+            drawPile: shuffled.slice(redrawCount),
             mulliganDone: true,
           },
         };

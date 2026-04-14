@@ -96,7 +96,9 @@ export interface PlayerState {
   trash: { name: string; role: string }[];
   field: FieldState;
   mulligan_done: boolean;
+  mulligan_excluded_count?: number;
   placement_cost_used: number;
+  placement_limit?: number;
   pending_passive?: PendingPassive | null;
 }
 

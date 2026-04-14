@@ -415,7 +415,11 @@ const GamePage: React.FC = () => {
       bottomMeta={<>패:{vm.my.hand_count} · 덱:{vm.my.draw_pile_count} · 트래시:{vm.my.trash_count}</>}
       bottomActions={
         <>
-          {vm.phase === 'placement' && <span className="game-placement-meta">배치 {vm.my.placement_cost_used}/2</span>}
+          {vm.phase === 'placement' && (
+              <span className="game-placement-meta">
+              배치 {vm.my.placement_cost_used}/{Number(vm.my?.placement_limit ?? 2)}
+            </span>
+          )}
           {vm.phase !== 'mulligan' && (
             <button className="game-endturn" disabled={!vm.isMyTurn || !!vm.pendingPassive || !!vm.pendingSpellChoice || !!vm.columnChoice} onClick={vm.handleEndMainButton} style={{ opacity: (vm.isMyTurn && !vm.pendingPassive && !vm.pendingSpellChoice && !vm.columnChoice) ? 1 : 0.5 }}>
               {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}

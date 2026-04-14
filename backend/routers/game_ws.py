@@ -136,7 +136,7 @@ async def game_ws(
                 await _send_state(game_id, pid, engine)
                 await manager.send_game(game_id, pid, {
                     "event": "phase_change", "phase": engine.phase.value,
-                    "message": "멀리건 시작! 최대 2장 교체 가능",
+                    "message": "다시 뽑기 시작! 최대 2장 교체 가능",
                 })
 
         while True:

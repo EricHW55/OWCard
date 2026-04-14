@@ -21,7 +21,13 @@ from typing import Any, Optional
 from game_engine.field import Field, FieldCard, Role, Zone
 from game_engine.skill_registry import get_skill, get_passive, get_hero_skills
 from game_engine.status_effects import SkillSilence
-from config import DECK_SIZE, HAND_SIZE, MAX_MULLIGAN, CARDS_PER_TURN
+from config import (
+    DECK_SIZE,
+    HAND_SIZE,
+    MAX_MULLIGAN,
+    CARDS_PER_TURN,
+    FIRST_PLAYER_FIRST_TURN_CARDS_PER_TURN,
+)
 
 
 class GamePhase(str, Enum):
@@ -47,6 +53,7 @@ class PlayerState:
     field: Field = dc_field(default_factory=Field)
     mulligan_done: bool = False
     mulligan_used: int = 0
+    mulligan_excluded: list[dict] = dc_field(default_factory=list)
     placement_cost_used: int = 0
     connected: bool = False
     commander_skill_uses: int = 0
@@ -65,6 +72,7 @@ class PlayerState:
             "field": self.field.to_dict(for_opponent=not reveal_hand),
             "mulligan_done": self.mulligan_done,
             "mulligan_used": self.mulligan_used,
+            "mulligan_excluded_count": len(self.mulligan_excluded),
             "placement_cost_used": self.placement_cost_used,
             "pending_passive": self.pending_passive if reveal_hand else None,
             "pending_spell": self.pending_spell if reveal_hand else None,
@@ -479,7 +487,7 @@ class GameEngine:
         for idx in sorted(card_indices, reverse=True):
             if 0 <= idx < len(ps.hand) and ps.draw_pile:
                 old = ps.hand.pop(idx)
-                ps.draw_pile.append(old)
+                ps.mulligan_excluded.append(old)
                 ps.hand.insert(idx, ps.draw_pile.pop(0))
                 replaced += 1
 
@@ -808,8 +816,9 @@ class GameEngine:
 
         card_data = ps.hand[hand_index]
         cost = card_data.get("cost", 1)
-        if ps.placement_cost_used + cost > CARDS_PER_TURN:
-            return {"error": f"Placement full ({ps.placement_cost_used}/{CARDS_PER_TURN})"}
+        placement_limit = self.get_current_placement_limit(player_id)
+        if ps.placement_cost_used + cost > placement_limit:
+            return {"error": f"Placement full ({ps.placement_cost_used}/{placement_limit})"}
 
         # 스킬 카드는 즉시 사용 / 선택 대기 처리
         if card_data.get("is_spell", False):
@@ -1030,8 +1039,19 @@ class GameEngine:
             return 3
         if hero_key == "zenyatta" and skill_key == "skill_1":
             return 3
+        if hero_key == "lucio" and skill_key == "skill_2":
+            return 3
         
         return None
+    
+    def get_current_placement_limit(self, player_id: int) -> int:
+        if (
+            player_id == self.first_player_id
+            and self.turn_number == 1
+            and self.current_player_id == self.first_player_id
+        ):
+            return FIRST_PLAYER_FIRST_TURN_CARDS_PER_TURN
+        return CARDS_PER_TURN
 
     # ── 액션: 스킬 사용 ──────────────────────
 
@@ -1476,8 +1496,14 @@ class GameEngine:
             "coin_result": self.coin_result,
             "first_player": self.first_player_id,
             "is_my_turn": for_player_id == self.current_player_id if self.player_order else False,
-            "my_state": ps.to_dict(reveal_hand=True) if ps else None,
-            "opponent_state": opp.to_dict(reveal_hand=False) if opp else None,
+            "my_state": {
+                **ps.to_dict(reveal_hand=True),
+                "placement_limit": self.get_current_placement_limit(for_player_id),
+            } if ps else None,
+            "opponent_state": {
+                **opp.to_dict(reveal_hand=False),
+                "placement_limit": self.get_current_placement_limit(opp.player_id),
+            } if opp else None,
             "winner": self.winner,
             "commander_skill_limit": self.get_commander_skill_limit(),
         }
@@ -1491,7 +1517,13 @@ class GameEngine:
             "current_player": self.current_player_id if self.player_order else None,
             "coin_result": self.coin_result,
             "first_player": self.first_player_id,
-            "players": {pid: ps.to_dict(reveal_hand=False) for pid, ps in self.players.items()},
+            "players": {
+                pid: {
+                    **ps.to_dict(reveal_hand=False),
+                    "placement_limit": self.get_current_placement_limit(pid),
+                }
+                for pid, ps in self.players.items()
+            },
             "winner": self.winner,
             "action_log": self.action_log[-20:],
         }

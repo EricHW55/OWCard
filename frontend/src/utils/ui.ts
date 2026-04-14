@@ -20,7 +20,7 @@ export function phaseLabel(phase?: string) {
 export function phaseSubtitle(phase?: string, isMyTurn?: boolean) {
   switch (phase) {
     case 'mulligan':
-      return '교체할 손패를 골라 주세요';
+      return '다시 뽑을 손패를 골라 주세요';
     case 'placement':
       return isMyTurn ? '카드를 필드에 배치할 차례' : '상대가 카드를 배치하는 중';
     case 'action':
@@ -65,7 +65,11 @@ export function normalizeErrorMessage(raw: unknown): string {
   if (!message) return '요청을 처리할 수 없습니다.';
 
   const lower = message.toLowerCase();
-  if (lower.startsWith('placement full')) return '이번 턴 배치는 이미 2장을 모두 사용했습니다.';
+  if (lower.startsWith('placement full')) {
+    const match = lower.match(/placement full \((\d+)\/(\d+)\)/);
+    const max = match?.[2] ?? '0';
+    return `이번 턴 배치는 이미 ${max}장을 모두 사용했습니다.`;
+  }
   if (lower.includes('cannot place dealer') && lower.includes('side')) return '사이드 딜러 자리가 가득 차서 배치할 수 없습니다.';
   if (lower.includes('cannot place') && lower.includes('main')) return '본대 자리가 가득 차서 배치할 수 없습니다.';
   if (lower.includes('cannot place') && lower.includes('side')) return '사이드 자리가 가득 차서 배치할 수 없습니다.';

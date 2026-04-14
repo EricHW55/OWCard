@@ -20,6 +20,7 @@ DECK_SIZE = 20
 HAND_SIZE = 7
 MAX_MULLIGAN = 2
 CARDS_PER_TURN = 2      # 일반 카드 기준
+FIRST_PLAYER_FIRST_TURN_CARDS_PER_TURN = 1  # 선공 첫 턴 배치 제한
 TANK_COST = 2            # 탱커는 2장 취급
 TRASH_WIN_COUNT = 7
 

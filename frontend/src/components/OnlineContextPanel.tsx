@@ -178,13 +178,13 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         {phase === 'mulligan' && !mulliganDone && (
             <div className="game-context-panel">
               <div className="game-context-head">
-                <span className="game-toolbar-title">멀리건 선택</span>
+                <span className="game-toolbar-title">다시 뽑기 선택</span>
                 <span className="game-context-subtext">
-              {selectedMulligan.length > 0 ? '선택 카드 1장 멀리건' : '카드를 눌러 1장씩 멀리건'}
+              {selectedMulligan.length > 0 ? '선택 카드 1장 다시 뽑기' : '카드를 눌러 1장씩 다시 뽑기'}
             </span>
               </div>
               <div className="game-context-actions">
-                <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0 || isMulliganAnimating}>멀리건 실행</button>
+                <button style={BTN_SM} onClick={onRunMulligan} disabled={selectedMulligan.length === 0 || isMulliganAnimating}>다시 뽑기 실행</button>
                 <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
               </div>
             </div>

@@ -50,11 +50,11 @@ const SoloContextPanel: React.FC<Props> = ({
       {phase === 'mulligan' && (
         <div className="game-context-panel">
           <div className="game-context-head">
-            <span className="game-toolbar-title">멀리건 선택</span>
+            <span className="game-toolbar-title">다시 뽑기 선택</span>
             <span className="game-context-subtext">선택 {selectedMulligan.length}/2</span>
           </div>
           <div className="game-context-actions">
-            <button style={BTN_SM} onClick={onRunMulligan} disabled={isMulliganAnimating}>멀리건 실행</button>
+            <button style={BTN_SM} onClick={onRunMulligan} disabled={isMulliganAnimating}>다시 뽑기 실행</button>
             <button style={{ ...BTN_SM, background: '#1a2342' }} onClick={onSkipMulligan}>스킵</button>
           </div>
         </div>

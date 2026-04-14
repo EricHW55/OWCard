@@ -155,7 +155,7 @@ function getHeroSkillBlockReason(card: any, skillKey: string): string | null {
   const extra = card?.extra || {};
 
   if (hero === 'bastion' && skillKey === 'skill_1' && extra?.last_mode === 'assault') return '설정: 강습은 연속 사용 불가 (수색 먼저)';
-  if (hero === 'venture' && skillKey === 'skill_1' && extra?.used_burrow_last) return '잠복은 연속 사용 불가';
+  if (hero === 'sombra' && skillKey === 'skill_2' && extra?.used_hack_last) return '해킹은 연속 사용 불가';
   if (hero === 'venture' && skillKey === 'skill_2' && hasStatus('burrowed')) return '잠복 상태에서는 스마트 굴착기 사용 불가';
   if (hero === 'freja' && skillKey === 'skill_2' && !hasStatus('airborne')) return '정조준은 에어본 상태에서만 사용 가능';
   if (hero === 'ramattra' && skillKey === 'skill_3' && extra?.form !== 'nemesis') return '막기는 네메시스 폼에서만 사용 가능';

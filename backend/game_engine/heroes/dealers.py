@@ -160,14 +160,12 @@ def hanzo_storm(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 # ── 벤처 ──────────────────────────────────
 @register_skill("venture", "skill_1")
 def venture_burrow(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.extra.get("used_burrow_last"): return {"success": False, "message": "연속 사용 불가"}
     if caster.has_status("burrowed"):
         # 잠복 상태 → 한칸 무시 공격
         if not target: return {"success": False, "message": "대상 필요"}
         dmg = game.get_skill_damage(caster, "skill_1")
         result = target.take_damage(dmg)
         caster.remove_status("burrowed")
-        caster.extra["used_burrow_last"] = True
         return {"success": True, "skill": "잠복 공격", "damage_log": result}
     caster.add_status(Burrowed(duration=2, source_uid=caster.uid))
     return {"success": True, "skill": "잠복"}
@@ -178,7 +176,6 @@ def venture_drill(caster: FieldCard, target: FieldCard, game: GameState) -> dict
         return {"success": False, "message": "잠복 상태에서는 스마트 굴착기를 사용할 수 없음"}
     if not target: return {"success": False, "message": "대상 필요"}
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
-    caster.extra["used_burrow_last"] = False
     return {"success": True, "skill": "스마트 굴착기", "damage_log": result}
 
 # ── 솜브라 ────────────────────────────────
@@ -195,17 +192,21 @@ def sombra_passive(card: FieldCard, game: GameState) -> dict:
 @register_skill("sombra", "skill_1")
 def sombra_smg(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
+    caster.extra["used_hack_last"] = False
     result = target.take_damage(game.get_skill_damage(caster, "skill_1"))
     # caster.extra["used_stealth_last"] = False
     return {"success": True, "skill": "기관단총", "damage_log": result}
 
 @register_skill("sombra", "skill_2")
 def sombra_hack(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    if caster.extra.get("used_hack_last"):
+        return {"success": False, "message": "연속 사용 불가"}
     if not target:
         return {"success": False, "message": "대상 필요"}
     skill_data = game.get_skill_damage(caster, "skill_2", apply_attack_buff=False)
     duration = int(skill_data.get("duration", 2) if isinstance(skill_data, dict) else skill_data)
     target.add_status(SkillSilence(duration=duration, source_uid=caster.uid))
+    caster.extra["used_hack_last"] = True
     return {"success": True, "skill": "해킹", "target": target.uid, "duration": duration}
 
 # ── 에코 ──────────────────────────────────
@@ -323,18 +324,15 @@ def anran_inferno_dash(caster: FieldCard, target: FieldCard, game: GameState) ->
 # ── 솔져:76 ──────────────────────────────
 @register_skill("soldier76", "skill_1")
 def soldier76_biotic(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    if caster.extra.get("used_biotic_last"): return {"success": False, "message": "연속 불가"}
     my = game.get_my_field(caster)
     # heal = game.get_skill_damage(caster, "skill_1")
     heal = game.get_skill_damage(caster, "skill_1", apply_attack_buff=False)
     logs = [{"uid": a.uid, "healed": a.heal(heal)} for a in my.get_row(caster.zone)]
-    caster.extra["used_biotic_last"] = True
     return {"success": True, "skill": "생체장", "healed": logs}
 
 @register_skill("soldier76", "skill_2")
 def soldier76_pulse(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     if not target: return {"success": False, "message": "대상 필요"}
-    caster.extra["used_biotic_last"] = False
     result = target.take_damage(game.get_skill_damage(caster, "skill_2"))
     return {"success": True, "skill": "펄스 소총", "damage_log": result}
 
@@ -480,13 +478,14 @@ def junkrat_grenade_launcher(caster: FieldCard, target: FieldCard, game: GameSta
 # ── 엠레 (신규) ──────────────────────────
 @register_skill("emre", "skill_1")
 def emre_siphon_blaster(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """사이펀 블라스터: 6딜 + 자기 자신 3회복."""
+    """사이펀 블라스터: 피해량의 절반만큼 자기 자신 회복."""
     if not target:
         return {"success": False, "message": "대상 필요"}
 
     damage = game.get_skill_damage(caster, "skill_1")
-    result = target.take_damage(damage[0] if isinstance(damage, list) else damage)
-    healed = caster.heal(damage[1] if isinstance(damage, list) and len(damage) > 1 else 0)
+    applied_damage = int(damage[0] if isinstance(damage, list) else damage)
+    result = target.take_damage(applied_damage)
+    healed = caster.heal(applied_damage // 2)
     return {
         "success": True,
         "skill": "사이펀 블라스터",
