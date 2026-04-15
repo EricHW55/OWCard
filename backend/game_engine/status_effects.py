@@ -644,13 +644,11 @@ class PhoenixRebirthSeed(StatusEffect):
 
         self.used = True
         delay_turns = max(1, int(self.revive_delay_turns or 1))
-        resolved_revive_hp = int(self.revive_hp or max(1, (card.max_hp + 1) // 2))
-        if resolved_revive_hp <= 0:
-            resolved_revive_hp = max(1, (card.max_hp + 1) // 2)
+        resolved_revive_hp = card.max_hp
         if not card.has_status("phoenix_rebirth_pending"):
             card.add_status(PhoenixRebirthPending(
                 duration=delay_turns,
-                revive_hp=min(card.max_hp, resolved_revive_hp),
+                revive_hp=resolved_revive_hp,
                 source_uid=self.source_uid,
             ))
         card.remove_status(self.name)
@@ -658,7 +656,7 @@ class PhoenixRebirthSeed(StatusEffect):
             "prevent_death": True,
             "revive_pending": True,
             "revive_delay_turns": delay_turns,
-            "revive_hp": min(card.max_hp, resolved_revive_hp),
+            "revive_hp": resolved_revive_hp,
             "set_hp": 1,
         }
 
@@ -686,7 +684,7 @@ class PhoenixRebirthPending(StatusEffect):
         self.duration = max(0, int(self.duration) - 1)
         if self.duration > 0:
             return {"revive_pending": True, "duration": self.duration}
-        card.current_hp = min(card.max_hp, max(1, int(self.revive_hp or 1)))
+        card.current_hp = card.max_hp
         card.remove_status(self.name)
         return {"revived": True, "hp": card.current_hp}
 

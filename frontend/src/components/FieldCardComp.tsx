@@ -127,7 +127,6 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const isStealthed = statuses.some((s) => s.name === 'stealth');
     const isBurrowed = statuses.some((s) => s.name === 'burrowed');
     const isFrozen = statuses.some((s) => s.name === 'frozen_state');
-    const isPhoenixRebirthPending = statuses.some((s) => s.name === 'phoenix_rebirth_pending');
     const isGravityFluxAirborne = statuses.some(
         (s) => s.name === 'gravity_flux_airborne' || s.name === 'gravityfluxariborne'
     );
@@ -257,7 +256,6 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
 
     let moveBadge: { text: string; cls: string } | null = null;
     if (isFrozen) moveBadge = { text: 'FROZEN', cls: 'frozen' };
-    else if (isPhoenixRebirthPending) moveBadge = { text: '부활대기', cls: 'frozen' };
     // else if (isGravityFluxAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };

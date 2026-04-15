@@ -343,6 +343,9 @@ export function getCardImageSrc(card: CardLike): string {
         const spellKey = resolveSpellKey(card);
         return spellKey ? `/skills/${spellKey}.png` : '/skills/_unknown.png';
     }
+    if (Array.isArray(card.statuses) && card.statuses.some((status) => status?.name === 'phoenix_rebirth_pending')) {
+        return '/skills/phoenix_rebirth.png';
+    }
 
     const heroKey = resolveHeroKey(card);
     return heroKey ? `/heroes/${heroKey}.png` : '/heroes/_unknown.png';
@@ -380,9 +383,16 @@ function isMeiCryoFreezeCard(card: CardLike): boolean {
     return hasMeiCryoFrozenState || (hasFrozenState && isPassiveCryo);
 }
 
+function isPhoenixRebirthPendingCard(card: CardLike): boolean {
+    if (!card || card.is_spell) return false;
+    return Array.isArray(card.statuses)
+        && card.statuses.some((status) => status?.name === 'phoenix_rebirth_pending');
+}
+
 function resolveHeroArtKey(card: CardLike): string | null {
     const heroKey = resolveHeroKey(card);
     if (!heroKey) return null;
+    if (isPhoenixRebirthPendingCard(card)) return 'phoenix_rebirth';
     return isMeiCryoFreezeCard(card) ? 'cryo_freeze' : heroKey;
 }
 
