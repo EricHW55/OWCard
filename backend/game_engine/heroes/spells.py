@@ -16,7 +16,7 @@ from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
     FrozenState, GravityFluxAirborne, HealMultiplier, DamageMultiplier,
-    Sleep
+    Sleep, HealAmplify,
 )
 
 if TYPE_CHECKING:
@@ -128,23 +128,79 @@ def spell_gravity_flux(caster: FieldCard, target: FieldCard, game: GameState) ->
 
 @register_skill("spell_biotic_grenade", "skill_1")
 def spell_biotic_grenade(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """생체 수류탄: 한 영역(사이드/본대)에 2딜 + 힐밴."""
-    from game_engine.field import Zone
+    """생체 수류탄.
+    - 적에게 사용: 한 영역(사이드/본대)에 피해 + 힐밴
+    - 아군에게 사용: 한 영역(사이드/본대)에 즉발 치유 후 HealAmplify 부여
+    """
     if not target:
         return {"success": False, "message": "영역을 선택하세요"}
+    
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
 
+    heal_block_duration = int(raw_meta.get("heal_block_duration", 1) or 1)
+    ally_heal = int(raw_meta.get("ally_heal", 6) or 6)
+    heal_amplify_value = int(raw_meta.get("heal_amplify_value", 2) or 2)
+    heal_amplify_duration = int(raw_meta.get("heal_amplify_duration", 1) or 1)
+
+    my_field = game.get_my_field(caster)
     enemy_field = game.get_enemy_field(caster)
-    zone = target.zone
-    targets = enemy_field.get_row(zone)
-    dmg = game.get_skill_damage(caster, "skill_1")
+    
     logs = []
+    target_is_ally = bool(my_field.find_card(target.uid))
+
+    if target_is_ally:
+        targets = my_field.get_row(target.zone)
+        for card in targets:
+            # 중요: 생체 수류탄이 부여하는 HealAmplify가 이번 즉발 힐에 적용되지 않도록
+            # 반드시 "치유 -> 버프 부여" 순서로 처리한다.
+            healed = card.heal(ally_heal)
+            card.add_status(HealAmplify(
+                value=heal_amplify_value,
+                duration=max(1, heal_amplify_duration),
+                source_uid="spell",
+                tags=["buff"],
+            ))
+            logs.append({
+                "target": card.uid,
+                "healed": healed,
+                "heal_amplify": {
+                    "value": heal_amplify_value,
+                    "duration": max(1, heal_amplify_duration),
+                },
+            })
+        return {
+            "success": True,
+            "skill": "생체 수류탄",
+            "mode": "ally",
+            "zone": target.zone.value,
+            "ally_heal": ally_heal,
+            "affected": logs,
+        }
+
+    targets = enemy_field.get_row(target.zone)
+    dmg = game.get_skill_damage(caster, "skill_1")
     for card in targets:
         dmg_log = card.take_damage(dmg)
-        card.add_status(HealBlock(duration=1, source_uid="spell"))
-        logs.append({"target": card.uid, "damage": dmg_log, "heal_blocked": True})
+        card.add_status(HealBlock(duration=max(1, heal_block_duration), source_uid="spell"))
+        logs.append({
+            "target": card.uid,
+            "damage": dmg_log,
+            "heal_blocked": True,
+            "heal_block_duration": max(1, heal_block_duration),
+        })
 
     enemy_field.remove_dead()
-    return {"success": True, "skill": "생체 수류탄", "damage": dmg, "affected": logs}
+    return {
+        "success": True,
+        "skill": "생체 수류탄",
+        "mode": "enemy",
+        "zone": target.zone.value,
+        "damage": dmg,
+        "heal_block_duration": max(1, heal_block_duration),
+        "affected": logs,
+    }
 
 
 @register_skill("spell_rescue", "skill_1")
