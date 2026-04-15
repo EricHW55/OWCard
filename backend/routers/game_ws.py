@@ -34,6 +34,7 @@ router = APIRouter()
 active_games: dict[str, GameEngine] = {}
 RECONNECT_GRACE = 30
 _disconnect_tasks: dict[tuple[str, int], asyncio.Task] = {}
+_timer_tasks: dict[str, asyncio.Task] = {}
 
 
 async def load_deck_cards(deck_id: int) -> list[dict]:
@@ -59,6 +60,7 @@ async def get_or_create_game(game_id: str, p1: dict, p2: dict) -> GameEngine:
     engine.add_player(p1["id"], p1["username"], await load_deck_cards(p1["deck_id"]))
     engine.add_player(p2["id"], p2["username"], await load_deck_cards(p2["deck_id"]))
     active_games[game_id] = engine
+    _timer_tasks[game_id] = asyncio.create_task(_clock_monitor(game_id))
     return engine
 
 
@@ -88,6 +90,24 @@ async def _delayed_forfeit(game_id: str, player_id: int):
         engine.phase = GamePhase.GAME_OVER
         await manager.send_game(game_id, opp_ids[0], {"event": "opponent_disconnected"})
         await _handle_game_over(game_id, engine)
+    except asyncio.CancelledError:
+        return
+
+
+async def _clock_monitor(game_id: str):
+    try:
+        while True:
+            await asyncio.sleep(0.25)
+            engine = active_games.get(game_id)
+            if not engine:
+                return
+            timed_out = engine.sync_turn_timer()
+            if not timed_out:
+                continue
+            for pid in engine.players:
+                await _send_state(game_id, pid, engine)
+            await _handle_game_over(game_id, engine)
+            return
     except asyncio.CancelledError:
         return
 
@@ -159,6 +179,12 @@ async def game_ws(
 
 
 async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameEngine):
+    if engine.sync_turn_timer():
+        for pid in engine.players:
+            await _send_state(game_id, pid, engine)
+        await _handle_game_over(game_id, engine)
+        return
+    
     action = data.get("action", "")
     result: dict = {}
 
@@ -295,6 +321,9 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
 
     await room_manager.close_room_by_game_id(game_id)
     active_games.pop(game_id, None)
+    timer_task = _timer_tasks.pop(game_id, None)
+    if timer_task and not timer_task.done():
+        timer_task.cancel()
     manager.cleanup_game(game_id)
 
 

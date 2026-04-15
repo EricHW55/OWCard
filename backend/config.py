@@ -23,6 +23,8 @@ CARDS_PER_TURN = 2      # 일반 카드 기준
 FIRST_PLAYER_FIRST_TURN_CARDS_PER_TURN = 1  # 선공 첫 턴 배치 제한
 TANK_COST = 2            # 탱커는 2장 취급
 TRASH_WIN_COUNT = 7
+DEFAULT_TOTAL_TIME_SECONDS = int(os.getenv("DEFAULT_TOTAL_TIME_SECONDS", "200"))
+TURN_END_INCREMENT_SECONDS = int(os.getenv("TURN_END_INCREMENT_SECONDS", "30"))
 
 # Deck builder limits
 DECK_ROLE_MAX_COUNTS = {

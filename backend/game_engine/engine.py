@@ -13,6 +13,7 @@ GameEngine: 게임 인스턴스 관리.
 """
 from __future__ import annotations
 import random
+import time
 import uuid
 from enum import Enum
 from dataclasses import dataclass, field as dc_field
@@ -27,6 +28,8 @@ from config import (
     MAX_MULLIGAN,
     CARDS_PER_TURN,
     FIRST_PLAYER_FIRST_TURN_CARDS_PER_TURN,
+    DEFAULT_TOTAL_TIME_SECONDS,
+    TURN_END_INCREMENT_SECONDS,
 )
 
 
@@ -265,6 +268,10 @@ class GameEngine:
         self.action_log: list[dict] = []
         
         self.pending_end_turn_effects: list[dict] = []
+        self.initial_time_seconds: int = DEFAULT_TOTAL_TIME_SECONDS
+        self.turn_increment_seconds: int = TURN_END_INCREMENT_SECONDS
+        self.remaining_time: dict[int, float] = {}
+        self.turn_timer_started_at: Optional[float] = None
         
         # 스킬 함수 호출용 헬퍼
         self.state = GameState(self)
@@ -287,6 +294,52 @@ class GameEngine:
     def _spell_requires_choice(self, hero_key: str) -> bool:
         return hero_key in {"spell_rescue", "spell_maximilian"}
 
+    def _get_now(self) -> float:
+        return time.monotonic()
+
+    def _start_turn_timer(self):
+        if self.phase == GamePhase.GAME_OVER:
+            self.turn_timer_started_at = None
+            return
+        self.turn_timer_started_at = self._get_now()
+
+    def _consume_current_turn_time(self):
+        if self.turn_timer_started_at is None or not self.player_order:
+            return
+        current_pid = self.current_player_id
+        elapsed = max(0.0, self._get_now() - self.turn_timer_started_at)
+        self.remaining_time[current_pid] = max(0.0, self.remaining_time.get(current_pid, 0.0) - elapsed)
+        self.turn_timer_started_at = self._get_now()
+
+    def _get_effective_remaining_time(self, player_id: int) -> float:
+        remaining = float(self.remaining_time.get(player_id, 0.0))
+        if (
+            self.turn_timer_started_at is not None
+            and self.player_order
+            and player_id == self.current_player_id
+            and self.phase in (GamePhase.PLACEMENT, GamePhase.ACTION)
+        ):
+            elapsed = max(0.0, self._get_now() - self.turn_timer_started_at)
+            return max(0.0, remaining - elapsed)
+        return max(0.0, remaining)
+
+    def _apply_timeout_if_needed(self) -> bool:
+        if not self.player_order or self.phase not in (GamePhase.PLACEMENT, GamePhase.ACTION):
+            return False
+        current_pid = self.current_player_id
+        if self.remaining_time.get(current_pid, 0.0) > 0:
+            return False
+        self.winner = self.opponent_player_id
+        self.phase = GamePhase.GAME_OVER
+        self.turn_timer_started_at = None
+        return True
+
+    def sync_turn_timer(self) -> bool:
+        if self.phase not in (GamePhase.PLACEMENT, GamePhase.ACTION) or not self.player_order:
+            return False
+        self._consume_current_turn_time()
+        return self._apply_timeout_if_needed()
+    
     def _spell_needs_board_target(self, hero_key: str) -> bool:
         return hero_key in {
             "spell_thorn_volley", "spell_blizzard", "spell_earthshatter",
@@ -445,6 +498,7 @@ class GameEngine:
         self.players[player_id] = PlayerState(
             player_id=player_id, username=username, deck=deck_cards,
         )
+        self.remaining_time[player_id] = float(self.initial_time_seconds)
         self.player_order.append(player_id)
         return True
 
@@ -497,6 +551,7 @@ class GameEngine:
         ps.mulligan_done = ps.mulligan_used >= MAX_MULLIGAN or len(card_indices) == 0
         if all(p.mulligan_done for p in self.players.values()):
             self.phase = GamePhase.PLACEMENT
+            self._start_turn_timer()
             return {
                 "phase": self.phase.value,
                 "coin_result": self.coin_result,
@@ -1346,6 +1401,9 @@ class GameEngine:
             return {"error": "Not your turn"}
         if self.phase not in (GamePhase.PLACEMENT, GamePhase.ACTION):
             return {"error": "Cannot end turn now"}
+        self._consume_current_turn_time()
+        if self._apply_timeout_if_needed():
+            return {"phase": self.phase.value, "winner": self.winner, "reason": "timeout"}
 
         ps = self.players[player_id]
         if ps.pending_passive:
@@ -1364,8 +1422,10 @@ class GameEngine:
         self._collect_dead_to_trash(opp)
 
         # 턴 교대
+        self.remaining_time[player_id] = self.remaining_time.get(player_id, 0.0) + self.turn_increment_seconds
         self.current_turn_index = 1 - self.current_turn_index
         new_ps = self.players[self.current_player_id]
+        self._start_turn_timer()
         new_ps.field.mark_all_available()
         new_ps.placement_cost_used = 0
 
@@ -1387,6 +1447,8 @@ class GameEngine:
         self.phase = GamePhase.PLACEMENT
 
         self._check_game_over()
+        if self.phase == GamePhase.GAME_OVER:
+            self.turn_timer_started_at = None
         return {
             "phase": self.phase.value,
             "current_player": self.current_player_id,
@@ -1394,6 +1456,7 @@ class GameEngine:
             "round": self.round_number,
             "turn_end_logs": turn_end_logs,
             "turn_start_logs": turn_start_logs,
+            "time_bonus": self.turn_increment_seconds,
         }
 
     def _collect_dead_to_trash(self, ps: PlayerState):
@@ -1470,12 +1533,16 @@ class GameEngine:
     # ── 유틸 ──────────────────────────────────
 
     def _check_game_over(self):
+        if self.phase == GamePhase.GAME_OVER:
+            self.turn_timer_started_at = None
+            return
         for pid, ps in self.players.items():
             opp_id = [p for p in self.players if p != pid][0]
             opp = self.players[opp_id]
             if opp.field.is_empty() and len(opp.hand) == 0:
                 self.winner = pid
                 self.phase = GamePhase.GAME_OVER
+                self.turn_timer_started_at = None
 
     def _log(self, action_type: str, player_id: int, data: dict):
         self.action_log.append({
@@ -1508,6 +1575,12 @@ class GameEngine:
             } if opp else None,
             "winner": self.winner,
             "commander_skill_limit": self.get_commander_skill_limit(),
+            "timer": {
+                "initial_seconds": self.initial_time_seconds,
+                "increment_seconds": self.turn_increment_seconds,
+                "my_remaining_seconds": int(self._get_effective_remaining_time(for_player_id)),
+                "opponent_remaining_seconds": int(self._get_effective_remaining_time(opp.player_id)) if opp else None,
+            },
         }
 
     def get_spectator_state(self) -> dict:
@@ -1528,4 +1601,12 @@ class GameEngine:
             },
             "winner": self.winner,
             "action_log": self.action_log[-20:],
+            "timer": {
+                "initial_seconds": self.initial_time_seconds,
+                "increment_seconds": self.turn_increment_seconds,
+                "remaining_by_player": {
+                    pid: int(self._get_effective_remaining_time(pid))
+                    for pid in self.players
+                },
+            },
         }
