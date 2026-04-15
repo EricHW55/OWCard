@@ -17,6 +17,7 @@ export type PendingColumnChoice = {
   heroKey?: string;
   skillKey?: string;
   skillName: string;
+  targetSide: 'my' | 'opponent';
 } | null;
 
 export type ColumnPreview = {
@@ -215,7 +216,9 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
         <div className="game-context-panel mercy-panel">
           <div className="game-context-head game-context-head-wrap">
             <span className="game-toolbar-title">{columnChoice.skillName} 열 선택</span>
-            <span className="game-context-subtext">세로줄 단위로 적용됩니다. 원하는 열을 선택하세요.</span>
+            <span className="game-context-subtext">
+              세로줄 단위로 적용됩니다. {columnChoice.targetSide === 'my' ? '아군' : '적군'} 열을 선택하세요.
+            </span>
           </div>
 
           {enemyColumns.length > 0 ? (

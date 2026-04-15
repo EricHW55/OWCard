@@ -170,6 +170,11 @@ const SPELL_ALIAS: Record<string, string> = {
     '강철덫': 'steel_trap',
     '카두세우스지팡이': 'caduceus_staff',
     '카드세우스지팡이': 'caduceus_staff',
+    '정화의방울': 'purification_bubble',
+    '춤추는불꽃': 'dancing_flame',
+    '불사조부활': 'phoenix_rebirth',
+    '여우길': 'fox_path',
+    '살육': 'slaughter',
     '밥': 'bob',
     '비오비': 'bob',
     'b.o.b': 'bob',
@@ -211,6 +216,15 @@ const SPELL_ALIAS: Record<string, string> = {
     steeltrap: 'steel_trap',
     caduceus_staff: 'caduceus_staff',
     caduceusstaff: 'caduceus_staff',
+    purification_bubble: 'purification_bubble',
+    purificationbubble: 'purification_bubble',
+    dancing_flame: 'dancing_flame',
+    dancingflame: 'dancing_flame',
+    phoenix_rebirth: 'phoenix_rebirth',
+    phoenixrebirth: 'phoenix_rebirth',
+    fox_path: 'fox_path',
+    foxpath: 'fox_path',
+    slaughter: 'slaughter',
 
     // spell_* forms from backend
     spell_thorn_volley: 'thorn_barrage',
@@ -239,6 +253,11 @@ const SPELL_ALIAS: Record<string, string> = {
     spell_deflect: 'deflect',
     spell_steel_trap: 'steel_trap',
     spell_caduceus_staff: 'caduceus_staff',
+    spell_purification_bubble: 'purification_bubble',
+    spell_dancing_flame: 'dancing_flame',
+    spell_phoenix_rebirth: 'phoenix_rebirth',
+    spell_fox_path: 'fox_path',
+    spell_slaughter: 'slaughter',
 };
 
 function normalize(value: unknown): string {

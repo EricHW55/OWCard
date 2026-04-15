@@ -104,13 +104,18 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const hpPct = card.max_hp > 0 ? (card.current_hp / card.max_hp) * 100 : 0;
     const hpColor = hpPct > 60 ? '#22dd77' : hpPct > 30 ? '#ffaa22' : '#ff3355';
 
-    const barrierStatus = card.statuses?.find((s) => s.name === 'barrier');
+    const statuses = useMemo(
+        () => (card.statuses || []).filter((s) => !isOpponent || s.visible !== false),
+        [card.statuses, isOpponent]
+    );
+
+    const barrierStatus = statuses.find((s) => s.name === 'barrier');
     const barrierHp = (barrierStatus as any)?.barrier_hp ?? 0;
     const hasBarrier = barrierHp > 0;
 
     const particleBarrierBreakSeq = Number((card.extra as any)?.particle_barrier_break_seq ?? 0) || 0;
 
-    const extraHpStatus = card.statuses?.find((s) => s.name === 'extra_hp');
+    const extraHpStatus = statuses.find((s) => s.name === 'extra_hp');
     const extraHp = (extraHpStatus as any)?.extra_hp ?? 0;
     const hasExtraHp = extraHp > 0;
     const hasBonusHp = hasBarrier || hasExtraHp;
@@ -119,36 +124,37 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
     const barrierTrackWidth = `${(Math.max(0, barrierHp) / bonusTrackTotal) * 100}%`;
     const extraHpTrackWidth = `${(Math.max(0, extraHp) / bonusTrackTotal) * 100}%`;
 
-    const isStealthed = card.statuses?.some((s) => s.name === 'stealth');
-    const isBurrowed = card.statuses?.some((s) => s.name === 'burrowed');
-    const isFrozen = card.statuses?.some((s) => s.name === 'frozen_state');
-    const isGravityFluxAirborne = card.statuses?.some(
+    const isStealthed = statuses.some((s) => s.name === 'stealth');
+    const isBurrowed = statuses.some((s) => s.name === 'burrowed');
+    const isFrozen = statuses.some((s) => s.name === 'frozen_state');
+    const isPhoenixRebirthPending = statuses.some((s) => s.name === 'phoenix_rebirth_pending');
+    const isGravityFluxAirborne = statuses.some(
         (s) => s.name === 'gravity_flux_airborne' || s.name === 'gravityfluxariborne'
     );
-    const isAirborne = card.statuses?.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
-    const isExposed = card.statuses?.some((s) => s.name === 'exposed');
-    const isPulled = card.statuses?.some((s) => s.name === 'pulled');
-    const isKnockback = card.statuses?.some((s) => s.name === 'knockback');
-    const isHooked = card.statuses?.some((s) => s.name === 'hooked');
+    const isAirborne = statuses.some((s) => s.name === 'airborne') || isGravityFluxAirborne;
+    const isExposed = statuses.some((s) => s.name === 'exposed');
+    const isPulled = statuses.some((s) => s.name === 'pulled');
+    const isKnockback = statuses.some((s) => s.name === 'knockback');
+    const isHooked = statuses.some((s) => s.name === 'hooked');
 
-    const hasBurn = card.statuses?.some((s) => s.name === 'burn');
-    const hasSilence = card.statuses?.some((s) => s.name === 'skill_silence');
-    const hasSleep = card.statuses?.some((s) => s.name === 'sleep');
-    const hasShield = card.statuses?.some(
+    const hasBurn = statuses.some((s) => s.name === 'burn');
+    const hasSilence = statuses.some((s) => s.name === 'skill_silence');
+    const hasSleep = statuses.some((s) => s.name === 'sleep');
+    const hasShield = statuses.some(
         (s) => s.name === 'damage_reduction' || s.name === 'next_turn_start_damage_reduction'
     );
     const hasDamageReduction = hasShield;
-    const fortifyPassiveStatus = card.statuses?.find((s) => s.name === 'orisa_fortify_passive');
+    const fortifyPassiveStatus = statuses.find((s) => s.name === 'orisa_fortify_passive');
     const hasFortifyPassive = !!fortifyPassiveStatus;
     const isFortifyActive = hasFortifyPassive && Boolean((fortifyPassiveStatus as any).active);
-    const immortalityStatus = card.statuses?.find((s) => s.name === 'immortality');
+    const immortalityStatus = statuses.find((s) => s.name === 'immortality');
     const isImmortalityTriggered = !!immortalityStatus
         && (Boolean((immortalityStatus as any).activated) || Number((immortalityStatus as any).duration) !== -1);
-    const hasStickyBomb = card.statuses?.some((s) => s.name === 'sticky_bomb');
-    const hasVendettaMarked = card.statuses?.some((s) => s.name === 'vendetta_marked');
-    const hasDiscordOrb = card.statuses?.some((s) => s.name === 'discord_orb');
-    const hasTaunt = card.statuses?.some((s) => s.name === 'taunt');
-    const hasAttackAmplifier = card.statuses?.some((s) => {
+    const hasStickyBomb = statuses.some((s) => s.name === 'sticky_bomb');
+    const hasVendettaMarked = statuses.some((s) => s.name === 'vendetta_marked');
+    const hasDiscordOrb = statuses.some((s) => s.name === 'discord_orb');
+    const hasTaunt = statuses.some((s) => s.name === 'taunt');
+    const hasAttackAmplifier = statuses.some((s) => {
         if (s.name === 'attack_buff') {
             const value = (s as any).value;
             return value === undefined ? true : Number(value) > 0;
@@ -159,7 +165,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         }
         return false;
     });
-    const hasHealAmplifier = card.statuses?.some((s) => {
+    const hasHealAmplifier = statuses.some((s) => {
         if (s.name === 'heal_amplify') {
             const value = (s as any).value;
             return value === undefined ? true : Number(value) > 0;
@@ -170,17 +176,17 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         }
         return false;
     });
-    const hasRangeModification = card.statuses?.some((s) => {
+    const hasRangeModification = statuses.some((s) => {
         if (s.name !== 'range_modifier') return false;
         const value = Number((s as any).value);
         return Number.isNaN(value) ? true : value > 0;
     });
-    const hasHealBlock = card.statuses?.some((s) => s.name === 'heal_block');
+    const hasHealBlock = statuses.some((s) => s.name === 'heal_block');
     const isParticleBarrier = Number((card.extra as any)?.particle_barrier_charge ?? (card.extra as any)?.zarya_charge ?? 0) > 0;
-    const hasChargingStatus = card.statuses?.some((s) => s.name === 'charging') ?? false;
+    const hasChargingStatus = statuses.some((s) => s.name === 'charging') ?? false;
     const showBarrier = hasBarrier && !hasTaunt && !isParticleBarrier;
-    const buffs = card.statuses?.filter((s) => s.tags?.includes('buff')) || [];
-    const debuffs = card.statuses?.filter((s) => s.tags?.includes('debuff')) || [];
+    const buffs = statuses.filter((s) => s.tags?.includes('buff')) || [];
+    const debuffs = statuses.filter((s) => s.tags?.includes('debuff')) || [];
 
     const heroKey = String(card.hero_key || card.extra?._hero_key || '').toLowerCase();
     const sojournCharge = Math.max(0, Math.min(3, Number(card.extra?.charge_level ?? 0) || 0));
@@ -251,6 +257,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
 
     let moveBadge: { text: string; cls: string } | null = null;
     if (isFrozen) moveBadge = { text: 'FROZEN', cls: 'frozen' };
+    else if (isPhoenixRebirthPending) moveBadge = { text: '부활대기', cls: 'frozen' };
     // else if (isGravityFluxAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isAirborne) moveBadge = { text: 'AIR', cls: 'airborne' };
     else if (isBurrowed) moveBadge = { text: '잠복', cls: 'burrowed' };

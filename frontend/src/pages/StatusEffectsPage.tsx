@@ -130,6 +130,7 @@ const EFFECTS: EffectPreview[] = [
     { key: 'vendetta_marked', label: 'VendettaMarked', title: '벤데타 표적', summary: '벤데타의 표적 디버프. 벤데타에게 피격시, 거리제한이 없어지고 추가 피해를 받는다.', statuses: [makeStatus('vendetta_marked', -1, ['debuff'])] },
     { key: 'frozen_state', label: 'FrozenState', title: '빙결 상태', summary: '무적, 행동 불가, 타겟팅 불가, 앞라인 차단 해제, 조건에 따라 해동 또는 부활.', statuses: [makeStatus('frozen_state', 1, ['debuff'])] },
     { key: 'frozen_revive', label: 'FrozenRevive', title: '빙결 부활 패시브', summary: '최초 사망 시 HP 1로 빙결 상태가 되고 다음 턴 시작에 부활.', statuses: [makeStatus('frozen_revive', 999, ['buff'])] },
+    { key: 'phoenix_rebirth_pending', label: 'PhoenixRebirthPending', title: '불사조 부활(발동)', summary: '사망 직후 발동되어 다음 턴 시작에 부활할 때까지 대기. 이 상태부터는 상대에게도 표시.', statuses: [makeStatus('phoenix_rebirth_pending', 1, ['buff', 'revive', 'pending'])] },
     { key: 'immortality', label: 'Immortality', title: '불사', summary: '치명 피해를 막고 HP 1로 생존.', statuses: [makeStatus('immortality', 2, ['buff'])] },
     { key: 'reflect', label: 'Reflect', title: '반사', summary: '치명 피해를 반사하고 1회 생존 보장.', statuses: [makeStatus('reflect', 2, ['buff'])] },
     { key: 'extra_hp', label: 'ExtraHP', title: '추가 체력', summary: '별도 추가 체력으로 피해를 먼저 흡수.', statuses: [makeStatus('extra_hp', 2, ['buff'], { extra_hp: 6 })] },

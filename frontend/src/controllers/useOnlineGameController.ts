@@ -10,6 +10,7 @@ type ColumnChoice = {
   heroKey?: string;
   skillKey?: string;
   skillName: string;
+  targetSide: 'my' | 'opponent';
 };
 
 type ColumnPreview = {
@@ -146,7 +147,16 @@ function needsColumnSelector(card: any, skillKey?: string | null): boolean {
 
 function isColumnTargetSpell(heroKey?: string | null): boolean {
   const key = String(heroKey || '').toLowerCase().trim();
-  return key === 'spell_thorn_volley' || key === 'spell_dragonblade';
+  return key === 'spell_thorn_volley'
+      || key === 'spell_dragonblade'
+      || key === 'spell_fox_path'
+      || key === 'spell_slaughter';
+}
+
+function getColumnTargetSideForSpell(heroKey?: string | null): 'my' | 'opponent' {
+  const key = String(heroKey || '').toLowerCase().trim();
+  if (key === 'spell_fox_path') return 'my';
+  return 'opponent';
 }
 
 function getHeroSkillBlockReason(card: any, skillKey: string): string | null {
@@ -777,7 +787,12 @@ export function useOnlineGameController(gameId: string) {
             addLog('스킬 카드 대상 선택');
             if (isColumnTargetSpell(result?.hero_key)) {
               setActionMode(null);
-              setColumnChoice({ source: 'spell', heroKey: result.hero_key, skillName: spellName });
+              setColumnChoice({
+                source: 'spell',
+                heroKey: result.hero_key,
+                skillName: spellName,
+                targetSide: getColumnTargetSideForSpell(result?.hero_key),
+              });
               showSystemNotice(spellName, '열을 선택하세요', 1200);
             } else {
               setActionMode('spell');
@@ -1000,6 +1015,8 @@ export function useOnlineGameController(gameId: string) {
   const allMyField = my ? [...my.field.main, ...my.field.side] : [];
   const selectedMyFieldCard = allMyField.find((c) => c.uid === selectedFieldUid) || null;
   const enemyColumns = buildColumnChoices(opp?.field);
+  const myColumns = buildColumnChoices(my?.field);
+  const availableColumns = columnChoice?.targetSide === 'my' ? myColumns : enemyColumns;
   const selectedHeroKey = getHeroKey(selectedMyFieldCard);
   const selectedChargeLevel = getChargeLevel(selectedMyFieldCard);
   const actionModeLabel = (actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place' && selectedMyFieldCard)
@@ -1287,7 +1304,13 @@ export function useOnlineGameController(gameId: string) {
     if (needsColumnSelector(caster, skillKey)) {
       const chargeLevel = getChargeLevel(caster);
       if (chargeLevel <= 0) { addLog('차징샷은 차징 1단계 이상 필요'); showSystemNotice('차징 부족', '레일건으로 먼저 충전하세요', 1200); return; }
-      setActionMode(null); setColumnChoice({ source: 'skill', heroKey: getHeroKey(caster), skillKey, skillName: rawSkillName });
+      setActionMode(null); setColumnChoice({
+        source: 'skill',
+        heroKey: getHeroKey(caster),
+        skillKey,
+        skillName: rawSkillName,
+        targetSide: 'opponent',
+      });
       addLog(`${caster.name} — ${rawSkillName} 열 선택`);
       showSystemNotice(rawSkillName, '열을 선택하세요', 1000);
       return;
@@ -1383,7 +1406,7 @@ export function useOnlineGameController(gameId: string) {
     cardEffects,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
     mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
-    actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns,
+    actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns: availableColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan, completeMulliganCinematic,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
