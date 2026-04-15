@@ -913,14 +913,12 @@ def spell_phoenix_rebirth(caster: FieldCard, target: FieldCard, game: GameState)
     if not isinstance(raw_meta, dict):
         raw_meta = {}
     revive_delay_turns = int(raw_meta.get("revive_delay_turns", 1) or 1)
-    revive_hp = int(raw_meta.get("revive_hp", 0) or 0)
 
     target.add_status(PhoenixRebirthSeed(
         duration=-1,
         source_uid="spell",
         visible_to_opponent=False,
         revive_delay_turns=max(1, revive_delay_turns),
-        revive_hp=revive_hp,
         tags=["buff", "install"],
     ))
     return {
@@ -929,7 +927,6 @@ def spell_phoenix_rebirth(caster: FieldCard, target: FieldCard, game: GameState)
         "target": target.uid,
         "hidden": True,
         "revive_delay_turns": max(1, revive_delay_turns),
-        "revive_hp": revive_hp,
     }
 
 

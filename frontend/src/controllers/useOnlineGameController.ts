@@ -86,7 +86,7 @@ function getSkillDescriptionFromCard(card: any, skillRef?: string | null) {
 function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: string) {
   const result = msg?.result || {};
   const action = msg?.action;
-  const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect']);
+  const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
   const resultHeroKey = String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').toLowerCase();
   const isHiddenInstallSpell = hiddenInstallSpellKeys.has(resultHeroKey);
 
@@ -536,6 +536,8 @@ export function useOnlineGameController(gameId: string) {
             showSkillUse({ skillName: '급속 빙결', subtitle: `${sourceName} 패시브`, description: '치명 피해 시 빙결 상태가 되고 다음 턴 시작에 회복합니다.', heroKey: getHeroKey(sourceCard) || 'mei', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
           } else if (node?.by === 'immortality') {
             showSkillUse({ skillName: '불사장치', subtitle: `${sourceName} 발동`, description: '치명 피해를 무효화하고 체력을 1 남깁니다.', heroKey: 'spell_immortality_field', imageName: '불사장치', isSpell: true, duration: 2600 });
+          } else if (node?.by === 'phoenix_rebirth_seed') {
+            showSkillUse({ skillName: '불사조 부활', subtitle: `${sourceName} 발동`, description: '치명 피해 시 부활 대기 상태가 되고, 턴 경과 후 최대 체력으로 부활합니다.', heroKey: 'spell_phoenix_rebirth', imageName: '불사조 부활', isSpell: true, duration: 2600 });
           } else if (node?.reflect_by === 'reflect') {
             showSkillUse({ skillName: '튕겨내기', subtitle: `${sourceName} 발동`, description: '치명 피해를 반사하여 공격자를 저지합니다.', heroKey: 'spell_deflect', imageName: '튕겨내기', isSpell: true, duration: 2600 });
           } else {

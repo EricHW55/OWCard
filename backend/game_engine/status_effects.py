@@ -633,7 +633,6 @@ class PhoenixRebirthSeed(StatusEffect):
     name: str = "phoenix_rebirth_seed"
     duration: int = -1
     revive_delay_turns: int = 1
-    revive_hp: int = 0
     used: bool = False
     visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["buff", "install"])
