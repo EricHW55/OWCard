@@ -115,6 +115,12 @@ export interface GameState {
   opponent_state: PlayerState;
   winner: number | null;
   commander_skill_limit: number;
+  timer?: {
+    initial_seconds?: number;
+    increment_seconds?: number;
+    my_remaining_seconds?: number;
+    opponent_remaining_seconds?: number | null;
+  };
 }
 
 export interface WSMessage {

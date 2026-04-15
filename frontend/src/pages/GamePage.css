@@ -153,6 +153,68 @@
     pointer-events: none;
 }
 
+.game-battle-left-overlay {
+    position: absolute;
+    left: 6px;
+    top: 56px;
+    z-index: 8;
+    pointer-events: auto;
+}
+
+.game-timer-panel {
+    min-width: 84px;
+    padding: 8px 7px;
+    border-radius: 10px;
+    border: 1px solid rgba(95, 129, 210, 0.52);
+    background: rgba(8, 16, 42, 0.84);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(2px);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.game-timer-panel-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #9bc3ff;
+    letter-spacing: 0.2px;
+}
+
+.game-timer-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px 5px;
+    border-radius: 7px;
+    border: 1px solid rgba(100, 120, 168, 0.35);
+    background: rgba(12, 24, 58, 0.7);
+}
+
+.game-timer-row.active {
+    border-color: rgba(115, 198, 255, 0.82);
+    background: linear-gradient(180deg, rgba(33, 76, 142, 0.48), rgba(21, 53, 110, 0.42));
+    box-shadow: 0 0 12px rgba(117, 198, 255, 0.34);
+}
+
+.game-timer-label {
+    font-size: 9px;
+    color: #a6bddb;
+}
+
+.game-timer-value {
+    font-size: 16px;
+    color: #f4f7ff;
+    line-height: 1;
+}
+
+.game-timer-bonus {
+    margin-top: 1px;
+    font-size: 9px;
+    color: #ffcf7a;
+    text-align: left;
+}
+
 .game-killfeed-item {
     pointer-events: auto;
     display: inline-flex;
@@ -1068,6 +1130,20 @@
         gap: 2px;
     }
 
+    .game-battle-left-overlay {
+        left: 4px;
+        top: 50px;
+    }
+
+    .game-timer-panel {
+        min-width: 76px;
+        padding: 6px 6px;
+    }
+
+    .game-timer-value {
+        font-size: 14px;
+    }
+
     .game-page {
         --field-card-width: clamp(62px, min(13.8vw, 8.8vh), 88px);
     }
@@ -1179,6 +1255,31 @@
 
     .game-page {
         --field-card-width: clamp(56px, min(16.6vw, 8vh), 78px);
+    }
+
+    .game-battle-left-overlay {
+        left: 2px;
+        top: 46px;
+    }
+
+    .game-timer-panel {
+        min-width: 66px;
+        padding: 5px 5px;
+        gap: 4px;
+    }
+
+    .game-timer-row {
+        padding: 3px 4px;
+    }
+
+    .game-timer-value {
+        font-size: 12px;
+    }
+
+    .game-timer-panel-title,
+    .game-timer-label,
+    .game-timer-bonus {
+        font-size: 8px;
     }
 
     .game-context-stack {

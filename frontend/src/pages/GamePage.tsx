@@ -16,6 +16,13 @@ type CoinFace = 'front' | 'back';
 type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'clearing' | 'done';
 type OpeningStage = 'idle' | 'draw_back' | 'reveal_front' | 'done';
 
+function formatTimerClock(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
   const navigate = useNavigate();
@@ -37,6 +44,8 @@ const GamePage: React.FC = () => {
   const [revealExiting, setRevealExiting] = React.useState(false);
   const [revealTilt, setRevealTilt] = React.useState({ x: 0, y: 0 });
   const [openingCardCount, setOpeningCardCount] = React.useState(handSize);
+  const [timerAnchorMs, setTimerAnchorMs] = React.useState(() => Date.now());
+  const [timerTickMs, setTimerTickMs] = React.useState(() => Date.now());
 
   const isFirstPlayer = React.useMemo(() => {
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
@@ -138,6 +147,21 @@ const GamePage: React.FC = () => {
     };
   }, []);
 
+  React.useEffect(() => {
+    const id = window.setInterval(() => setTimerTickMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  React.useEffect(() => {
+    setTimerAnchorMs(Date.now());
+    setTimerTickMs(Date.now());
+  }, [
+    vm.gs?.turn,
+    vm.isMyTurn,
+    vm.gs?.timer?.my_remaining_seconds,
+    vm.gs?.timer?.opponent_remaining_seconds,
+  ]);
+
   const handleRevealNext = () => {
     if (openingStage !== 'reveal_front') return;
     if (!vm.my || revealIndex >= openingCardCount || revealExiting) return;
@@ -238,6 +262,13 @@ const GamePage: React.FC = () => {
   const revealRoleColor = revealCardInHand?.is_spell
       ? '#ffaa22'
       : (ROLE_COLOR[revealCardInHand?.role || ''] || 'rgba(188, 202, 246, 0.64)');
+  const timerInfo = vm.gs?.timer;
+  const timerElapsedSec = Math.max(0, Math.floor((timerTickMs - timerAnchorMs) / 1000));
+  const baseMySeconds = Number(timerInfo?.my_remaining_seconds ?? 0);
+  const baseOppSeconds = Number(timerInfo?.opponent_remaining_seconds ?? 0);
+  const myRemainingSeconds = timerInfo ? Math.max(0, baseMySeconds - (vm.isMyTurn ? timerElapsedSec : 0)) : null;
+  const oppRemainingSeconds = timerInfo ? Math.max(0, baseOppSeconds - (!vm.isMyTurn ? timerElapsedSec : 0)) : null;
+  const activeTimerSide = vm.isMyTurn ? 'my' : 'opponent';
 
   return (
     <>
@@ -333,6 +364,20 @@ const GamePage: React.FC = () => {
       }
       banners={banners}
       midlineDotActive={vm.isMyTurn}
+      leftBattleOverlay={timerInfo ? (
+          <aside className="game-timer-panel" aria-label="턴 타이머">
+            <div className="game-timer-panel-title">타이머</div>
+            <div className={`game-timer-row ${activeTimerSide === 'my' ? 'active' : ''}`}>
+              <span className="game-timer-label">내 시간</span>
+              <strong className="game-timer-value">{formatTimerClock(myRemainingSeconds ?? 0)}</strong>
+            </div>
+            <div className={`game-timer-row ${activeTimerSide === 'opponent' ? 'active' : ''}`}>
+              <span className="game-timer-label">상대 시간</span>
+              <strong className="game-timer-value">{formatTimerClock(oppRemainingSeconds ?? 0)}</strong>
+            </div>
+            <div className="game-timer-bonus">턴 종료 시 +{timerInfo.increment_seconds ?? 0}s</div>
+          </aside>
+      ) : null}
       topField={{
         field: vm.opp.field,
         isOpponent: true,

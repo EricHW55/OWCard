@@ -34,6 +34,7 @@ export interface GameScreenProps {
   topField: FieldPaneConfig;
   bottomField: FieldPaneConfig;
   midlineDotActive?: boolean;
+  leftBattleOverlay?: ReactNode;
 
   contextPanel?: ReactNode;
 

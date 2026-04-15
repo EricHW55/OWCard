@@ -18,6 +18,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   topField,
   bottomField,
   midlineDotActive = false,
+  leftBattleOverlay,
   contextPanel,
   handCards,
   isHandSelected,
@@ -132,6 +133,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
       ))}
 
       <div className="game-battle game-battle--three-d">
+        {leftBattleOverlay ? (
+            <div className="game-battle-left-overlay">
+              {leftBattleOverlay}
+            </div>
+        ) : null}
         {killFeed.length > 0 && (
             <div className="game-killfeed" aria-live="polite">
               {killFeed.map((entry) => {
