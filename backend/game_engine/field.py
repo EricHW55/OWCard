@@ -151,7 +151,7 @@ class FieldCard:
     @property
     def is_targetable(self) -> bool:
         for s in self.statuses:
-            if s.name in ("stealth", "burrowed", "frozen_state"):
+            if s.name in ("stealth", "burrowed", "frozen_state", "phoenix_rebirth_pending"):
                 return False
         return True
 
@@ -258,7 +258,7 @@ class FieldCard:
         return {"died": True}
 
     def heal(self, amount: int) -> int:
-        if self.has_status("heal_block") or self.has_status("frozen_state"):
+        if self.has_status("heal_block") or self.has_status("frozen_state") or self.has_status("phoenix_rebirth_pending"):
             return 0
         amp = sum(s.value for s in self.statuses if s.name == "heal_amplify")
         # actual = amount + amp

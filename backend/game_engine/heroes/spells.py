@@ -16,7 +16,7 @@ from game_engine.status_effects import (
     SkillSilence, HealBlock, ExtraHP, AttackBuff,
     DamageReduction, Immortality, Reflect, Burn,
     FrozenState, GravityFluxAirborne, HealMultiplier, DamageMultiplier,
-    Sleep, HealAmplify,
+    Sleep, HealAmplify, RangeModifier, PhoenixRebirthSeed,
 )
 
 if TYPE_CHECKING:
@@ -198,6 +198,175 @@ def spell_biotic_grenade(caster: FieldCard, target: FieldCard, game: GameState) 
         "mode": "enemy",
         "zone": target.zone.value,
         "damage": dmg,
+        "heal_block_duration": max(1, heal_block_duration),
+        "affected": logs,
+    }
+
+
+@register_skill("spell_purification_bubble", "skill_1")
+def spell_purification_bubble(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """정화의 방울: 한 영역 즉시 치유 + 지정 상태 이상 제거."""
+    if not target:
+        return {"success": False, "message": "영역을 선택하세요"}
+
+    my_field = game.get_my_field(caster)
+    if not my_field.find_card(target.uid):
+        return {"success": False, "message": "아군 영역만 선택할 수 있습니다"}
+
+    heal_amount = int(game.get_skill_damage(caster, "skill_1", apply_attack_buff=False) or 0)
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    clear_statuses = raw_meta.get("clear_statuses", [])
+    if not isinstance(clear_statuses, list):
+        clear_statuses = []
+
+    targets = my_field.get_row(target.zone)
+    logs = []
+    for card in targets:
+        healed = card.heal(heal_amount)
+        removed = card.clear_statuses_by_name([str(name) for name in clear_statuses])
+        logs.append({"target": card.uid, "healed": healed, "removed_statuses": removed})
+
+    return {
+        "success": True,
+        "skill": "정화의 방울",
+        "zone": target.zone.value,
+        "heal": heal_amount,
+        "clear_statuses": clear_statuses,
+        "affected": logs,
+    }
+
+
+@register_skill("spell_dancing_flame", "skill_1")
+def spell_dancing_flame(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """춤추는 불꽃: 한 영역 전체 즉시 피해 + 화상."""
+    if not target:
+        return {"success": False, "message": "영역을 선택하세요"}
+
+    enemy_field = game.get_enemy_field(caster)
+    if not enemy_field.find_card(target.uid):
+        return {"success": False, "message": "적 영역만 선택할 수 있습니다"}
+
+    damage = int(game.get_skill_damage(caster, "skill_1") or 0)
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    burn_duration = int(raw_meta.get("burn_duration", 2) or 2)
+    burn_damage = int(raw_meta.get("burn_damage", 1) or 1)
+
+    targets = enemy_field.get_row(target.zone)
+    logs = []
+    for card in targets:
+        damage_log = card.take_damage(damage)
+        card.add_status(Burn(
+            duration=max(1, burn_duration),
+            damage_per_turn=max(0, burn_damage),
+            source_uid="spell",
+        ))
+        logs.append({
+            "target": card.uid,
+            "damage": damage_log,
+            "burn_duration": max(1, burn_duration),
+            "burn_damage": max(0, burn_damage),
+        })
+
+    enemy_field.remove_dead()
+    return {
+        "success": True,
+        "skill": "춤추는 불꽃",
+        "zone": target.zone.value,
+        "damage": damage,
+        "burn_duration": max(1, burn_duration),
+        "burn_damage": max(0, burn_damage),
+        "affected": logs,
+    }
+
+
+@register_skill("spell_fox_path", "skill_1")
+def spell_fox_path(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """여우길: 한 아군 세로줄 이속(사거리) + 공격력 버프."""
+    if not target:
+        return {"success": False, "message": "아군 세로줄 대상을 선택하세요"}
+
+    my_field = game.get_my_field(caster)
+    if not my_field.find_card(target.uid):
+        return {"success": False, "message": "아군 세로줄만 선택할 수 있습니다"}
+
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    range_bonus = int(raw_meta.get("range_modifier", 1) or 0)
+    range_duration = int(raw_meta.get("range_duration", 1) or 1)
+    attack_buff = int(raw_meta.get("attack_buff", 3) or 0)
+    attack_buff_duration = int(raw_meta.get("attack_buff_duration", 1) or 1)
+
+    targets = my_field.get_column(target)
+    logs = []
+    for ally in targets:
+        ally.add_status(RangeModifier(
+            value=range_bonus,
+            duration=max(1, range_duration),
+            source_uid="spell",
+            tags=["buff"],
+        ))
+        ally.add_status(AttackBuff(
+            value=attack_buff,
+            duration=max(1, attack_buff_duration),
+            source_uid="spell",
+            tags=["buff"],
+        ))
+        logs.append({
+            "target": ally.uid,
+            "range_modifier": range_bonus,
+            "range_duration": max(1, range_duration),
+            "attack_buff": attack_buff,
+            "attack_buff_duration": max(1, attack_buff_duration),
+        })
+
+    return {
+        "success": True,
+        "skill": "여우길",
+        "range_modifier": range_bonus,
+        "range_duration": max(1, range_duration),
+        "attack_buff": attack_buff,
+        "attack_buff_duration": max(1, attack_buff_duration),
+        "affected": logs,
+    }
+
+
+@register_skill("spell_slaughter", "skill_1")
+def spell_slaughter(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """살육: 상대 세로줄 즉시 피해 + 힐밴."""
+    if not target:
+        return {"success": False, "message": "적 세로줄 대상을 선택하세요"}
+
+    enemy_field = game.get_enemy_field(caster)
+    if not enemy_field.find_card(target.uid):
+        return {"success": False, "message": "적 세로줄만 선택할 수 있습니다"}
+
+    damage = int(game.get_skill_damage(caster, "skill_1") or 0)
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    heal_block_duration = int(raw_meta.get("heal_block_duration", 1) or 1)
+
+    targets = enemy_field.get_column(target)
+    logs = []
+    for card in targets:
+        damage_log = card.take_damage(damage)
+        card.add_status(HealBlock(duration=max(1, heal_block_duration), source_uid="spell"))
+        logs.append({
+            "target": card.uid,
+            "damage": damage_log,
+            "heal_block_duration": max(1, heal_block_duration),
+        })
+
+    enemy_field.remove_dead()
+    return {
+        "success": True,
+        "skill": "살육",
+        "damage": damage,
         "heal_block_duration": max(1, heal_block_duration),
         "affected": logs,
     }
@@ -728,6 +897,41 @@ def spell_caduceus_staff(caster: FieldCard, target: FieldCard, game: GameState) 
         tags=["buff", "install"],
     ))
     return {"success": True, "skill": "카두세우스 지팡이", "target": target.uid, "attack_bonus": 3}
+
+
+@register_skill("spell_phoenix_rebirth", "skill_1")
+def spell_phoenix_rebirth(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
+    """불사조 부활: 숨김 부착, 사망 시 다음 턴 부활 준비."""
+    if not target:
+        return {"success": False, "message": "아군을 선택하세요"}
+
+    my_field = game.get_my_field(caster)
+    if not my_field.find_card(target.uid):
+        return {"success": False, "message": "아군에게만 부여할 수 있습니다"}
+
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    revive_delay_turns = int(raw_meta.get("revive_delay_turns", 1) or 1)
+    revive_hp = int(raw_meta.get("revive_hp", 0) or 0)
+
+    target.add_status(PhoenixRebirthSeed(
+        duration=-1,
+        source_uid="spell",
+        visible_to_opponent=False,
+        revive_delay_turns=max(1, revive_delay_turns),
+        revive_hp=revive_hp,
+        tags=["buff", "install"],
+    ))
+    return {
+        "success": True,
+        "skill": "불사조 부활",
+        "target": target.uid,
+        "hidden": True,
+        "revive_delay_turns": max(1, revive_delay_turns),
+        "revive_hp": revive_hp,
+    }
+
 
 
 @register_skill("spell_maximilian", "skill_1")

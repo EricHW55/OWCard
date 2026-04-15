@@ -294,6 +294,8 @@ class GameEngine:
             "spell_riptire", "spell_dragonblade", "spell_sleep_dart",
             "spell_immortality_field", "spell_deflect", "spell_caduceus_staff",
             "spell_gravity_flux",
+            "spell_purification_bubble", "spell_dancing_flame",
+            "spell_phoenix_rebirth", "spell_fox_path", "spell_slaughter",
         }
 
     def _build_spell_choice(self, ps: PlayerState, hero_key: str) -> dict:
