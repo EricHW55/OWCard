@@ -508,6 +508,7 @@ class GameEngine:
     def start_game(self) -> dict:
         if len(self.players) != 2:
             return {"error": "Need 2 players"}
+        self.turn_timer_started_at = None
         for ps in self.players.values():
             shuffled = list(ps.deck)
             random.shuffle(shuffled)
@@ -1423,7 +1424,10 @@ class GameEngine:
         self._collect_dead_to_trash(opp)
 
         # 턴 교대
-        self.remaining_time[player_id] = self.remaining_time.get(player_id, 0.0) + self.turn_increment_seconds
+        self.remaining_time[player_id] = min(
+            float(self.initial_time_seconds),
+            self.remaining_time.get(player_id, 0.0) + self.turn_increment_seconds,
+        )
         self.current_turn_index = 1 - self.current_turn_index
         new_ps = self.players[self.current_player_id]
         self._start_turn_timer()
