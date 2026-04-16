@@ -263,12 +263,15 @@ const GamePage: React.FC = () => {
       ? '#ffaa22'
       : (ROLE_COLOR[revealCardInHand?.role || ''] || 'rgba(188, 202, 246, 0.64)');
   const timerInfo = vm.gs?.timer;
-  const timerElapsedSec = Math.max(0, Math.floor((timerTickMs - timerAnchorMs) / 1000));
+  const isTurnTimerRunning = vm.phase !== 'mulligan' && vm.phase !== 'waiting' && vm.phase !== 'game_over';
+  const timerElapsedSec = isTurnTimerRunning
+      ? Math.max(0, Math.floor((timerTickMs - timerAnchorMs) / 1000))
+      : 0;
   const baseMySeconds = Number(timerInfo?.my_remaining_seconds ?? 0);
   const baseOppSeconds = Number(timerInfo?.opponent_remaining_seconds ?? 0);
-  const myRemainingSeconds = timerInfo ? Math.max(0, baseMySeconds - (vm.isMyTurn ? timerElapsedSec : 0)) : null;
-  const oppRemainingSeconds = timerInfo ? Math.max(0, baseOppSeconds - (!vm.isMyTurn ? timerElapsedSec : 0)) : null;
-  const activeTimerSide = vm.isMyTurn ? 'my' : 'opponent';
+  const myRemainingSeconds = timerInfo ? Math.max(0, baseMySeconds - (isTurnTimerRunning && vm.isMyTurn ? timerElapsedSec : 0)) : null;
+  const oppRemainingSeconds = timerInfo ? Math.max(0, baseOppSeconds - (isTurnTimerRunning && !vm.isMyTurn ? timerElapsedSec : 0)) : null;
+  const activeTimerSide = isTurnTimerRunning ? (vm.isMyTurn ? 'my' : 'opponent') : null;
 
   return (
     <>
