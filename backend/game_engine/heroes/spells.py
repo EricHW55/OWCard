@@ -224,8 +224,8 @@ def spell_purification_bubble(caster: FieldCard, target: FieldCard, game: GameSt
     targets = my_field.get_row(target.zone)
     logs = []
     for card in targets:
-        healed = card.heal(heal_amount)
         removed = card.clear_statuses_by_name([str(name) for name in clear_statuses])
+        healed = card.heal(heal_amount)
         logs.append({"target": card.uid, "healed": healed, "removed_statuses": removed})
 
     return {
@@ -404,6 +404,9 @@ def spell_sound_barrier(caster: FieldCard, target: FieldCard, game: GameState) -
     allies = my_field.all_cards()
     logs = []
     for ally in allies:
+        if ally.extra.get("token_kind") == "hazard_wall":
+            logs.append({"target": ally.uid, "skipped": "hazard_wall"})
+            continue
         ally.add_status(ExtraHP(value=20, duration=2, source_uid="spell"))
         logs.append({"target": ally.uid, "extra_hp": 20})
 
@@ -690,12 +693,14 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
         broken = {
             "barrier_broken": False,
             "particle_barrier_broken": False,
+            "trigger_zarya_buff": None,
             "extra_hp_removed": 0,
         }
 
         barrier = card.get_status("barrier")
         if barrier:
             broken["barrier_broken"] = True
+            broken["trigger_zarya_buff"] = str(getattr(particle, "source_uid", "") or "")
             card.remove_status("barrier")
 
         particle = card.get_status("particle_barrier")
@@ -713,6 +718,8 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
     for card in column:
         broken = break_protection(card)
         dmg_log = card.take_damage(damage)
+        if broken.get("particle_barrier_broken") and broken.get("trigger_zarya_buff"):
+            dmg_log["trigger_zarya_buff"] = broken["trigger_zarya_buff"]
         logs.append({"target": card.uid, "broken": broken, "damage": dmg_log})
 
     enemy_field.remove_dead()

@@ -75,6 +75,7 @@
     border-radius: calc(var(--field-card-radius) + 1px);
     pointer-events: none;
     z-index: 1;
+    overflow: hidden;
     background:
             linear-gradient(160deg, rgba(255, 244, 182, 0.42) 0%, rgba(225, 171, 58, 0.35) 52%, rgba(150, 104, 30, 0.33) 100%);
 }
