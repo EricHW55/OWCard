@@ -349,6 +349,7 @@ class GameEngine:
             "spell_gravity_flux",
             "spell_purification_bubble", "spell_dancing_flame",
             "spell_phoenix_rebirth", "spell_fox_path", "spell_slaughter",
+            "spell_amp_matrix",
         }
 
     def _build_spell_choice(self, ps: PlayerState, hero_key: str) -> dict:

@@ -412,13 +412,20 @@ def spell_sound_barrier(caster: FieldCard, target: FieldCard, game: GameState) -
 
 @register_skill("spell_amp_matrix", "skill_1")
 def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """증폭 매트릭스: 한턴 동안 딜량과 힐량 2배.
-    아군 전체 스킬 피해/치유 배율 버프로 구현."""
+    """증폭 매트릭스: 선택한 아군의 같은 가로줄(진영/역할)에 1턴 버프.
+    같은 zone(main/side) + role(tank/dealer/healer) 아군에게 딜/힐 배율 적용."""
+    if not target:
+        return {"success": False, "message": "버프를 적용할 아군을 선택하세요"}
+
+    my_field = game.get_my_field(caster)
+    if my_field.find_card(target.uid) is None:
+        return {"success": False, "message": "아군만 선택할 수 있습니다"}
+
     damage_multiplier = float(caster.extra.get("damage_multiplier", 2.0) or 2.0)
     heal_multiplier = float(caster.extra.get("heal_multiplier", 2.0) or 2.0)
     duration = int(caster.extra.get("duration", 1) or 1)
     my_field = game.get_my_field(caster)
-    allies = my_field.all_cards()
+    allies = [ally for ally in my_field.all_cards() if ally.zone == target.zone and ally.role == target.role]
     logs = []
     for ally in allies:
         ally.add_status(DamageMultiplier(
