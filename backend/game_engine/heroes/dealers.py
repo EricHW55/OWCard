@@ -291,10 +291,10 @@ def ashe_viper(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
 @register_skill("ashe", "skill_2")
 def ashe_dynamite(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    from game_engine.field import Zone
+    if not target:
+        return {"success": False, "message": "대상 필요"}
     enemy = game.get_enemy_field(caster)
-    zone = target.zone if target else Zone.MAIN
-    targets = enemy.get_row(zone)
+    targets = enemy.get_role_row_in_zone(target.role, target.zone)
     for c in targets:
         c.add_status(Burn(damage_per_turn=2, duration=3, source_uid=caster.uid))
     return {"success": True, "skill": "다이너마이트", "burned": len(targets)}
