@@ -381,6 +381,7 @@ export function useOnlineGameController(gameId: string) {
   const announcerDataRef = useRef(announcerData);
   const deferredGameStateRef = useRef<any | null>(null);
   const processGameStateRef = useRef<((msg: any) => void) | null>(null);
+  const headshotCinematicActiveRef = useRef(false);
   const pendingDamageMapRef = useRef<Record<string, number>>({});
   const uiTimersRef = useRef<number[]>([]);
   const pendingKillContextRef = useRef<{
@@ -457,6 +458,7 @@ export function useOnlineGameController(gameId: string) {
     delayMs?: number;
   }) => {
     const emit = () => {
+      headshotCinematicActiveRef.current = true;
       setHeadshotCoinTossEvent({
         id: Date.now() + Math.floor(Math.random() * 1000),
         actorName: payload.actorName,
@@ -473,6 +475,18 @@ export function useOnlineGameController(gameId: string) {
     }
     const timerId = window.setTimeout(emit, payload.delayMs || 0);
     uiTimersRef.current.push(timerId);
+  }, []);
+
+  const completeHeadshotCoinToss = useCallback(() => {
+    headshotCinematicActiveRef.current = false;
+    setHeadshotCoinTossEvent(null);
+    const activeAnnouncer = announcerDataRef.current;
+    const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
+    if (!isBlockingSkillAnnouncer && deferredGameStateRef.current && processGameStateRef.current) {
+      const deferred = deferredGameStateRef.current;
+      deferredGameStateRef.current = null;
+      processGameStateRef.current(deferred);
+    }
   }, []);
 
   const runAfterSkillAnnouncer = useCallback((payload: {
@@ -500,7 +514,7 @@ export function useOnlineGameController(gameId: string) {
   useEffect(() => {
     announcerDataRef.current = announcerData;
     const isBlockingSkillAnnouncer = !!announcerData && announcerData.type === 'skill' && !announcerData.nonBlocking;
-    if (!isBlockingSkillAnnouncer && deferredGameStateRef.current && processGameStateRef.current) {
+    if (!isBlockingSkillAnnouncer && !headshotCinematicActiveRef.current && deferredGameStateRef.current && processGameStateRef.current) {
       const deferred = deferredGameStateRef.current;
       deferredGameStateRef.current = null;
       processGameStateRef.current(deferred);
@@ -814,7 +828,7 @@ export function useOnlineGameController(gameId: string) {
           processGameStateRef.current = processGameState;
           const activeAnnouncer = announcerDataRef.current;
           const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
-          if (isBlockingSkillAnnouncer) {
+          if (isBlockingSkillAnnouncer || headshotCinematicActiveRef.current) {
             deferredGameStateRef.current = msg;
             return;
           }
@@ -917,7 +931,7 @@ export function useOnlineGameController(gameId: string) {
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
-            const casterHeroKey = getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+            const casterHeroKey = getHeroKey(casterCard) || String(result?.caster_hero_key || result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
             const headshotOutcome = resolveHeadshotOutcome(result);
             const shouldShowHeadshotCoinToss =
                 typeof headshotOutcome === 'boolean'
@@ -1003,7 +1017,7 @@ export function useOnlineGameController(gameId: string) {
           const opponentCasterHeroKey = getHeroKey(opponentCasterCard);
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state, opponentCasterHeroKey);
           const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
-          const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+          const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster_hero_key || result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
           const headshotOutcome = resolveHeadshotOutcome(result);
           const shouldShowOpponentHeadshotCoinToss =
               msg.action === 'use_skill'
@@ -1538,7 +1552,7 @@ export function useOnlineGameController(gameId: string) {
     mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns: availableColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
-    headshotCoinTossEvent,
+    headshotCoinTossEvent, completeHeadshotCoinToss,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan, completeMulliganCinematic,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,

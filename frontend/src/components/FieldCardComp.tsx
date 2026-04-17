@@ -151,7 +151,7 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
         && (Boolean((immortalityStatus as any).activated) || Number((immortalityStatus as any).duration) !== -1);
     const hasStickyBomb = statuses.some((s) => s.name === 'sticky_bomb');
     const hasVendettaMarked = statuses.some((s) => s.name === 'vendetta_marked');
-    const hasDiscordOrb = statuses.some((s) => s.name === 'discord_orb');
+    const hasDiscordOrb = statuses.some((s) => s.name === 'discord_orb' || s.name === 'discord');
     const hasTaunt = statuses.some((s) => s.name === 'taunt');
     const hasAttackAmplifier = statuses.some((s) => {
         if (s.name === 'attack_buff') {

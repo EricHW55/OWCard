@@ -178,6 +178,12 @@ const GamePage: React.FC = () => {
   }, [vm.headshotCoinTossEvent, activeHeadshotEventId]);
 
   React.useEffect(() => {
+    if (headshotStage !== 'done') return;
+    vm.completeHeadshotCoinToss();
+    setHeadshotStage('hidden');
+  }, [headshotStage, vm]);
+  
+  React.useEffect(() => {
     const id = window.setInterval(() => setTimerTickMs(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
