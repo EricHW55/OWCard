@@ -939,6 +939,8 @@ export function useOnlineGameController(gameId: string) {
             if (skipMyActionCueRef.current) {
               skipMyActionCueRef.current = false;
               if (shouldShowHeadshotCoinToss) {
+                const activeAnnouncer = announcerDataRef.current;
+                const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
                 queueHeadshotCoinToss({
                   actorName: result?.caster_name || casterCard?.name || actorName,
                   skillName: resolvedSkillName,
@@ -946,10 +948,10 @@ export function useOnlineGameController(gameId: string) {
                   headshot: !!headshotOutcome,
                   isMine: true,
                   // runAfterSkillAnnouncer() uses a 2200ms blocking cue.
-                  // Fire the headshot coin toss slightly before that cue ends so
-                  // deferred game_state (and floating damage pop) stays blocked
-                  // until the toss cinematic fully completes.
-                  delayMs: 2050,
+                  // If the cue is still active, fire the toss slightly before it ends.
+                  // If the cue was skipped via click, start immediately so the toss UI
+                  // appears before deferred damage pop processing.
+                  delayMs: isBlockingSkillAnnouncer ? 2050 : 0,
                 });
               }
             } else {
