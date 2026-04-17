@@ -429,6 +429,33 @@ export function useOnlineGameController(gameId: string) {
     uiTimersRef.current.push(timerId);
   }, [showSkillUse]);
 
+  const queueHeadshotCoinToss = useCallback((payload: {
+    actorName: string;
+    skillName: string;
+    heroKey: string;
+    headshot: boolean;
+    isMine: boolean;
+    delayMs?: number;
+  }) => {
+    const emit = () => {
+      setHeadshotCoinTossEvent({
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        actorName: payload.actorName,
+        skillName: payload.skillName,
+        heroKey: payload.heroKey,
+        headshot: !!payload.headshot,
+        faces: buildHeadshotCoinFaces(!!payload.headshot),
+        isMine: payload.isMine,
+      });
+    };
+    if ((payload.delayMs || 0) <= 0) {
+      emit();
+      return;
+    }
+    const timerId = window.setTimeout(emit, payload.delayMs || 0);
+    uiTimersRef.current.push(timerId);
+  }, []);
+
   const runAfterSkillAnnouncer = useCallback((payload: {
     skillName: string;
     heroKey?: string;
@@ -870,25 +897,24 @@ export function useOnlineGameController(gameId: string) {
           showDeathPassiveNotice(result);
 
           if (msg.action === 'use_skill' && resolvedSkillName) {
+            const casterCard = myCasterCard;
+            const casterHeroKey = getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+            const shouldShowHeadshotCoinToss =
+                typeof result?.headshot === 'boolean'
+                && (casterHeroKey === 'widowmaker' || casterHeroKey === 'hanzo');
             if (skipMyActionCueRef.current) {
               skipMyActionCueRef.current = false;
-            } else {
-              const casterCard = myCasterCard;
-              const casterHeroKey = getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
-              if (
-                  typeof result?.headshot === 'boolean'
-                  && (casterHeroKey === 'widowmaker' || casterHeroKey === 'hanzo')
-              ) {
-                setHeadshotCoinTossEvent({
-                  id: Date.now() + Math.floor(Math.random() * 1000),
+              if (shouldShowHeadshotCoinToss) {
+                queueHeadshotCoinToss({
                   actorName: result?.caster_name || casterCard?.name || actorName,
                   skillName: resolvedSkillName,
                   heroKey: casterHeroKey,
                   headshot: !!result.headshot,
-                  faces: buildHeadshotCoinFaces(!!result.headshot),
                   isMine: true,
+                  delayMs: 2200,
                 });
               }
+            } else {
               const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
               const isSwiftStrikeReset = !!(result?.swift_strike_reset && usedSkillKey === 'skill_1');
               if (isSwiftStrikeReset) {
@@ -912,6 +938,17 @@ export function useOnlineGameController(gameId: string) {
                   subtitle: result?.caster_name || casterCard?.name || actorName,
                   isSpell: false,
                   duration: 3200,
+                  onDone: shouldShowHeadshotCoinToss
+                      ? () => {
+                        queueHeadshotCoinToss({
+                          actorName: result?.caster_name || casterCard?.name || actorName,
+                          skillName: resolvedSkillName,
+                          heroKey: casterHeroKey,
+                          headshot: !!result.headshot,
+                          isMine: true,
+                        });
+                      }
+                      : undefined,
                 });
               }
               if (isSwiftStrikeReset) {
@@ -945,21 +982,38 @@ export function useOnlineGameController(gameId: string) {
           const opponentCasterCard = findFieldCardByUid(oppState, msg?.caster_uid) || result?.caster || null;
           const opponentCasterHeroKey = getHeroKey(opponentCasterCard);
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state, opponentCasterHeroKey);
-          if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
           const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
-          if (
+          const shouldShowOpponentHeadshotCoinToss =
               msg.action === 'use_skill'
               && typeof result?.headshot === 'boolean'
-              && (opponentHeroKey === 'widowmaker' || opponentHeroKey === 'hanzo')
-          ) {
-            setHeadshotCoinTossEvent({
-              id: Date.now() + Math.floor(Math.random() * 1000),
+              && (opponentHeroKey === 'widowmaker' || opponentHeroKey === 'hanzo');
+          if (cue) showSkillUse({
+            skillName: cue.title,
+            description: cue.description || '',
+            heroKey: cue.heroKey || '',
+            imageName: cue.imageName,
+            subtitle: cue.subtitle,
+            isSpell: !!cue.isSpell,
+            duration: 3200,
+            onDone: shouldShowOpponentHeadshotCoinToss
+                ? () => {
+                  queueHeadshotCoinToss({
+                    actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
+                    skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
+                    heroKey: opponentHeroKey,
+                    headshot: !!result.headshot,
+                    isMine: false,
+                  });
+                }
+                : undefined,
+          });
+          if (shouldShowOpponentHeadshotCoinToss && !cue) {
+            queueHeadshotCoinToss({
               actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
               skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
               heroKey: opponentHeroKey,
               headshot: !!result.headshot,
-              faces: buildHeadshotCoinFaces(!!result.headshot),
               isMine: false,
             });
           }
@@ -1041,7 +1095,7 @@ export function useOnlineGameController(gameId: string) {
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff]);
+  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
