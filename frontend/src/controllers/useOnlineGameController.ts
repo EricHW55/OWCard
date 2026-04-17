@@ -53,6 +53,15 @@ function buildHeadshotCoinFaces(headshot: boolean): [CoinFace, CoinFace] {
   return misses[Math.floor(Math.random() * misses.length)] || ['back', 'back'];
 }
 
+function resolveHeadshotOutcome(result: any): boolean | null {
+  if (typeof result?.headshot === 'boolean') return result.headshot;
+  const coinResult = String(result?.coin_result || '').toLowerCase().trim();
+  if (!coinResult) return null;
+  if (coinResult === 'heads' || coinResult === 'head') return true;
+  if (coinResult === 'tails' || coinResult === 'tail') return false;
+  return null;
+}
+
 function findFieldCardByUid(state: any, uid?: string | null) {
   if (!state || !uid) return null;
   const cards = [...(state?.field?.main || []), ...(state?.field?.side || [])];
@@ -909,8 +918,9 @@ export function useOnlineGameController(gameId: string) {
           if (msg.action === 'use_skill' && resolvedSkillName) {
             const casterCard = myCasterCard;
             const casterHeroKey = getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+            const headshotOutcome = resolveHeadshotOutcome(result);
             const shouldShowHeadshotCoinToss =
-                typeof result?.headshot === 'boolean'
+                typeof headshotOutcome === 'boolean'
                 && (casterHeroKey === 'widowmaker' || casterHeroKey === 'hanzo');
             if (skipMyActionCueRef.current) {
               skipMyActionCueRef.current = false;
@@ -919,7 +929,7 @@ export function useOnlineGameController(gameId: string) {
                   actorName: result?.caster_name || casterCard?.name || actorName,
                   skillName: resolvedSkillName,
                   heroKey: casterHeroKey,
-                  headshot: !!result.headshot,
+                  headshot: !!headshotOutcome,
                   isMine: true,
                   delayMs: 2200,
                 });
@@ -954,7 +964,7 @@ export function useOnlineGameController(gameId: string) {
                           actorName: result?.caster_name || casterCard?.name || actorName,
                           skillName: resolvedSkillName,
                           heroKey: casterHeroKey,
-                          headshot: !!result.headshot,
+                          headshot: !!headshotOutcome,
                           isMine: true,
                         });
                       }
@@ -994,9 +1004,10 @@ export function useOnlineGameController(gameId: string) {
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state, opponentCasterHeroKey);
           const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
           const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+          const headshotOutcome = resolveHeadshotOutcome(result);
           const shouldShowOpponentHeadshotCoinToss =
               msg.action === 'use_skill'
-              && typeof result?.headshot === 'boolean'
+              && typeof headshotOutcome === 'boolean'
               && (opponentHeroKey === 'widowmaker' || opponentHeroKey === 'hanzo');
           if (cue) showSkillUse({
             skillName: cue.title,
@@ -1012,7 +1023,7 @@ export function useOnlineGameController(gameId: string) {
                     actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
                     skillName: result?.skill_name || result?.skill || cue.title || '스킬',
                     heroKey: opponentHeroKey,
-                    headshot: !!result.headshot,
+                    headshot: !!headshotOutcome,
                     isMine: false,
                   });
                 }
@@ -1023,7 +1034,7 @@ export function useOnlineGameController(gameId: string) {
               actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
               skillName: result?.skill_name || result?.skill || '스킬',
               heroKey: opponentHeroKey,
-              headshot: !!result.headshot,
+              headshot: !!headshotOutcome,
               isMine: false,
             });
           }
