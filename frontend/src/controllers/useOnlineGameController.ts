@@ -945,7 +945,11 @@ export function useOnlineGameController(gameId: string) {
                   heroKey: casterHeroKey,
                   headshot: !!headshotOutcome,
                   isMine: true,
-                  delayMs: 2200,
+                  // runAfterSkillAnnouncer() uses a 2200ms blocking cue.
+                  // Fire the headshot coin toss slightly before that cue ends so
+                  // deferred game_state (and floating damage pop) stays blocked
+                  // until the toss cinematic fully completes.
+                  delayMs: 2050,
                 });
               }
             } else {
