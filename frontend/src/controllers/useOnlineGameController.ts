@@ -835,7 +835,7 @@ export function useOnlineGameController(gameId: string) {
           processGameStateRef.current = processGameState;
           const activeAnnouncer = announcerDataRef.current;
           const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
-          if (isBlockingSkillAnnouncer || headshotCinematicActiveRef.current) {
+          if (isBlockingSkillAnnouncer || headshotCinematicActiveRef.current || skipMyActionCueRef.current) {
             deferredGameStateRef.current = msg;
             return;
           }
@@ -946,19 +946,13 @@ export function useOnlineGameController(gameId: string) {
             if (skipMyActionCueRef.current) {
               skipMyActionCueRef.current = false;
               if (shouldShowHeadshotCoinToss) {
-                const activeAnnouncer = announcerDataRef.current;
-                const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
                 queueHeadshotCoinToss({
                   actorName: result?.caster_name || casterCard?.name || actorName,
                   skillName: resolvedSkillName,
                   heroKey: casterHeroKey,
                   headshot: !!headshotOutcome,
                   isMine: true,
-                  // runAfterSkillAnnouncer() uses a 2200ms blocking cue.
-                  // If the cue is still active, fire the toss slightly before it ends.
-                  // If the cue was skipped via click, start immediately so the toss UI
-                  // appears before deferred damage pop processing.
-                  delayMs: isBlockingSkillAnnouncer ? 2050 : 0,
+                  delayMs: 0,
                 });
               } else {
                 flushDeferredGameStateIfReady();
