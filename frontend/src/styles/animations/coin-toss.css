@@ -9,11 +9,35 @@
     pointer-events: all;
 }
 
+.game-coin-toss-overlay.headshot {
+    z-index: 95;
+    background: rgba(4, 8, 18, 0.55);
+}
+
 .game-coin-toss-stage {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12px;
+}
+
+.game-headshot-subtitle {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    color: rgba(236, 242, 255, 0.92);
+    background: rgba(11, 20, 45, 0.58);
+    border: 1px solid rgba(185, 209, 255, 0.28);
+}
+
+.game-headshot-coin-row {
+    display: flex;
+    gap: 20px;
+}
+
+.game-headshot-coin-row .game-coin-toss-coin-wrap {
+    width: min(24vw, 150px);
+    height: min(24vw, 150px);
 }
 
 .game-coin-toss-result-text {

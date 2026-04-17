@@ -21,6 +21,27 @@ type ColumnPreview = {
 };
 
 type KillSide = 'my' | 'opponent';
+type CoinFace = 'front' | 'back';
+
+export type HeadshotCoinTossEvent = {
+  id: number;
+  actorName: string;
+  skillName: string;
+  heroKey: string;
+  headshot: boolean;
+  faces: [CoinFace, CoinFace];
+  isMine: boolean;
+};
+
+function buildHeadshotCoinFaces(headshot: boolean): [CoinFace, CoinFace] {
+  if (headshot) return ['front', 'front'];
+  const misses: Array<[CoinFace, CoinFace]> = [
+    ['back', 'back'],
+    ['back', 'front'],
+    ['front', 'back'],
+  ];
+  return misses[Math.floor(Math.random() * misses.length)] || ['back', 'back'];
+}
 
 function findFieldCardByUid(state: any, uid?: string | null) {
   if (!state || !uid) return null;
@@ -324,6 +345,7 @@ export function useOnlineGameController(gameId: string) {
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
   const [killFeed, setKillFeed] = useState<KillFeedItem[]>([]);
+  const [headshotCoinTossEvent, setHeadshotCoinTossEvent] = useState<HeadshotCoinTossEvent | null>(null);
   const [renderGs, setRenderGs] = useState<GameState | null>(null);
   const [cardEffects, setCardEffects] = useState<Record<string, CardVisualEffect>>({});
 
@@ -852,6 +874,21 @@ export function useOnlineGameController(gameId: string) {
               skipMyActionCueRef.current = false;
             } else {
               const casterCard = myCasterCard;
+              const casterHeroKey = getHeroKey(casterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+              if (
+                  typeof result?.headshot === 'boolean'
+                  && (casterHeroKey === 'widowmaker' || casterHeroKey === 'hanzo')
+              ) {
+                setHeadshotCoinTossEvent({
+                  id: Date.now() + Math.floor(Math.random() * 1000),
+                  actorName: result?.caster_name || casterCard?.name || actorName,
+                  skillName: resolvedSkillName,
+                  heroKey: casterHeroKey,
+                  headshot: !!result.headshot,
+                  faces: buildHeadshotCoinFaces(!!result.headshot),
+                  isMine: true,
+                });
+              }
               const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
               const isSwiftStrikeReset = !!(result?.swift_strike_reset && usedSkillKey === 'skill_1');
               if (isSwiftStrikeReset) {
@@ -910,6 +947,22 @@ export function useOnlineGameController(gameId: string) {
           const cue = buildOpponentSkillCue(msg, gsRef.current?.opponent_state, opponentCasterHeroKey);
           if (cue) showSkillUse({ skillName: cue.title, description: cue.description || '', heroKey: cue.heroKey || '', imageName: cue.imageName, subtitle: cue.subtitle, isSpell: !!cue.isSpell, duration: 3200 });
           const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(/ 사용$/, '') || '상대';
+          const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
+          if (
+              msg.action === 'use_skill'
+              && typeof result?.headshot === 'boolean'
+              && (opponentHeroKey === 'widowmaker' || opponentHeroKey === 'hanzo')
+          ) {
+            setHeadshotCoinTossEvent({
+              id: Date.now() + Math.floor(Math.random() * 1000),
+              actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
+              skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
+              heroKey: opponentHeroKey,
+              headshot: !!result.headshot,
+              faces: buildHeadshotCoinFaces(!!result.headshot),
+              isMine: false,
+            });
+          }
           const fatalUids = Array.from(collectFatalUids(result));
           const isSpellKill = cue?.isSpell || msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_');
           const killHeroKey = isSpellKill
@@ -1410,6 +1463,7 @@ export function useOnlineGameController(gameId: string) {
     mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
     actionMode, pendingSpell, pendingSpellName, pendingPassive, pendingSpellChoice, columnChoice, enemyColumns: availableColumns,
     selectedHeroKey, selectedChargeLevel, actionModeLabel, canActUids, fieldSkills, showContextPanel, killFeed, dismissKillFeedItem,
+    headshotCoinTossEvent,
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan, completeMulliganCinematic,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,

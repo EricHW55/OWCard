@@ -46,6 +46,12 @@ const GamePage: React.FC = () => {
   const [openingCardCount, setOpeningCardCount] = React.useState(handSize);
   const [timerAnchorMs, setTimerAnchorMs] = React.useState(() => Date.now());
   const [timerTickMs, setTimerTickMs] = React.useState(() => Date.now());
+  const [headshotStage, setHeadshotStage] = React.useState<CoinTossStage>('hidden');
+  const [headshotRotationDeg, setHeadshotRotationDeg] = React.useState<[number, number]>([0, 0]);
+  const [activeHeadshotEventId, setActiveHeadshotEventId] = React.useState<number | null>(null);
+  const headshotSpinTimerRef = React.useRef<number | null>(null);
+  const headshotClearTimerRef = React.useRef<number | null>(null);
+  const headshotDoneTimerRef = React.useRef<number | null>(null);
 
   const isFirstPlayer = React.useMemo(() => {
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
@@ -144,8 +150,32 @@ const GamePage: React.FC = () => {
       if (clearTimerRef.current !== null) window.clearTimeout(clearTimerRef.current);
       if (doneTimerRef.current !== null) window.clearTimeout(doneTimerRef.current);
       if (revealExitTimerRef.current !== null) window.clearTimeout(revealExitTimerRef.current);
+      if (headshotSpinTimerRef.current !== null) window.clearTimeout(headshotSpinTimerRef.current);
+      if (headshotClearTimerRef.current !== null) window.clearTimeout(headshotClearTimerRef.current);
+      if (headshotDoneTimerRef.current !== null) window.clearTimeout(headshotDoneTimerRef.current);
     };
   }, []);
+
+  React.useEffect(() => {
+    const evt = vm.headshotCoinTossEvent;
+    if (!evt || activeHeadshotEventId === evt.id) return;
+    setActiveHeadshotEventId(evt.id);
+    setHeadshotStage('spinning');
+    setHeadshotRotationDeg([0, 0]);
+
+    const toDeg = (face: CoinFace) => (face === 'front' ? 0 : 180);
+    const spinA = (8 + Math.floor(Math.random() * 4)) * 360 + toDeg(evt.faces[0]);
+    const spinB = (8 + Math.floor(Math.random() * 4)) * 360 + toDeg(evt.faces[1]);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        setHeadshotRotationDeg([spinA, spinB]);
+      });
+    });
+
+    headshotSpinTimerRef.current = window.setTimeout(() => setHeadshotStage('result'), 2000);
+    headshotClearTimerRef.current = window.setTimeout(() => setHeadshotStage('clearing'), 3300);
+    headshotDoneTimerRef.current = window.setTimeout(() => setHeadshotStage('done'), 3700);
+  }, [vm.headshotCoinTossEvent, activeHeadshotEventId]);
 
   React.useEffect(() => {
     const id = window.setInterval(() => setTimerTickMs(Date.now()), 1000);
@@ -294,6 +324,41 @@ const GamePage: React.FC = () => {
                     <img src="/coin/back.png" alt="코인 뒷면" />
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+      )}
+      {vm.headshotCoinTossEvent && headshotStage !== 'done' && headshotStage !== 'hidden' && (
+          <div className="game-coin-toss-overlay headshot" aria-live="polite" aria-label="헤드샷 코인 토스">
+            <div className="game-coin-toss-stage">
+              {headshotStage === 'result' && (
+                  <div className="game-coin-toss-result-text">
+                    {vm.headshotCoinTossEvent.headshot ? '헤드샷!' : '일반 적중'}
+                  </div>
+              )}
+              <div className="game-headshot-subtitle">
+                {vm.headshotCoinTossEvent.actorName} · {vm.headshotCoinTossEvent.skillName}
+              </div>
+              <div className="game-headshot-coin-row">
+                {[0, 1].map((idx) => (
+                    <div
+                        key={`headshot-coin-${idx}`}
+                        className={`game-coin-toss-coin-wrap ${headshotStage === 'spinning' ? 'spinning' : 'settled'} ${headshotStage === 'clearing' ? 'hidden' : ''}`}
+                    >
+                      <div className="game-coin-toss-shadow" />
+                      <div
+                          className="game-coin-toss-coin"
+                          style={{ transform: `rotateX(${headshotRotationDeg[idx]}deg)` }}
+                      >
+                        <div className="game-coin-toss-face front">
+                          <img src="/coin/front.png" alt="코인 앞면" />
+                        </div>
+                        <div className="game-coin-toss-face back">
+                          <img src="/coin/back.png" alt="코인 뒷면" />
+                        </div>
+                      </div>
+                    </div>
+                ))}
               </div>
             </div>
           </div>
