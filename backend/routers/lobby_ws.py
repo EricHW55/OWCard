@@ -45,6 +45,10 @@ async def lobby_ws(
                 result = await matchmaking.join_queue(player_id, username, deck_id)
                 if result:
                     game_id = await create_game_from_match(result)
+                    await matchmaking.record_recent_match({
+                        **result,
+                        "game_id": game_id,
+                    })
                     for key in ("player1", "player2"):
                         pid = result[key]["id"]
                         opp_key = "player2" if key == "player1" else "player1"
@@ -107,7 +111,7 @@ async def lobby_ws(
                     await ws.send_json({"event": "error", "message": "Cannot spectate"})
 
     except WebSocketDisconnect:
-        manager.disconnect_lobby(player_id)
+        manager.disconnect_lobby(player_id, ws)
         await matchmaking.leave_queue(player_id)
 
         result = await room_manager.remove_player(player_id)

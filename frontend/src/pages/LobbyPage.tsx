@@ -97,6 +97,11 @@ const verticalWallpapers = [
 const LobbyPage: React.FC = () => {
     const navigate = useNavigate();
     const wsRef = useRef<LobbySocket | null>(null);
+    const reconnectTimerRef = useRef<number | null>(null);
+    const reconnectAttemptRef = useRef(0);
+    const closingRef = useRef(false);
+    const navigatingToGameRef = useRef(false);
+    const queueSyncTimerRef = useRef<number | null>(null);
 
     const [session, setSession] = useState<SessionInfo | null>(() => getSession());
     const [nicknameInput, setNicknameInput] = useState('');
@@ -142,6 +147,13 @@ const LobbyPage: React.FC = () => {
         wsRef.current?.send(data);
     }, []);
 
+    const clearQueueSyncTimer = useCallback(() => {
+        if (queueSyncTimerRef.current) {
+            window.clearTimeout(queueSyncTimerRef.current);
+            queueSyncTimerRef.current = null;
+        }
+    }, []);
+
     const ensureGameImageWarmup = useCallback(() => {
         if (!preloadPromiseRef.current) {
             preloadPromiseRef.current = preloadImageAssets([
@@ -152,6 +164,42 @@ const LobbyPage: React.FC = () => {
         }
         return preloadPromiseRef.current;
     }, []);
+
+    const safeNavigateToGame = useCallback((gameId?: string) => {
+        if (!gameId || navigatingToGameRef.current) return;
+        navigatingToGameRef.current = true;
+        setQueueing(false);
+        setQueueStartedAt(null);
+        void ensureGameImageWarmup().then(() => {
+            navigate(`/game/${gameId}`);
+        });
+    }, [ensureGameImageWarmup, navigate]);
+
+    const syncMatchStatus = useCallback(async (targetSession?: SessionInfo | null) => {
+        const activeSession = targetSession ?? session;
+        if (!activeSession) return;
+        try {
+            const res = await fetch(`${getApiBase()}/lobby/match-status?player_id=${activeSession.player_id}`);
+            if (!res.ok) throw new Error(`status ${res.status}`);
+            const data = await res.json();
+            if (data?.state === 'matched') {
+                addLog('매칭 상태 복구: 이미 매칭된 게임으로 이동합니다.');
+                safeNavigateToGame(data.game_id);
+                return;
+            }
+            if (data?.state === 'queued') {
+                setQueueing(true);
+                setQueueStartedAt((prev) => prev ?? Date.now());
+                setQueueNow(Date.now());
+                addLog('매칭 상태 복구: 대기열 상태를 복원했습니다.');
+                return;
+            }
+            setQueueing(false);
+            setQueueStartedAt(null);
+        } catch (e: any) {
+            addLog(`매칭 상태 조회 실패: ${e?.message ?? 'unknown error'}`);
+        }
+    }, [session, addLog, safeNavigateToGame]);
 
     const preloadDeckImages = useCallback((targetDeckId?: number | null) => {
         if (!targetDeckId) return;
@@ -379,9 +427,16 @@ const LobbyPage: React.FC = () => {
 
     useEffect(() => {
         if (!session) return;
+        closingRef.current = false;
+        reconnectAttemptRef.current = 0;
+        navigatingToGameRef.current = false;
 
-        const ws = new LobbySocket();
-        wsRef.current = ws;
+        const clearReconnectTimer = () => {
+            if (reconnectTimerRef.current) {
+                window.clearTimeout(reconnectTimerRef.current);
+                reconnectTimerRef.current = null;
+            }
+        };
 
         const url = buildWsUrl('/ws/lobby', {
             token: session.token,
@@ -389,101 +444,109 @@ const LobbyPage: React.FC = () => {
             username: session.username,
         });
 
-        ws.connect(url);
+        const setupSocket = () => {
+            const ws = new LobbySocket();
+            wsRef.current = ws;
+            ws.connect(url);
 
-        const offConnected = ws.on('_connected', () => {
-            setConnected(true);
-            addLog('로비 서버 연결됨');
-        });
-
-        const offDisconnected = ws.on('_disconnected', () => {
-            setConnected(false);
-            addLog('로비 서버 연결 종료');
-        });
-
-        const offRoomCreated = ws.on('room_created', (msg: any) => {
-            setPrivateRoomLimitMessage('');
-            setRoom(msg.room);
-            addLog(`방 생성 완료 (${msg.room.room_code})`);
-            applyDeckToRoom(msg.room.room_id);
-            setPlayMode('private');
-            setShowPlayModal(false);
-            refreshRooms();
-        });
-
-        const offRoomJoined = ws.on('room_joined', (msg: any) => {
-            setRoom(msg.room);
-            addLog(`방 참가 완료 (${msg.room.room_code})`);
-            applyDeckToRoom(msg.room.room_id);
-            setPlayMode('private');
-            setShowPlayModal(false);
-            refreshRooms();
-        });
-
-        const offGuestJoined = ws.on('guest_joined', (msg: any) => {
-            setRoom(msg.room);
-            addLog(`상대가 입장했습니다: ${msg.room.guest?.username ?? 'Guest'}`);
-            refreshRooms();
-        });
-
-        const offRoomUpdated = ws.on('room_updated', (msg: any) => {
-            setRoom(msg.room);
-            refreshRooms();
-        });
-
-        const offMatchFound = ws.on('match_found', (msg: any) => {
-            setQueueing(false);
-            setQueueStartedAt(null);
-            addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
-            ensureGameImageWarmup().then(() => {
-                navigate(`/game/${msg.game_id}`);
+            ws.on('_connected', () => {
+                setConnected(true);
+                reconnectAttemptRef.current = 0;
+                clearReconnectTimer();
+                addLog('로비 서버 연결됨');
+                void syncMatchStatus(session);
             });
-        });
 
-        const offGameStarting = ws.on('game_starting', (msg: any) => {
-            setQueueing(false);
-            setQueueStartedAt(null);
-            addLog(`게임 시작: ${msg.game_id}`);
-            ensureGameImageWarmup().then(() => {
-                navigate(`/game/${msg.game_id}`);
+            ws.on('_disconnected', () => {
+                setConnected(false);
+                addLog('로비 서버 연결 종료');
+                if (closingRef.current) return;
+                const attempt = reconnectAttemptRef.current + 1;
+                reconnectAttemptRef.current = attempt;
+                const delay = Math.min(5000, 500 * (2 ** (attempt - 1)));
+                addLog(`로비 재연결 시도 예약 (${Math.round(delay)}ms)`);
+                clearReconnectTimer();
+                reconnectTimerRef.current = window.setTimeout(() => {
+                    setupSocket();
+                }, delay);
             });
-        });
 
-        const offQueueJoined = ws.on('queue_joined', (msg: any) => {
-            setQueueing(true);
-            setQueueStartedAt(Date.now());
-            setQueueNow(Date.now());
-            addLog(`매칭 대기열 참가. 현재 큐 인원: ${msg.queue_size}`);
-        });
+            ws.on('room_created', (msg: any) => {
+                setPrivateRoomLimitMessage('');
+                setRoom(msg.room);
+                addLog(`방 생성 완료 (${msg.room.room_code})`);
+                applyDeckToRoom(msg.room.room_id);
+                setPlayMode('private');
+                setShowPlayModal(false);
+                refreshRooms();
+            });
 
-        const offQueueLeft = ws.on('queue_left', () => {
-            setQueueing(false);
-            setQueueStartedAt(null);
-            addLog('매칭 대기열에서 나왔습니다.');
-        });
+            ws.on('room_joined', (msg: any) => {
+                setRoom(msg.room);
+                addLog(`방 참가 완료 (${msg.room.room_code})`);
+                applyDeckToRoom(msg.room.room_id);
+                setPlayMode('private');
+                setShowPlayModal(false);
+                refreshRooms();
+            });
 
-        const offError = ws.on('error', (msg: any) => {
-            if (typeof msg?.message === 'string' && msg.message.includes('이미 생성한 사설방')) {
-                setPrivateRoomLimitMessage(msg.message);
-            }
-            addLog(`오류: ${msg.message}`);
-        });
+            ws.on('guest_joined', (msg: any) => {
+                setRoom(msg.room);
+                addLog(`상대가 입장했습니다: ${msg.room.guest?.username ?? 'Guest'}`);
+                refreshRooms();
+            });
+
+            ws.on('room_updated', (msg: any) => {
+                setRoom(msg.room);
+                refreshRooms();
+            });
+
+            ws.on('match_found', (msg: any) => {
+                clearQueueSyncTimer();
+                addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
+                safeNavigateToGame(msg.game_id);
+            });
+
+            ws.on('game_starting', (msg: any) => {
+                clearQueueSyncTimer();
+                addLog(`게임 시작: ${msg.game_id}`);
+                safeNavigateToGame(msg.game_id);
+            });
+
+            ws.on('queue_joined', (msg: any) => {
+                clearQueueSyncTimer();
+                setQueueing(true);
+                setQueueStartedAt((prev) => prev ?? Date.now());
+                setQueueNow(Date.now());
+                addLog(`매칭 대기열 참가. 현재 큐 인원: ${msg.queue_size}`);
+            });
+
+            ws.on('queue_left', () => {
+                clearQueueSyncTimer();
+                setQueueing(false);
+                setQueueStartedAt(null);
+                addLog('매칭 대기열에서 나왔습니다.');
+            });
+
+            ws.on('error', (msg: any) => {
+                if (typeof msg?.message === 'string' && msg.message.includes('이미 생성한 사설방')) {
+                    setPrivateRoomLimitMessage(msg.message);
+                }
+                addLog(`오류: ${msg.message}`);
+            });
+        };
+
+        void syncMatchStatus(session);
+        setupSocket();
 
         return () => {
-            offConnected();
-            offDisconnected();
-            offRoomCreated();
-            offRoomJoined();
-            offGuestJoined();
-            offRoomUpdated();
-            offMatchFound();
-            offGameStarting();
-            offQueueJoined();
-            offQueueLeft();
-            offError();
-            ws.disconnect();
+            closingRef.current = true;
+            clearReconnectTimer();
+            clearQueueSyncTimer();
+            wsRef.current?.disconnect();
+            wsRef.current = null;
         };
-    }, [session, addLog, navigate, refreshRooms, applyDeckToRoom, ensureGameImageWarmup]);
+    }, [session, addLog, refreshRooms, applyDeckToRoom, safeNavigateToGame, syncMatchStatus, clearQueueSyncTimer]);
 
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();
@@ -557,6 +620,10 @@ const LobbyPage: React.FC = () => {
         setPlayMode('quick');
         setActiveMenu('play');
         if (queueing) {
+            if (!connected) {
+                addLog('로비 연결이 끊겨 퀵매칭 취소 요청을 보낼 수 없습니다.');
+                return;
+            }
             send({ action: 'leave_queue' });
             setShowPlayModal(false);
             return;
@@ -565,8 +632,20 @@ const LobbyPage: React.FC = () => {
     };
 
     const confirmQuickMatch = () => {
+        if (!connected) {
+            addLog('로비 연결이 끊겨 퀵매칭을 시작할 수 없습니다. 재연결을 기다려주세요.');
+            return;
+        }
+        clearQueueSyncTimer();
+        setQueueing(true);
+        setQueueStartedAt(Date.now());
+        setQueueNow(Date.now());
         send({ action: 'join_queue', deck_id: quickMatchDeckId });
         addLog(`퀵매칭 시작: 덱 ${quickMatchDeckId}`);
+        queueSyncTimerRef.current = window.setTimeout(() => {
+            addLog('퀵매칭 ACK 지연으로 상태 재동기화를 수행합니다.');
+            void syncMatchStatus();
+        }, 3000);
         setShowQuickDeckModal(false);
         setShowPlayModal(false);
     };
@@ -677,7 +756,16 @@ const LobbyPage: React.FC = () => {
                     </div>
                     <div className="queue-status-right">
                         <div className="queue-status-time">{queueElapsedMin}:{queueElapsedRemainSec}</div>
-                        <button className="queue-status-cancel" onClick={() => send({ action: 'leave_queue' })}>
+                        <button
+                            className="queue-status-cancel"
+                            onClick={() => {
+                                if (!connected) {
+                                    addLog('로비 연결이 끊겨 취소 요청을 보낼 수 없습니다.');
+                                    return;
+                                }
+                                send({ action: 'leave_queue' });
+                            }}
+                        >
                             취소
                         </button>
                     </div>

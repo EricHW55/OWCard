@@ -15,6 +15,8 @@ from config import (
 )
 from services.matchmaking import matchmaking
 from services.room_manager import room_manager
+from services.ws_manager import manager
+from routers.game_ws import active_games
 
 router = APIRouter(tags=["lobby"])
 
@@ -59,6 +61,28 @@ async def leave_queue(player_id: int):
 @router.get("/matchmaking/status")
 async def queue_status():
     return {"queue_size": matchmaking.queue_size()}
+
+
+@router.get("/lobby/match-status")
+async def lobby_match_status(player_id: int):
+    connected_game_id = next(
+        (game_id for game_id, conns in manager.game_conns.items() if player_id in conns),
+        None,
+    )
+    if connected_game_id:
+        await matchmaking.consume_recent_match_if_in_game(player_id)
+        return {"state": "idle"}
+
+    status = await matchmaking.get_player_match_status(player_id)
+    if status.get("state") != "matched":
+        return status
+
+    game_id = str(status.get("game_id", ""))
+    if game_id not in active_games:
+        await matchmaking.consume_recent_match_if_in_game(player_id)
+        return {"state": "idle"}
+
+    return status
 
 
 # ── 커스텀 방 ──────────────────────────────────

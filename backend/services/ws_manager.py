@@ -15,7 +15,12 @@ class ConnectionManager:
         await ws.accept()
         self.lobby_conns[player_id] = ws
 
-    def disconnect_lobby(self, player_id: int):
+    def disconnect_lobby(self, player_id: int, ws: WebSocket | None = None):
+        current = self.lobby_conns.get(player_id)
+        if not current:
+            return
+        if ws is not None and current is not ws:
+            return
         self.lobby_conns.pop(player_id, None)
 
     async def send_lobby(self, player_id: int, data: dict):
@@ -25,7 +30,7 @@ class ConnectionManager:
                 await ws.send_json(data)
             except Exception as e:
                 print(f"[WS] send_lobby failed player={player_id}: {e}")
-                self.disconnect_lobby(player_id)
+                self.disconnect_lobby(player_id, ws)
 
     async def connect_game(self, game_id: str, player_id: int, ws: WebSocket):
         await ws.accept()
