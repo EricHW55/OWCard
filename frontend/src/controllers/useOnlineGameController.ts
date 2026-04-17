@@ -23,6 +23,16 @@ type ColumnPreview = {
 type KillSide = 'my' | 'opponent';
 type CoinFace = 'front' | 'back';
 
+
+type OpponentSkillCue = {
+  title: string;
+  subtitle: string;
+  heroKey?: string;
+  imageName: string;
+  isSpell: boolean;
+  description: string;
+};
+
 export type HeadshotCoinTossEvent = {
   id: number;
   actorName: string;
@@ -104,7 +114,7 @@ function getSkillDescriptionFromCard(card: any, skillRef?: string | null) {
   return firstSkill?.[1]?.description || card?.description || '';
 }
 
-function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: string) {
+function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: string): OpponentSkillCue | null {
   const result = msg?.result || {};
   const action = msg?.action;
   const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
@@ -1000,7 +1010,7 @@ export function useOnlineGameController(gameId: string) {
                 ? () => {
                   queueHeadshotCoinToss({
                     actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
-                    skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
+                    skillName: result?.skill_name || result?.skill || cue.title || '스킬',
                     heroKey: opponentHeroKey,
                     headshot: !!result.headshot,
                     isMine: false,
@@ -1011,7 +1021,7 @@ export function useOnlineGameController(gameId: string) {
           if (shouldShowOpponentHeadshotCoinToss && !cue) {
             queueHeadshotCoinToss({
               actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
-              skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
+              skillName: result?.skill_name || result?.skill || '스킬',
               heroKey: opponentHeroKey,
               headshot: !!result.headshot,
               isMine: false,
