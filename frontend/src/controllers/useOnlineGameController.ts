@@ -489,6 +489,18 @@ export function useOnlineGameController(gameId: string) {
     }
   }, []);
 
+  const flushDeferredGameStateIfReady = useCallback(() => {
+    const activeAnnouncer = announcerDataRef.current;
+    const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
+    if (isBlockingSkillAnnouncer) return;
+    if (headshotCinematicActiveRef.current) return;
+    if (skipMyActionCueRef.current) return;
+    if (!deferredGameStateRef.current || !processGameStateRef.current) return;
+    const deferred = deferredGameStateRef.current;
+    deferredGameStateRef.current = null;
+    processGameStateRef.current(deferred);
+  }, []);
+
   const runAfterSkillAnnouncer = useCallback((payload: {
     skillName: string;
     heroKey?: string;
@@ -513,13 +525,8 @@ export function useOnlineGameController(gameId: string) {
 
   useEffect(() => {
     announcerDataRef.current = announcerData;
-    const isBlockingSkillAnnouncer = !!announcerData && announcerData.type === 'skill' && !announcerData.nonBlocking;
-    if (!isBlockingSkillAnnouncer && !headshotCinematicActiveRef.current && deferredGameStateRef.current && processGameStateRef.current) {
-      const deferred = deferredGameStateRef.current;
-      deferredGameStateRef.current = null;
-      processGameStateRef.current(deferred);
-    }
-  }, [announcerData]);
+    flushDeferredGameStateIfReady();
+  }, [announcerData, flushDeferredGameStateIfReady]);
 
   const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
     const context = pendingKillContextRef.current;
@@ -953,6 +960,8 @@ export function useOnlineGameController(gameId: string) {
                   // appears before deferred damage pop processing.
                   delayMs: isBlockingSkillAnnouncer ? 2050 : 0,
                 });
+              } else {
+                flushDeferredGameStateIfReady();
               }
             } else {
               const usedSkillKey = String(result?.skill_key || msg?.skill_key || '');
@@ -1009,7 +1018,10 @@ export function useOnlineGameController(gameId: string) {
               const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
               showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(spellCard), heroKey: result?.hero_key || spellCard?.hero_key || '', imageName: spellCard?.name || resolvedSkillName, isSpell: true, duration: 3200 });
             }
-            if (skipMyActionCueRef.current) skipMyActionCueRef.current = false;
+            if (skipMyActionCueRef.current) {
+              skipMyActionCueRef.current = false;
+              flushDeferredGameStateIfReady();
+            }
           }
           if (msg.action === 'execute_spell' && result?.rescued) showSystemNotice(result.rescued, 'TRASH → 패', 1400);
           if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice(result.drawn_card, '덱 → 패', 1400);
