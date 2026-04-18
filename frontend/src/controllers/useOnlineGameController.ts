@@ -382,6 +382,12 @@ export function useOnlineGameController(gameId: string) {
   const deferredGameStateRef = useRef<any | null>(null);
   const processGameStateRef = useRef<((msg: any) => void) | null>(null);
   const headshotCinematicActiveRef = useRef(false);
+  const pendingMyHeadshotAfterAnnouncerRef = useRef<{
+    actorName: string;
+    skillName: string;
+    heroKey: string;
+    headshot: boolean;
+  } | null>(null);
   const pendingDamageMapRef = useRef<Record<string, number>>({});
   const uiTimersRef = useRef<number[]>([]);
   const pendingKillContextRef = useRef<{
@@ -525,8 +531,23 @@ export function useOnlineGameController(gameId: string) {
 
   useEffect(() => {
     announcerDataRef.current = announcerData;
+    const activeAnnouncer = announcerDataRef.current;
+    const isBlockingSkillAnnouncer = !!activeAnnouncer && activeAnnouncer.type === 'skill' && !activeAnnouncer.nonBlocking;
+    if (!isBlockingSkillAnnouncer && !headshotCinematicActiveRef.current && pendingMyHeadshotAfterAnnouncerRef.current) {
+      const payload = pendingMyHeadshotAfterAnnouncerRef.current;
+      pendingMyHeadshotAfterAnnouncerRef.current = null;
+      skipMyActionCueRef.current = false;
+      queueHeadshotCoinToss({
+        actorName: payload.actorName,
+        skillName: payload.skillName,
+        heroKey: payload.heroKey,
+        headshot: payload.headshot,
+        isMine: true,
+        delayMs: 0,
+      });
+    }
     flushDeferredGameStateIfReady();
-  }, [announcerData, flushDeferredGameStateIfReady]);
+  }, [announcerData, flushDeferredGameStateIfReady, queueHeadshotCoinToss]);
 
   const pushKillFeedByUids = useCallback((uids: string[], nextState: any) => {
     const context = pendingKillContextRef.current;
@@ -944,17 +965,15 @@ export function useOnlineGameController(gameId: string) {
                 typeof headshotOutcome === 'boolean'
                 && (casterHeroKey === 'widowmaker' || casterHeroKey === 'hanzo');
             if (skipMyActionCueRef.current) {
-              skipMyActionCueRef.current = false;
               if (shouldShowHeadshotCoinToss) {
-                queueHeadshotCoinToss({
+                pendingMyHeadshotAfterAnnouncerRef.current = {
                   actorName: result?.caster_name || casterCard?.name || actorName,
                   skillName: resolvedSkillName,
                   heroKey: casterHeroKey,
                   headshot: !!headshotOutcome,
-                  isMine: true,
-                  delayMs: 0,
-                });
+                };
               } else {
+                skipMyActionCueRef.current = false;
                 flushDeferredGameStateIfReady();
               }
             } else {
@@ -1013,6 +1032,7 @@ export function useOnlineGameController(gameId: string) {
               showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(spellCard), heroKey: result?.hero_key || spellCard?.hero_key || '', imageName: spellCard?.name || resolvedSkillName, isSpell: true, duration: 3200 });
             }
             if (skipMyActionCueRef.current) {
+              pendingMyHeadshotAfterAnnouncerRef.current = null;
               skipMyActionCueRef.current = false;
               flushDeferredGameStateIfReady();
             }

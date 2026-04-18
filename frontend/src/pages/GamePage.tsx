@@ -559,7 +559,7 @@ const GamePage: React.FC = () => {
             <div className={`game-result-modal ${isWinner ? 'win' : 'lose'}`}>
               <h2>{resultTitle}</h2>
               <p>{resultSubtitle}</p>
-              <button onClick={() => navigate('/')} style={{ ...BTN_SM, background: isWinner ? '#136b34' : '#6b1f2a' }}>
+              <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: isWinner ? '#136b34' : '#6b1f2a' }}>
                 로비로 이동
               </button>
             </div>

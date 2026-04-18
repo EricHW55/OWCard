@@ -27,6 +27,7 @@ from models.deck import Deck
 from game_engine.engine import GameEngine, GamePhase
 from services.ws_manager import manager
 from services.room_manager import room_manager
+from services.matchmaking import matchmaking
 from routers.auth import verify_token
 
 router = APIRouter()
@@ -300,8 +301,9 @@ async def _send_state(game_id: str, player_id: int, engine: GameEngine):
 async def _handle_game_over(game_id: str, engine: GameEngine):
     winner_id = engine.winner
     loser_id = [pid for pid in engine.players if pid != winner_id][0] if winner_id else None
+    player_ids = list(engine.players)
 
-    for pid in list(engine.players):
+    for pid in player_ids:
         _cancel_disconnect_task(game_id, pid)
 
     if winner_id and loser_id:
@@ -318,6 +320,9 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
         "event": "game_over", "winner": winner_id,
         "winner_name": engine.players[winner_id].username if winner_id else None,
     })
+
+    for pid in player_ids:
+        await matchmaking.consume_recent_match_if_in_game(pid)
 
     await room_manager.close_room_by_game_id(game_id)
     active_games.pop(game_id, None)
