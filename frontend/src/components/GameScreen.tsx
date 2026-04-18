@@ -152,23 +152,29 @@ const GameScreen: React.FC<GameScreenProps> = ({
     });
   }, [showLogModal, logs.length]);
 
+  const importantLogs = React.useMemo(
+      () => logs.filter((entry) => ['placement', 'skill', 'damage', 'heal', 'destroy', 'turn_end'].includes(entry.type)),
+      [logs],
+  );
+
   const renderBattleLog = React.useCallback((entry: BattleLogEntry) => {
-    if (entry.type === 'turn') {
-      return <div className="game-log-turn-divider">— {entry.text || `${entry.turn}턴`} 시작 —</div>;
-    }
-    if (entry.team === 'neutral') {
-      return <div className="game-log-neutral">{entry.text || '시스템 메시지'}</div>;
-    }
+    if (entry.type === 'turn_end') return <div className="game-log-neutral">{entry.text || '턴 종료'}</div>;
     const isMine = entry.team === 'my';
+    const title = (() => {
+      if (entry.type === 'placement') return entry.text || `${entry.actor?.name || '영웅'} 배치`;
+      if (entry.type === 'destroy') return entry.text || `${entry.actor?.name || '영웅'} 파괴`;
+      return `${entry.actor?.name || ''} ${entry.skillName || ''}`.trim();
+    })();
+    const isArrowLog = (entry.type === 'damage' || entry.type === 'heal') && !!entry.target;
     return (
         <div className={`game-log-entry-box ${isMine ? 'my' : 'opponent'}`}>
-          <div className="game-log-entry-title">{`${entry.actor?.name || ''} ${entry.skillName || ''}`.trim()}</div>
+          <div className="game-log-entry-title">{title}</div>
           <div className="game-log-entry-content">
             <BattleLogAvatar actor={entry.actor} />
-            {entry.type === 'damage' && entry.target ? (
+            {isArrowLog ? (
                 <>
                   <div className="game-log-arrow-wrap">
-                    <span className="game-log-damage-value">{entry.damage ?? 0}</span>
+                    <span className={`game-log-damage-value ${entry.type === 'heal' ? 'heal' : ''}`}>{entry.damage ?? 0}</span>
                     <span className="game-log-arrow">➜</span>
                   </div>
                   <BattleLogAvatar actor={entry.target} />
@@ -230,7 +236,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 type="button"
                 className="game-log-button game-chip-button"
                 onClick={() => setShowLogModal(true)}
-                disabled={logs.length === 0}
+                disabled={importantLogs.length === 0}
             >
               전투 로그
             </button>
@@ -304,9 +310,9 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <button type="button" className="game-log-close" onClick={() => setShowLogModal(false)}>닫기</button>
               </div>
               <div className="game-log-modal-body" ref={logBodyRef}>
-                {logs.length === 0 ? (
+                {importantLogs.length === 0 ? (
                     <div className="game-log-line">표시할 로그가 없습니다.</div>
-                ) : logs.map((log) => (
+                ) : importantLogs.map((log) => (
                     <div key={log.id} className="game-log-line">{renderBattleLog(log)}</div>
                 ))}
               </div>

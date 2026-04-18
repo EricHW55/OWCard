@@ -461,18 +461,18 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     const skillName = String(params.skillName || '스킬');
     const damageMap = collectDamageMap(params.result || {});
     const targets = new Map(params.targetPool.map((card: any) => [String(card?.uid), card]));
-    const entries = Object.entries(damageMap).filter(([, dmg]) => Number.isFinite(dmg) && dmg > 0);
+    const entries = Object.entries(damageMap).filter(([, dmg]) => Number.isFinite(dmg) && dmg !== 0);
     if (entries.length > 0) {
       entries.forEach(([uid, dmg]) => {
         const target = targets.get(String(uid));
         pushBattleLog({
-          type: 'damage',
+          type: dmg > 0 ? 'damage' : 'heal',
           team: params.team,
           turn: gsRef.current?.turn,
           actor,
           skillName,
           target: toActor(target, target?.name || '대상'),
-          damage: Math.round(dmg),
+          damage: Math.abs(Math.round(dmg)),
         });
       });
       return;
@@ -654,6 +654,15 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         .filter((card: any) => !!card && !nextAlive.has(card.uid));
 
     if (victimCards.length === 0) return;
+    victimCards.forEach((victim: any) => {
+      pushBattleLog({
+        type: 'destroy',
+        team: context.victimTeam === 'my' ? 'my' : 'opponent',
+        turn: gsRef.current?.turn,
+        actor: toActor(victim, victim?.name || '영웅'),
+        text: `${victim?.name || '영웅'} 파괴`,
+      });
+    });
 
     setKillFeed((prevFeed) => {
       const createdAt = Date.now();
@@ -676,7 +685,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       }));
       return [...items, ...prevFeed].slice(0, 6);
     });
-  }, []);
+  }, [pushBattleLog, toActor]);
 
   const dismissKillFeedItem = useCallback((id: string) => {
     setKillFeed((prev) => prev.filter((item) => item.id !== id));
@@ -973,7 +982,6 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           setRenderGs(mapped);
         }),
         ws.on('action_result', (msg: any) => {
-          addLog(`내 행동: ${msg.action}`);
           const result = msg?.result || {};
           pendingDamageMapRef.current = collectDamageMap(result);
           const latestMyState = gsRef.current?.my_state as any;
@@ -1012,6 +1020,33 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             createdAt: Date.now(),
             fatalUids,
           };
+          if (msg.action === 'end_turn') {
+            pushBattleLog({ type: 'turn_end', team: 'my', turn: gsRef.current?.turn, text: '내 턴 종료' });
+          }
+          if (msg.action === 'place_card') {
+            const placedCard = result?.card || null;
+            if (placedCard && !placedCard?.is_spell) {
+              pushBattleLog({
+                type: 'placement',
+                team: 'my',
+                turn: gsRef.current?.turn,
+                actor: toActor(placedCard, placedCard?.name || '영웅'),
+                text: `${placedCard?.name || '영웅'} 배치`,
+              });
+            }
+            if ((placedCard && placedCard?.is_spell) || result?.type === 'spell_played') {
+              const spellCard = placedCard || myHand.find((c: any) => c.hero_key === result?.hero_key);
+              if (spellCard) {
+                pushBattleLog({
+                  type: 'skill',
+                  team: 'my',
+                  turn: gsRef.current?.turn,
+                  actor: toActor(spellCard, spellCard?.name || '스킬 카드'),
+                  skillName: spellName,
+                });
+              }
+            }
+          }
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
             if (result?.hero_key === 'spell_duplicate') {
@@ -1167,7 +1202,6 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice(result.drawn_card, '덱 → 패', 1400);
         }),
         ws.on('opponent_action', (msg: any) => {
-          addLog(`상대: ${msg.action}`);
           const result = msg?.result || {};
           pendingDamageMapRef.current = collectDamageMap(result);
           const oppState = gsRef.current?.opponent_state as any;
@@ -1240,6 +1274,33 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             createdAt: Date.now(),
             fatalUids,
           };
+          if (msg.action === 'end_turn') {
+            pushBattleLog({ type: 'turn_end', team: 'opponent', turn: gsRef.current?.turn, text: '상대 턴 종료' });
+          }
+          if (msg.action === 'place_card') {
+            const placedCard = result?.card || null;
+            if (placedCard && !placedCard?.is_spell) {
+              pushBattleLog({
+                type: 'placement',
+                team: 'opponent',
+                turn: gsRef.current?.turn,
+                actor: toActor(placedCard, placedCard?.name || '영웅'),
+                text: `${placedCard?.name || '영웅'} 배치`,
+              });
+            }
+            if ((placedCard && placedCard?.is_spell) || result?.type === 'spell_played') {
+              const spellCard = placedCard || result?.card || null;
+              if (spellCard) {
+                pushBattleLog({
+                  type: 'skill',
+                  team: 'opponent',
+                  turn: gsRef.current?.turn,
+                  actor: toActor(spellCard, spellCard?.name || '스킬 카드'),
+                  skillName: result?.skill_name || result?.skill || spellCard?.name || '스킬 카드',
+                });
+              }
+            }
+          }
           if (result?.passive_triggered?.passive) {
             const passiveSource = findFieldCardByUid(gsRef.current?.opponent_state, result?.card_uid)
                 || opponentCasterCard
@@ -1306,7 +1367,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, isSpectator, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss, pushBattleLog, pushSkillActionLogs]);
+  }, [session, gameId, isSpectator, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss, pushBattleLog, pushSkillActionLogs, toActor]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (isSpectator) return;

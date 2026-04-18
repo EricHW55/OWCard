@@ -150,7 +150,7 @@ export interface CardVisualEffect {
 }
 
 export type BattleLogTeam = 'my' | 'opponent' | 'neutral';
-export type BattleLogType = 'turn' | 'skill' | 'damage' | 'system';
+export type BattleLogType = 'turn' | 'turn_end' | 'skill' | 'damage' | 'heal' | 'placement' | 'destroy' | 'system';
 
 export interface BattleLogActor {
   name: string;

@@ -287,6 +287,62 @@ const HERO_NAME_ALIAS_NORMALIZED = buildNormalizedAliasMap(HERO_NAME_ALIAS);
 const SPELL_ALIAS_NORMALIZED = buildNormalizedAliasMap(SPELL_ALIAS);
 const KNOWN_HERO_KEYS = new Set<string>(Object.values(HERO_ID_ALIAS));
 const KNOWN_SPELL_KEYS = new Set<string>(Object.values(SPELL_ALIAS));
+const HERO_ROLE_BY_KEY: Record<string, 'tank' | 'dealer' | 'healer'> = {
+    reinhardt: 'tank',
+    winston: 'tank',
+    zarya: 'tank',
+    dva: 'tank',
+    hana_song: 'tank',
+    doomfist: 'tank',
+    sigma: 'tank',
+    roadhog: 'tank',
+    ramattra: 'tank',
+    orisa: 'tank',
+    mauga: 'tank',
+    domina: 'tank',
+    hazard: 'tank',
+
+    bastion: 'dealer',
+    tracer: 'dealer',
+    venture: 'dealer',
+    sombra: 'dealer',
+    symmetra: 'dealer',
+    widowmaker: 'dealer',
+    hanzo: 'dealer',
+    echo: 'dealer',
+    ashe: 'dealer',
+    cassidy: 'dealer',
+    reaper: 'dealer',
+    mei: 'dealer',
+    torbjorn: 'dealer',
+    sojourn: 'dealer',
+    junkrat: 'dealer',
+    genji: 'dealer',
+    anran: 'dealer',
+    vendetta: 'dealer',
+    soldier_76: 'dealer',
+    freja: 'dealer',
+    pharah: 'dealer',
+    emre: 'dealer',
+    torbjorn_turret: 'dealer',
+    hazard_wall: 'dealer',
+
+    ana: 'healer',
+    baptiste: 'healer',
+    lucio: 'healer',
+    brigitte: 'healer',
+    mercy: 'healer',
+    juno: 'healer',
+    mizuki: 'healer',
+    wuyang: 'healer',
+    zenyatta: 'healer',
+    moira: 'healer',
+    illari: 'healer',
+    kiriko: 'healer',
+    lifeweaver: 'healer',
+    jetpack_cat: 'healer',
+    illari_pylon: 'healer',
+};
 
 export function resolveHeroKey(card: CardLike): string | null {
     const candidates = [
@@ -360,6 +416,11 @@ function getCardArtRoleFolder(card: CardLike): string {
     if (card.role === 'tank') return 'tanks';
     if (card.role === 'dealer') return 'dealers';
     if (card.role === 'healer') return 'healers';
+    const heroKey = resolveHeroKey(card);
+    const inferredRole = heroKey ? HERO_ROLE_BY_KEY[heroKey] : null;
+    if (inferredRole === 'tank') return 'tanks';
+    if (inferredRole === 'healer') return 'healers';
+    if (inferredRole === 'dealer') return 'dealers';
     return 'dealers';
 }
 
