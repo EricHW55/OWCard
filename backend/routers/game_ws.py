@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 import asyncio
+from dataclasses import dataclass, field as dc_field
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy import select
@@ -25,6 +26,7 @@ from database import async_session
 from models.card import CardTemplate
 from models.deck import Deck
 from game_engine.engine import GameEngine, GamePhase
+from config import DECK_SIZE, BO3_MAX_DECK_EDITS_PER_BREAK
 from services.ws_manager import manager
 from services.room_manager import room_manager
 from services.matchmaking import matchmaking
@@ -33,6 +35,22 @@ from routers.auth import verify_token
 router = APIRouter()
 
 active_games: dict[str, GameEngine] = {}
+@dataclass
+class Bo3Session:
+    player_ids: list[int]
+    wins: dict[int, int] = dc_field(default_factory=dict)
+    current_round: int = 1
+    max_wins: int = 2
+    max_rounds: int = 3
+    deck_template_ids_by_player: dict[int, list[int]] = dc_field(default_factory=dict)
+    pending_round_result: dict | None = None
+    awaiting_deck_submit: set[int] = dc_field(default_factory=set)
+    awaiting_first_player_choice: bool = False
+    first_player_choice_player_id: int | None = None
+    chosen_first_player_id: int | None = None
+
+
+bo3_sessions: dict[str, Bo3Session] = {}
 RECONNECT_GRACE = 30
 _disconnect_tasks: dict[tuple[str, int], asyncio.Task] = {}
 _timer_tasks: dict[str, asyncio.Task] = {}
@@ -54,6 +72,31 @@ async def load_deck_cards(deck_id: int) -> list[dict]:
         return cards
 
 
+async def load_deck_template_ids(deck_id: int) -> list[int]:
+    async with async_session() as db:
+        result = await db.execute(select(Deck).where(Deck.id == deck_id))
+        deck = result.scalar_one_or_none()
+        if not deck:
+            return []
+        template_ids: list[int] = []
+        for dc in deck.cards:
+            template_ids.extend([int(dc.card_template_id)] * int(dc.quantity))
+        return template_ids
+
+
+async def load_cards_from_template_ids(template_ids: list[int]) -> list[dict]:
+    cards: list[dict] = []
+    if not template_ids:
+        return cards
+    async with async_session() as db:
+        for template_id in template_ids:
+            tmpl = await db.execute(select(CardTemplate).where(CardTemplate.id == int(template_id)))
+            t = tmpl.scalar_one_or_none()
+            if t:
+                cards.append(t.to_game_dict())
+    return cards
+
+
 async def get_or_create_game(game_id: str, p1: dict, p2: dict) -> GameEngine:
     if game_id in active_games:
         return active_games[game_id]
@@ -63,6 +106,77 @@ async def get_or_create_game(game_id: str, p1: dict, p2: dict) -> GameEngine:
     active_games[game_id] = engine
     _timer_tasks[game_id] = asyncio.create_task(_clock_monitor(game_id))
     return engine
+
+
+async def initialize_bo3_session(game_id: str, p1: dict, p2: dict):
+    p1_templates = await load_deck_template_ids(p1["deck_id"])
+    p2_templates = await load_deck_template_ids(p2["deck_id"])
+    bo3_sessions[game_id] = Bo3Session(
+        player_ids=[int(p1["id"]), int(p2["id"])],
+        wins={int(p1["id"]): 0, int(p2["id"]): 0},
+        deck_template_ids_by_player={
+            int(p1["id"]): p1_templates,
+            int(p2["id"]): p2_templates,
+        },
+    )
+
+
+def build_bo3_payload(game_id: str, player_id: int) -> dict | None:
+    session = bo3_sessions.get(game_id)
+    if not session:
+        return None
+    wins = {str(pid): int(session.wins.get(pid, 0)) for pid in session.player_ids}
+    return {
+        "format": "bo3",
+        "current_round": session.current_round,
+        "wins": wins,
+        "max_wins": session.max_wins,
+        "max_rounds": session.max_rounds,
+        "current_deck_template_ids": list(session.deck_template_ids_by_player.get(player_id, [])),
+        "deck_edit_limit_per_break": BO3_MAX_DECK_EDITS_PER_BREAK,
+        "awaiting_deck_submit": player_id in session.awaiting_deck_submit,
+        "awaiting_first_player_choice": session.awaiting_first_player_choice and session.first_player_choice_player_id == player_id,
+        "can_start_next_round": (not session.awaiting_deck_submit) and (not session.awaiting_first_player_choice) and bool(session.pending_round_result),
+        "pending_round_result": session.pending_round_result,
+    }
+
+
+async def _start_next_bo3_round(game_id: str, old_engine: GameEngine):
+    session = bo3_sessions.get(game_id)
+    if not session:
+        return
+
+    if session.awaiting_deck_submit or session.awaiting_first_player_choice:
+        return
+
+    player_data: list[tuple[int, str, list[dict]]] = []
+    for pid in session.player_ids:
+        ps = old_engine.players.get(pid)
+        if not ps:
+            return
+        template_ids = session.deck_template_ids_by_player.get(pid, [])
+        cards = await load_cards_from_template_ids(template_ids)
+        player_data.append((pid, ps.username, cards))
+
+    engine = GameEngine(game_id)
+    for pid, username, cards in player_data:
+        if not engine.add_player(pid, username, cards):
+            return
+        engine.players[pid].connected = old_engine.players.get(pid).connected if old_engine.players.get(pid) else True
+
+    if session.chosen_first_player_id in session.player_ids:
+        engine.first_player_id = session.chosen_first_player_id
+    engine.start_game()
+    active_games[game_id] = engine
+
+    session.pending_round_result = None
+    session.awaiting_first_player_choice = False
+    session.first_player_choice_player_id = None
+    session.chosen_first_player_id = None
+
+    await manager.broadcast_all(game_id, {"event": "bo3_round_started", "round": session.current_round})
+    for pid in engine.players:
+        await _send_state(game_id, pid, engine)
 
 
 def _cancel_disconnect_task(game_id: str, player_id: int):
@@ -195,6 +309,13 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         await manager.send_game(game_id, player_id, {"event": "error", "message": "패시브 선택을 먼저 완료하세요"})
         return
 
+    bo3_session = bo3_sessions.get(game_id)
+    if bo3_session and bo3_session.pending_round_result:
+        between_round_allowed = {"get_state", "ping", "cleanup_game", "leave_game", "submit_bo3_deck", "bo3_choose_first"}
+        if action not in between_round_allowed:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "세트 사이 준비 단계입니다. 덱 제출/선후공 선택 후 진행됩니다."})
+            return
+
     if action == "mulligan":
         result = engine.mulligan(player_id, data.get("card_indices", []))
     elif action == "skip_mulligan":
@@ -264,6 +385,54 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
             await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
         await manager.send_game(game_id, player_id, {"event": "cleanup_ack"})
         return
+    elif action == "submit_bo3_deck":
+        if not bo3_session or not bo3_session.pending_round_result:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "BO3 덱 제출 가능 상태가 아닙니다."})
+            return
+        raw_ids = data.get("deck_card_ids", [])
+        if not isinstance(raw_ids, list):
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "deck_card_ids 형식이 올바르지 않습니다."})
+            return
+        try:
+            submitted_ids = [int(v) for v in raw_ids]
+        except Exception:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "deck_card_ids 형식이 올바르지 않습니다."})
+            return
+        if len(submitted_ids) != DECK_SIZE:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": f"덱은 {DECK_SIZE}장이어야 합니다."})
+            return
+        cards = await load_cards_from_template_ids(submitted_ids)
+        if len(cards) != len(submitted_ids):
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "존재하지 않는 카드가 포함되어 있습니다."})
+            return
+        bo3_session.deck_template_ids_by_player[player_id] = submitted_ids
+        bo3_session.awaiting_deck_submit.discard(player_id)
+        await manager.send_game(game_id, player_id, {"event": "action_result", "action": action, "result": {"ok": True}})
+        await _send_state(game_id, player_id, engine)
+        opp_ids = [pid for pid in bo3_session.player_ids if pid != player_id]
+        for opp_id in opp_ids:
+            await _send_state(game_id, opp_id, engine)
+        if not bo3_session.awaiting_deck_submit and not bo3_session.awaiting_first_player_choice:
+            await _start_next_bo3_round(game_id, engine)
+        return
+    elif action == "bo3_choose_first":
+        if not bo3_session or not bo3_session.pending_round_result or not bo3_session.awaiting_first_player_choice:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "선후공 선택 가능 상태가 아닙니다."})
+            return
+        if bo3_session.first_player_choice_player_id != player_id:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "이번 세트는 승자만 선후공을 선택할 수 있습니다."})
+            return
+        choice = str(data.get("choice", "first")).lower()
+        winner_id = int(bo3_session.pending_round_result["winner"])
+        loser_id = int(bo3_session.pending_round_result["loser"])
+        bo3_session.chosen_first_player_id = winner_id if choice == "first" else loser_id
+        bo3_session.awaiting_first_player_choice = False
+        await manager.send_game(game_id, player_id, {"event": "action_result", "action": action, "result": {"ok": True, "choice": choice}})
+        for pid in bo3_session.player_ids:
+            await _send_state(game_id, pid, engine)
+        if not bo3_session.awaiting_deck_submit:
+            await _start_next_bo3_round(game_id, engine)
+        return
     else:
         await manager.send_game(game_id, player_id, {"event": "error", "message": f"Unknown: {action}"})
         return
@@ -303,17 +472,43 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
 
 
 async def _send_state(game_id: str, player_id: int, engine: GameEngine):
-    await manager.send_game(game_id, player_id, {"event": "game_state", "state": engine.get_state(player_id)})
+    state = engine.get_state(player_id)
+    bo3_payload = build_bo3_payload(game_id, player_id)
+    if bo3_payload:
+        state["bo3"] = bo3_payload
+    await manager.send_game(game_id, player_id, {"event": "game_state", "state": state})
 
 
 async def _handle_game_over(game_id: str, engine: GameEngine):
     winner_id = engine.winner
     loser_id = [pid for pid in engine.players if pid != winner_id][0] if winner_id else None
     player_ids = list(engine.players)
+    bo3_session = bo3_sessions.get(game_id)
 
     for pid in player_ids:
         _cancel_disconnect_task(game_id, pid)
 
+    if bo3_session and winner_id and loser_id:
+        bo3_session.wins[winner_id] = int(bo3_session.wins.get(winner_id, 0)) + 1
+        is_final = bo3_session.wins[winner_id] >= bo3_session.max_wins or bo3_session.current_round >= bo3_session.max_rounds
+        if not is_final:
+            bo3_session.pending_round_result = {
+                "winner": winner_id,
+                "loser": loser_id,
+                "round": bo3_session.current_round,
+                "wins": {str(pid): int(bo3_session.wins.get(pid, 0)) for pid in bo3_session.player_ids},
+            }
+            bo3_session.current_round += 1
+            bo3_session.awaiting_deck_submit = set(bo3_session.player_ids)
+            bo3_session.awaiting_first_player_choice = True
+            bo3_session.first_player_choice_player_id = winner_id
+            bo3_session.chosen_first_player_id = None
+
+            await manager.broadcast_all(game_id, {"event": "bo3_round_end", "round": bo3_session.pending_round_result["round"], "winner": winner_id, "winner_name": engine.players[winner_id].username, "next_round": bo3_session.current_round})
+            for pid in player_ids:
+                await _send_state(game_id, pid, engine)
+            return
+        
     if winner_id and loser_id:
         async with async_session() as db:
             from models.player import Player
@@ -337,6 +532,7 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
     if room:
         await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
     active_games.pop(game_id, None)
+    bo3_sessions.pop(game_id, None)
     timer_task = _timer_tasks.pop(game_id, None)
     if timer_task and not timer_task.done():
         timer_task.cancel()
@@ -363,4 +559,6 @@ async def spectate_ws(ws: WebSocket, game_id: str):
 async def create_game_from_match(match_data: dict) -> str:
     game_id = match_data["game_id"]
     await get_or_create_game(game_id, match_data["player1"], match_data["player2"])
+    if str(match_data.get("match_format", "bo1")).lower() == "bo3":
+        await initialize_bo3_session(game_id, match_data["player1"], match_data["player2"])
     return game_id

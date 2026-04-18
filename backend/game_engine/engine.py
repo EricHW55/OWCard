@@ -514,7 +514,11 @@ class GameEngine:
             random.shuffle(shuffled)
             ps.hand = shuffled[:HAND_SIZE]
             ps.draw_pile = shuffled[HAND_SIZE:]
-        first_idx = random.randint(0, 1)
+        preset_first_player_id = self.first_player_id if self.first_player_id in self.player_order else None
+        if preset_first_player_id is not None:
+            first_idx = self.player_order.index(preset_first_player_id)
+        else:
+            first_idx = random.randint(0, 1)
         self.current_turn_index = first_idx
         self.turn_number = 1
         fid = self.player_order[first_idx]
