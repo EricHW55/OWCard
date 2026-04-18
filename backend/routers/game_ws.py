@@ -190,7 +190,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     result: dict = {}
 
     pending = getattr(engine.players.get(player_id), "pending_passive", None)
-    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game", "ping"}
+    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game", "cleanup_game", "ping"}
     if pending and action not in allowed_when_pending:
         await manager.send_game(game_id, player_id, {"event": "error", "message": "패시브 선택을 먼저 완료하세요"})
         return
@@ -256,6 +256,14 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
         result = {"event": "surrender", "winner": opp_id, "reason": "leave"}
+    elif action == "cleanup_game":
+        await matchmaking.consume_recent_match_if_in_game(player_id)
+        room = room_manager.find_room_by_game_id(game_id)
+        await room_manager.close_room_by_game_id(game_id)
+        if room:
+            await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
+        await manager.send_game(game_id, player_id, {"event": "cleanup_ack"})
+        return
     else:
         await manager.send_game(game_id, player_id, {"event": "error", "message": f"Unknown: {action}"})
         return

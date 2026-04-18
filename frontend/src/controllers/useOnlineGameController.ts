@@ -1225,7 +1225,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
 
   const leaveGame = useCallback(() => {
     manualCloseRef.current = true;
-    if (gs && gs.phase !== 'game_over') send({ action: 'leave_game' });
+    if (!gs) return;
+    if (gs.phase === 'game_over') {
+      send({ action: 'cleanup_game' });
+      return;
+    }
+    send({ action: 'leave_game' });
   }, [gs, send]);
 
   const surrenderGame = useCallback(() => {

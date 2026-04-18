@@ -65,6 +65,9 @@ async def lobby_ws(
                 await ws.send_json({"event": "queue_left"})
 
             elif action == "create_room":
+                stale_room_code = await room_manager.cleanup_stale_room_for_host(player_id, set(active_games.keys()))
+                if stale_room_code:
+                    await manager.broadcast_lobby({"event": "room_closed", "room_code": stale_room_code})
                 try:
                     room = await room_manager.create_room(player_id, username)
                 except ValueError as exc:
@@ -88,8 +91,17 @@ async def lobby_ws(
             elif action == "start_game":
                 result = await room_manager.start_game(data.get("room_id", ""))
                 if result:
-                    game_id = await create_game_from_match(result)
                     room = room_manager.get_room(data.get("room_id", ""))
+                    if not room:
+                        await ws.send_json({"event": "error", "message": "Room not found"})
+                        continue
+                    try:
+                        game_id = await create_game_from_match(result)
+                    except Exception as exc:
+                        await room_manager.close_room(room.room_id)
+                        await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
+                        await ws.send_json({"event": "error", "message": f"Game start failed: {exc}"})
+                        continue
                     for pid in (room.host_id, room.guest_id):
                         if pid is not None:
                             await manager.send_lobby(pid, {

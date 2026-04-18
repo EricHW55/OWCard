@@ -79,6 +79,17 @@ class RoomManager:
             self.code_map[code] = rid
             return room
 
+    async def cleanup_stale_room_for_host(self, host_id: int, active_game_ids: set[str]) -> Optional[str]:
+        async with self._lock:
+            target_room = self.find_active_room_by_host(host_id)
+            if not target_room or target_room.status != RoomStatus.IN_GAME:
+                return None
+            if target_room.game_id and target_room.game_id in active_game_ids:
+                return None
+            self.rooms.pop(target_room.room_id, None)
+            self.code_map.pop(target_room.room_code, None)
+            return target_room.room_code
+
     async def join_room(self, code: str, player_id: int, username: str) -> Optional[Room]:
         async with self._lock:
             self._cleanup_expired_rooms_locked()
