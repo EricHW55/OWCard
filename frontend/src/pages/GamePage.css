@@ -794,8 +794,8 @@
 }
 
 .game-log-entry-title {
-    font-size: 15px;
-    font-weight: 800;
+    font-size: 14px;
+    font-weight: 700;
     color: #fff;
     margin-bottom: 6px;
 }
@@ -807,10 +807,10 @@
 }
 
 .game-log-avatar {
-    width: 64px;
-    aspect-ratio: 3 / 4;
+    width: 68px;
+    aspect-ratio: 2 / 3;
     height: auto;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.42);
@@ -824,8 +824,8 @@
 }
 
 .game-log-damage-value {
-    font-size: 15px;
-    font-weight: 900;
+    font-size: 14px;
+    font-weight: 850;
     color: #fff;
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.45);
 }
