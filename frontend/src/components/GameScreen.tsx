@@ -30,6 +30,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onMulliganCinematicComplete,
   bottomMeta,
   bottomActions,
+  compactBottomPanel = false,
   logs = [],
   killFeed = [],
   onDismissKillFeedItem,
@@ -164,7 +165,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         </div>
       </div>
 
-      <div className="game-bottom-panel">
+      <div className={`game-bottom-panel ${compactBottomPanel ? 'game-bottom-panel--compact' : ''}`}>
         {contextPanel}
 
         <div className="game-floating-actions">
@@ -181,20 +182,22 @@ const GameScreen: React.FC<GameScreenProps> = ({
           </div>
         </div>
 
-        <div className="game-hand-row">
-          {handCards.map((card, index) => (
-            <HandCardComp
-              key={`${card.id}-${index}`}
-              card={card}
-              selected={isHandSelected(index)}
-              hidden={mulliganAnimatingIndex === index}
-              index={index}
-              total={handCards.length}
-              focusedIndex={focusedHandIndex}
-              onClick={() => onHandClick(card, index)}
-            />
-          ))}
-        </div>
+        {!compactBottomPanel && (
+            <div className="game-hand-row">
+              {handCards.map((card, index) => (
+                  <HandCardComp
+                      key={`${card.id}-${index}`}
+                      card={card}
+                      selected={isHandSelected(index)}
+                      hidden={mulliganAnimatingIndex === index}
+                      index={index}
+                      total={handCards.length}
+                      focusedIndex={focusedHandIndex}
+                      onClick={() => onHandClick(card, index)}
+                  />
+              ))}
+            </div>
+        )}
 
         <div className="game-bottombar">
           <span className="game-bottombar-meta">{bottomMeta}</span>

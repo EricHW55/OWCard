@@ -540,6 +540,7 @@ const GamePage: React.FC = () => {
       onMulliganCinematicComplete={vm.completeMulliganCinematic}
       isHandSelected={(index) => isSpectator ? false : (vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index)}
       onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
+      compactBottomPanel={isSpectator}
       bottomMeta={<>{isSpectator ? '관전 모드 · 손패 비공개' : `패:${vm.my.hand_count} · 덱:${vm.my.draw_pile_count} · 트래시:${vm.my.trash_count}`}</>}
       bottomActions={
         <>

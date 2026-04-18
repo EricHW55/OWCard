@@ -135,6 +135,7 @@ const LobbyPage: React.FC = () => {
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
+    const pendingSpectateRef = useRef<{ roomCode: string; gameId: string } | null>(null);
     const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
     const preloadPromiseRef = useRef<Promise<void> | null>(null);
     const cardTemplateByIdRef = useRef<Map<number, CardTemplateLite>>(new Map());
@@ -511,6 +512,17 @@ const LobbyPage: React.FC = () => {
                 refreshRooms();
             });
 
+            ws.on('room_closed', (msg: any) => {
+                const closedCode = String(msg?.room_code ?? '');
+                setRoom((prev) => (prev?.room_code === closedCode ? null : prev));
+                setPendingJoinRoom((prev) => (prev?.room_code === closedCode ? null : prev));
+                if (pendingSpectateRef.current?.roomCode === closedCode) {
+                    pendingSpectateRef.current = null;
+                }
+                addLog(`방 종료: ${closedCode || '알 수 없음'}`);
+                refreshRooms();
+            });
+
             ws.on('match_found', (msg: any) => {
                 clearQueueSyncTimer();
                 addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
@@ -526,6 +538,19 @@ const LobbyPage: React.FC = () => {
             ws.on('game_starting_spectate', (msg: any) => {
                 addLog(`관전 시작: ${msg.game_id}`);
                 safeNavigateToSpectate(msg.game_id, msg?.room?.room_code);
+            });
+
+            ws.on('spectating', (msg: any) => {
+                const gameId = msg?.room?.game_id || pendingSpectateRef.current?.gameId;
+                const roomCode = msg?.room?.room_code || pendingSpectateRef.current?.roomCode;
+                pendingSpectateRef.current = null;
+                if (!gameId) {
+                    addLog('관전 시작 실패: 게임 정보를 찾을 수 없습니다.');
+                    refreshRooms();
+                    return;
+                }
+                addLog(`관전 입장: ${roomCode ?? ''}`);
+                safeNavigateToSpectate(gameId, roomCode);
             });
 
             ws.on('queue_joined', (msg: any) => {
@@ -544,6 +569,10 @@ const LobbyPage: React.FC = () => {
             });
 
             ws.on('error', (msg: any) => {
+                if (pendingSpectateRef.current) {
+                    pendingSpectateRef.current = null;
+                    refreshRooms();
+                }
                 if (typeof msg?.message === 'string' && msg.message.includes('이미 생성한 사설방')) {
                     setPrivateRoomLimitMessage(msg.message);
                 }
@@ -695,8 +724,8 @@ const LobbyPage: React.FC = () => {
             addLog('아직 게임이 시작되지 않아 관전할 수 없습니다.');
             return;
         }
+        pendingSpectateRef.current = { roomCode: targetRoom.room_code, gameId: targetRoom.game_id };
         send({ action: 'spectate', room_code: targetRoom.room_code });
-        safeNavigateToSpectate(targetRoom.game_id, targetRoom.room_code);
     };
 
     const handleBackToLobby = () => {

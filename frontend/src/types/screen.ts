@@ -49,6 +49,7 @@ export interface GameScreenProps {
 
   bottomMeta?: ReactNode;
   bottomActions?: ReactNode;
+  compactBottomPanel?: boolean;
 
   logs?: string[];
   killFeed?: KillFeedItem[];

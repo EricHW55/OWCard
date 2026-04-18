@@ -151,6 +151,7 @@ async def spectate_room(req: SpectateReq):
 
 @router.get("/rooms")
 async def list_rooms():
+    await room_manager.cleanup_orphan_in_game_rooms(set(active_games.keys()))
     return room_manager.list_rooms()
 
 

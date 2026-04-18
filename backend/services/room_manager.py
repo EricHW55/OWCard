@@ -2,6 +2,7 @@
 from __future__ import annotations
 import uuid
 import asyncio
+import time
 from dataclasses import dataclass, field as dc_field
 from typing import Optional
 from enum import Enum
@@ -28,6 +29,8 @@ class Room:
     status: RoomStatus = RoomStatus.WAITING
     spectator_ids: list[int] = dc_field(default_factory=list)
     max_spectators: int = 10
+    created_at: float = dc_field(default_factory=time.time)
+    game_started_at: Optional[float] = None
 
     def to_dict(self) -> dict:
         return {
@@ -42,14 +45,30 @@ class Room:
 
 
 class RoomManager:
+    IN_GAME_ROOM_TTL_SECONDS = 60 * 60
+    ORPHAN_IN_GAME_GRACE_SECONDS = 20
 
     def __init__(self):
         self.rooms: dict[str, Room] = {}
         self.code_map: dict[str, str] = {}
         self._lock = asyncio.Lock()
+        
+    def _cleanup_expired_rooms_locked(self):
+        now = time.time()
+        stale_ids = [
+            room_id for room_id, room in self.rooms.items()
+            if room.status == RoomStatus.IN_GAME
+            and room.game_started_at is not None
+            and (now - room.game_started_at) > self.IN_GAME_ROOM_TTL_SECONDS
+        ]
+        for room_id in stale_ids:
+            room = self.rooms.pop(room_id, None)
+            if room:
+                self.code_map.pop(room.room_code, None)
 
     async def create_room(self, host_id: int, host_username: str) -> Room:
         async with self._lock:
+            self._cleanup_expired_rooms_locked()
             existing_room = self.find_active_room_by_host(host_id)
             if existing_room:
                 raise ValueError("이미 생성한 사설방이 있습니다. 기존 방을 이용해주세요.")
@@ -62,6 +81,7 @@ class RoomManager:
 
     async def join_room(self, code: str, player_id: int, username: str) -> Optional[Room]:
         async with self._lock:
+            self._cleanup_expired_rooms_locked()
             rid = self.code_map.get(code)
             if not rid:
                 return None
@@ -75,11 +95,17 @@ class RoomManager:
 
     async def add_spectator(self, code: str, spectator_id: int) -> Optional[Room]:
         async with self._lock:
+            self._cleanup_expired_rooms_locked()
             rid = self.code_map.get(code)
             if not rid:
                 return None
             room = self.rooms.get(rid)
-            if not room or len(room.spectator_ids) >= room.max_spectators:
+            if (
+                not room
+                or room.status != RoomStatus.IN_GAME
+                or not room.game_id
+                or len(room.spectator_ids) >= room.max_spectators
+            ):
                 return None
             if spectator_id not in room.spectator_ids:
                 room.spectator_ids.append(spectator_id)
@@ -106,6 +132,7 @@ class RoomManager:
         gid = f"game_{uuid.uuid4().hex[:12]}"
         room.game_id = gid
         room.status = RoomStatus.IN_GAME
+        room.game_started_at = time.time()
         return {
             "game_id": gid,
             "room_id": room_id,
@@ -163,6 +190,7 @@ class RoomManager:
         return self.rooms.get(rid) if rid else None
 
     def list_rooms(self) -> list[dict]:
+        self._cleanup_expired_rooms_locked()
         return [r.to_dict() for r in self.rooms.values() if r.status != RoomStatus.FINISHED]
 
     def find_room_by_game_id(self, game_id: str) -> Optional[Room]:
@@ -183,6 +211,28 @@ class RoomManager:
         if room:
             room.status = RoomStatus.FINISHED
             await self.close_room(room.room_id)
+
+
+    async def cleanup_orphan_in_game_rooms(self, active_game_ids: set[str]):
+        async with self._lock:
+            now = time.time()
+            stale_ids: list[str] = []
+            for room_id, room in self.rooms.items():
+                if room.status != RoomStatus.IN_GAME:
+                    continue
+                if not room.game_id:
+                    stale_ids.append(room_id)
+                    continue
+                if room.game_id in active_game_ids:
+                    continue
+                started_at = room.game_started_at or room.created_at
+                if (now - started_at) >= self.ORPHAN_IN_GAME_GRACE_SECONDS:
+                    stale_ids.append(room_id)
+
+            for room_id in stale_ids:
+                room = self.rooms.pop(room_id, None)
+                if room:
+                    self.code_map.pop(room.room_code, None)
 
 
 room_manager = RoomManager()

@@ -8,7 +8,7 @@ from services.ws_manager import manager
 from services.matchmaking import matchmaking
 from services.room_manager import room_manager
 from routers.auth import verify_token
-from routers.game_ws import create_game_from_match
+from routers.game_ws import create_game_from_match, active_games
 
 router = APIRouter()
 
@@ -106,6 +106,11 @@ async def lobby_ws(
                 code = data.get("room_code", "")
                 room = await room_manager.add_spectator(code, player_id)
                 if room:
+                    if not room.game_id or room.game_id not in active_games:
+                        await room_manager.close_room(room.room_id)
+                        await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
+                        await ws.send_json({"event": "error", "message": "이미 종료된 경기입니다."})
+                        continue
                     await ws.send_json({"event": "spectating", "room": room.to_dict()})
                 else:
                     await ws.send_json({"event": "error", "message": "Cannot spectate"})

@@ -324,7 +324,10 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
     for pid in player_ids:
         await matchmaking.consume_recent_match_if_in_game(pid)
 
+    room = room_manager.find_room_by_game_id(game_id)
     await room_manager.close_room_by_game_id(game_id)
+    if room:
+        await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
     active_games.pop(game_id, None)
     timer_task = _timer_tasks.pop(game_id, None)
     if timer_task and not timer_task.done():

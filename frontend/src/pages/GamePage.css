@@ -283,6 +283,10 @@
     z-index: 9;
 }
 
+.game-bottom-panel--compact {
+    margin-top: clamp(-18px, -2vh, -8px);
+}
+
 .game-context-stack {
     display: flex;
     flex-direction: column;
@@ -466,6 +470,10 @@
     align-items: center;
     gap: 8px;
     padding: 4px 8px 6px;
+}
+
+.game-bottom-panel--compact .game-bottombar {
+    padding: 2px 8px 4px;
 }
 
 .game-bottombar-meta {
