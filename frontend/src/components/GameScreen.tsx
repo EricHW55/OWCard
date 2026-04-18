@@ -5,7 +5,8 @@ import HandCardComp from '../components/HandCardComp';
 import CardDetail from '../components/CardDetail';
 import { CardFaceContent } from './CardFaceContent';
 import type { GameScreenProps } from '../types/screen';
-import { getCardBackImageSrc, getCardImageSrc } from '../utils/heroImage';
+import type { BattleLogActor, BattleLogEntry } from '../types/game';
+import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc } from '../utils/heroImage';
 import { useCardImage } from '../hooks/useCardImage';
 
 const GameScreen: React.FC<GameScreenProps> = ({
@@ -38,6 +39,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   onCloseDetail,
 }) => {
   const [showLogModal, setShowLogModal] = React.useState(false);
+  const logBodyRef = React.useRef<HTMLDivElement | null>(null);
   const [mulliganStage, setMulliganStage] = React.useState<'idle' | 'return' | 'draw' | 'reveal'>('idle');
   const killTimerRef = React.useRef<Record<string, number>>({});
   const mulliganTimerRef = React.useRef<number[]>([]);
@@ -120,6 +122,50 @@ const GameScreen: React.FC<GameScreenProps> = ({
       }
     };
   }, [canCloseMulliganCinematic, onMulliganCinematicComplete]);
+
+  React.useEffect(() => {
+    if (!showLogModal) return;
+    const body = logBodyRef.current;
+    if (!body) return;
+    requestAnimationFrame(() => {
+      body.scrollTop = body.scrollHeight;
+    });
+  }, [showLogModal, logs.length]);
+
+  const resolveActorImage = React.useCallback((actor?: BattleLogActor) => {
+    const cardLike = { name: actor?.name, hero_key: actor?.heroKey, is_spell: actor?.isSpell };
+    const illustrations = getCardArtCandidates(cardLike);
+    return illustrations[0] || getCardImageSrc(cardLike);
+  }, []);
+
+  const renderBattleLog = React.useCallback((entry: BattleLogEntry) => {
+    if (entry.type === 'turn') {
+      return <div className="game-log-turn-divider">— {entry.text || `${entry.turn}턴`} 시작 —</div>;
+    }
+    if (entry.team === 'neutral') {
+      return <div className="game-log-neutral">{entry.text || '시스템 메시지'}</div>;
+    }
+    const isMine = entry.team === 'my';
+    const actorImage = resolveActorImage(entry.actor);
+    const targetImage = resolveActorImage(entry.target);
+    return (
+        <div className={`game-log-entry-box ${isMine ? 'my' : 'opponent'}`}>
+          <div className="game-log-entry-title">{`${entry.actor?.name || ''} ${entry.skillName || ''}`.trim()}</div>
+          <div className="game-log-entry-content">
+            <img src={actorImage} alt={entry.actor?.name || 'actor'} className="game-log-avatar" />
+            {entry.type === 'damage' && entry.target ? (
+                <>
+                  <div className="game-log-arrow-wrap">
+                    <span className="game-log-damage-value">{entry.damage ?? 0}</span>
+                    <span className="game-log-arrow">➜</span>
+                  </div>
+                  <img src={targetImage} alt={entry.target?.name || 'target'} className="game-log-avatar" />
+                </>
+            ) : null}
+          </div>
+        </div>
+    );
+  }, [resolveActorImage]);
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
@@ -247,11 +293,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
                 <strong>전투 로그</strong>
                 <button type="button" className="game-log-close" onClick={() => setShowLogModal(false)}>닫기</button>
               </div>
-              <div className="game-log-modal-body">
+              <div className="game-log-modal-body" ref={logBodyRef}>
                 {logs.length === 0 ? (
                     <div className="game-log-line">표시할 로그가 없습니다.</div>
-                ) : logs.map((log, index) => (
-                    <div key={`${index}-${log}`} className="game-log-line">{log}</div>
+                ) : logs.map((log) => (
+                    <div key={log.id} className="game-log-line">{renderBattleLog(log)}</div>
                 ))}
               </div>
             </div>

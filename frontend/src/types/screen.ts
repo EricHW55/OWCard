@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { AnnouncerData } from '../components/GameAnnouncer';
-import type { CardVisualEffect, FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
+import type { BattleLogEntry, CardVisualEffect, FieldCard, FieldState, HandCard, KillFeedItem } from '../types/game';
 
 export type PlaceZone = 'main' | 'side';
 export type PlaceSlotIndex = 0 | 1;
@@ -51,7 +51,7 @@ export interface GameScreenProps {
   bottomActions?: ReactNode;
   compactBottomPanel?: boolean;
 
-  logs?: string[];
+  logs?: BattleLogEntry[];
   killFeed?: KillFeedItem[];
   onDismissKillFeedItem?: (id: string) => void;
   detailCard?: FieldCard | HandCard | null;

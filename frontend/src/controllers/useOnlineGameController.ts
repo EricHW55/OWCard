@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CardVisualEffect, FieldCard, GameState, HandCard, KillFeedItem } from '../types/game';
+import type { BattleLogActor, BattleLogEntry, CardVisualEffect, FieldCard, GameState, HandCard, KillFeedItem } from '../types/game';
 import { GameSocket, buildWsUrl } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../utils/ui';
@@ -385,7 +385,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const [isMulliganCinematicActive, setIsMulliganCinematicActive] = useState(false);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
-  const [logs, setLogs] = useState<string[]>(['게임 서버에 연결 중...']);
+  const [logs, setLogs] = useState<BattleLogEntry[]>([]);
   const [connected, setConnected] = useState(false);
   const [pendingSpell, setPendingSpell] = useState<string | null>(null);
   const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
@@ -432,10 +432,59 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     createdAt: number;
     fatalUids: string[];
   } | null>(null);
+  const battleLogSeqRef = useRef(0);
+
+  const pushBattleLog = useCallback((entry: Omit<BattleLogEntry, 'id'>) => {
+    const id = `battle-log-${Date.now()}-${battleLogSeqRef.current++}`;
+    setLogs((prev) => [...prev.slice(-199), { ...entry, id }]);
+  }, []);
 
   const addLog = useCallback((msg: string) => {
-    setLogs((prev) => [...prev.slice(-39), `[${new Date().toLocaleTimeString()}] ${msg}`]);
-  }, []);
+    pushBattleLog({ type: 'system', team: 'neutral', text: msg, turn: gsRef.current?.turn });
+  }, [pushBattleLog]);
+
+  const toActor = useCallback((card: any, fallbackName?: string): BattleLogActor => ({
+    name: String(card?.name || fallbackName || '알 수 없음'),
+    heroKey: getHeroKey(card),
+    isSpell: !!card?.is_spell,
+  }), []);
+
+  const pushSkillActionLogs = useCallback((params: {
+    team: 'my' | 'opponent';
+    actorCard?: any;
+    actorName?: string;
+    skillName?: string;
+    result: any;
+    targetPool: any[];
+  }) => {
+    const actor = toActor(params.actorCard, params.actorName || (params.team === 'my' ? '아군' : '상대'));
+    const skillName = String(params.skillName || '스킬');
+    const damageMap = collectDamageMap(params.result || {});
+    const targets = new Map(params.targetPool.map((card: any) => [String(card?.uid), card]));
+    const entries = Object.entries(damageMap).filter(([, dmg]) => Number.isFinite(dmg) && dmg > 0);
+    if (entries.length > 0) {
+      entries.forEach(([uid, dmg]) => {
+        const target = targets.get(String(uid));
+        pushBattleLog({
+          type: 'damage',
+          team: params.team,
+          turn: gsRef.current?.turn,
+          actor,
+          skillName,
+          target: toActor(target, target?.name || '대상'),
+          damage: Math.round(dmg),
+        });
+      });
+      return;
+    }
+    pushBattleLog({
+      type: 'skill',
+      team: params.team,
+      turn: gsRef.current?.turn,
+      actor,
+      skillName,
+    });
+  }, [pushBattleLog, toActor]);
 
   const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
     enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
@@ -812,6 +861,16 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         ws.on('game_state', (msg: any) => {
           const processGameState = (gameStateMsg: any) => {
             const prevState = gsRef.current;
+            const prevTurn = Number(prevState?.turn ?? 0);
+            const nextTurn = Number(gameStateMsg?.state?.turn ?? 0);
+            if (nextTurn > 0 && nextTurn !== prevTurn) {
+              pushBattleLog({
+                type: 'turn',
+                team: 'neutral',
+                turn: nextTurn,
+                text: `${nextTurn}턴`,
+              });
+            }
             if (pendingKillContextRef.current?.createdAt) {
               const pendingUids = pendingKillContextRef.current.fatalUids || [];
               if (pendingUids.length > 0) pushKillFeedByUids(pendingUids, gameStateMsg.state);
@@ -928,6 +987,22 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           const killHeroKey = isSpellKill
               ? (result?.hero_key || result?.card?.hero_key || '')
               : (getHeroKey(myCasterCard) || result?.caster?.hero_key || '');
+          if (msg.action === 'use_skill' || msg.action === 'execute_spell') {
+            const targetPool = [
+              ...(gsRef.current?.opponent_state?.field?.main || []),
+              ...(gsRef.current?.opponent_state?.field?.side || []),
+              ...(gsRef.current?.my_state?.field?.main || []),
+              ...(gsRef.current?.my_state?.field?.side || []),
+            ];
+            pushSkillActionLogs({
+              team: 'my',
+              actorCard: myCasterCard || result?.card,
+              actorName,
+              skillName: resolvedSkillName || spellName,
+              result,
+              targetPool,
+            });
+          }
           pendingKillContextRef.current = {
             killerName: actorName,
             killerHeroKey: killHeroKey,
@@ -1106,6 +1181,22 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
               msg.action === 'use_skill'
               && typeof headshotOutcome === 'boolean'
               && (opponentHeroKey === 'widowmaker' || opponentHeroKey === 'hanzo');
+          if (msg.action === 'use_skill' || msg.action === 'execute_spell') {
+            const targetPool = [
+              ...(gsRef.current?.my_state?.field?.main || []),
+              ...(gsRef.current?.my_state?.field?.side || []),
+              ...(gsRef.current?.opponent_state?.field?.main || []),
+              ...(gsRef.current?.opponent_state?.field?.side || []),
+            ];
+            pushSkillActionLogs({
+              team: 'opponent',
+              actorCard: opponentCasterCard || result?.card,
+              actorName: opponentName,
+              skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
+              result,
+              targetPool,
+            });
+          }
           if (cue) showSkillUse({
             skillName: cue.title,
             description: cue.description || '',
@@ -1215,7 +1306,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, isSpectator, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss]);
+  }, [session, gameId, isSpectator, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss, pushBattleLog, pushSkillActionLogs]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (isSpectator) return;

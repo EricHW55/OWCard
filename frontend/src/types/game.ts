@@ -148,3 +148,24 @@ export interface CardVisualEffect {
   hpTransitionMs?: number;
   destroying?: boolean;
 }
+
+export type BattleLogTeam = 'my' | 'opponent' | 'neutral';
+export type BattleLogType = 'turn' | 'skill' | 'damage' | 'system';
+
+export interface BattleLogActor {
+  name: string;
+  heroKey?: string;
+  isSpell?: boolean;
+}
+
+export interface BattleLogEntry {
+  id: string;
+  type: BattleLogType;
+  team: BattleLogTeam;
+  turn?: number;
+  text?: string;
+  actor?: BattleLogActor;
+  skillName?: string;
+  target?: BattleLogActor;
+  damage?: number;
+}
