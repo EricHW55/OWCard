@@ -1731,6 +1731,10 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   }, [selectedMyFieldCard, selectedHandIdx, pendingSpell, send, addLog, showSystemNotice, runAfterSkillAnnouncer]);
 
   const runMulligan = useCallback(() => {
+    if (phase !== 'mulligan' || my?.mulligan_done) {
+      setSelectedMulligan([]);
+      return;
+    }
     if (selectedMulligan.length === 0) return;
     const targetIndex = selectedMulligan[0];
     const targetCard = my?.hand?.[targetIndex];
@@ -1744,7 +1748,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     }
     send({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
     setSelectedMulligan([]);
-  }, [send, selectedMulligan, my]);
+  }, [send, selectedMulligan, my, phase]);
   const completeMulliganCinematic = useCallback(() => {
     setMulliganAnimatingIndex(null);
     setMulliganCinematicCard(null);
@@ -1752,7 +1756,14 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     pendingMulliganReplacementRef.current = false;
     setIsMulliganCinematicActive(false);
   }, []);
-  const skipMulligan = useCallback(() => { send({ action: 'skip_mulligan' }); setSelectedMulligan([]); }, [send]);
+  const skipMulligan = useCallback(() => {
+    if (phase !== 'mulligan' || my?.mulligan_done) {
+      setSelectedMulligan([]);
+      return;
+    }
+    send({ action: 'skip_mulligan' });
+    setSelectedMulligan([]);
+  }, [send, phase, my]);
   const selectColumn = useCallback((repUid: string, label: string) => {
     if (columnChoice?.source === 'spell' && pendingSpell) {
       const spellCard = my?.hand?.find((c: any) => c.hero_key === pendingSpell);

@@ -371,6 +371,11 @@ const GamePage: React.FC = () => {
     });
     return { removed, added };
   }, [bo3EditorBaseDeck, bo3EditorEntries]);
+  const bo3EditorCardById = React.useMemo(() => {
+    const map: Record<number, Bo3EditorCard> = {};
+    bo3EditorCards.forEach((card) => { map[card.id] = card; });
+    return map;
+  }, [bo3EditorCards]);
 
   const handleSubmitBo3Deck = () => {
     const ids = Object.entries(bo3EditorEntries).flatMap(([id, qty]) =>
@@ -731,7 +736,13 @@ const GamePage: React.FC = () => {
                         <div className="game-bo3-editor-change-title">뺀 카드 ({bo3EditorChanges.removed.length})</div>
                         <div className="game-bo3-editor-change-items">
                           {bo3EditorChanges.removed.length === 0 ? <span>-</span> : bo3EditorChanges.removed.map((id, idx) => (
-                              <span key={`removed-${id}-${idx}`}>#{id}</span>
+                              <span key={`removed-${id}-${idx}`} className="game-bo3-editor-change-chip">
+                                <img
+                                    src={getCardImageSrc((bo3EditorCardById[id] || { id, hero_key: '', name: `#${id}` }) as any)}
+                                    alt={bo3EditorCardById[id]?.name || `카드 ${id}`}
+                                />
+                                <b>{bo3EditorCardById[id]?.name || `#${id}`}</b>
+                              </span>
                           ))}
                         </div>
                       </div>
@@ -739,7 +750,13 @@ const GamePage: React.FC = () => {
                         <div className="game-bo3-editor-change-title">추가한 카드 ({bo3EditorChanges.added.length})</div>
                         <div className="game-bo3-editor-change-items">
                           {bo3EditorChanges.added.length === 0 ? <span>-</span> : bo3EditorChanges.added.map((id, idx) => (
-                              <span key={`added-${id}-${idx}`}>#{id}</span>
+                              <span key={`added-${id}-${idx}`} className="game-bo3-editor-change-chip">
+                                <img
+                                    src={getCardImageSrc((bo3EditorCardById[id] || { id, hero_key: '', name: `#${id}` }) as any)}
+                                    alt={bo3EditorCardById[id]?.name || `카드 ${id}`}
+                                />
+                                <b>{bo3EditorCardById[id]?.name || `#${id}`}</b>
+                              </span>
                           ))}
                         </div>
                       </div>

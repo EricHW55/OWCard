@@ -247,8 +247,8 @@
 }
 
 .game-bo3-editor-modal {
-    width: min(1240px, 96vw);
-    max-height: min(92dvh, 920px);
+    width: min(1380px, 94vw);
+    max-height: min(94dvh, 980px);
     overflow: auto;
 }
 
@@ -309,6 +309,25 @@
     font-size: 11px;
     color: #c6d8ff;
     background: rgba(33, 55, 110, 0.5);
+}
+
+.game-bo3-editor-change-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.game-bo3-editor-change-chip img {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(159, 185, 247, 0.68);
+    background: rgba(6, 12, 30, 0.55);
+}
+
+.game-bo3-editor-change-chip b {
+    font-weight: 700;
 }
 
 .game-bo3-editor-search-row {
@@ -459,6 +478,23 @@
 
     .game-bo3-editor-grid {
         grid-template-columns: 1.4fr 0.9fr;
+    }
+}
+
+@media (max-width: 899px) {
+    .game-bo3-editor-modal {
+        width: min(96vw, 680px);
+        max-height: min(95dvh, 1180px);
+        padding: 16px 12px;
+    }
+
+    .game-bo3-editor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .game-bo3-editor-card-grid,
+    .game-bo3-editor-deck-grid {
+        max-height: 32dvh;
     }
 }
 
