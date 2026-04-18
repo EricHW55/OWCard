@@ -248,9 +248,9 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
               {pendingSpell === 'spell_duplicate' ? '→ 복제할 상대 카드를 먼저 클릭하세요' : '→ 적용할 카드를 클릭'}
             </span>
           </div>
-          <div className="game-context-actions">
-            <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
-          </div>
+          {/*<div className="game-context-actions">*/}
+          {/*  <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>*/}
+          {/*</div>*/}
         </div>
       )}
 

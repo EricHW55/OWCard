@@ -491,13 +491,12 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                 {hasRangeModification && (
                     <div className="field-status-layer-range-modification">
                         {[
-                            { x: '12%', y: '80%', d: '0.00s', drift: '-4px', size: '18px' },
-                            { x: '28%', y: '54%', d: '0.30s', drift: '6px', size: '14px' },
-                            { x: '44%', y: '72%', d: '0.66s', drift: '-6px', size: '20px' },
-                            { x: '62%', y: '36%', d: '1.02s', drift: '6px', size: '12px' },
-                            { x: '76%', y: '64%', d: '1.38s', drift: '-7px', size: '16px' },
-                            { x: '88%', y: '42%', d: '1.74s', drift: '5px', size: '15px' },
-                            { x: '22%', y: '24%', d: '2.08s', drift: '-4px', size: '18px' },
+                            { x: '16%', y: '76%', d: '0.00s', shift: '30px', width: '32px', height: '11px', tail: '22px' },
+                            { x: '34%', y: '52%', d: '0.14s', shift: '28px', width: '30px', height: '10px', tail: '20px' },
+                            { x: '52%', y: '70%', d: '0.28s', shift: '34px', width: '36px', height: '12px', tail: '24px' },
+                            { x: '66%', y: '36%', d: '0.42s', shift: '26px', width: '28px', height: '9px', tail: '18px' },
+                            { x: '82%', y: '60%', d: '0.56s', shift: '32px', width: '34px', height: '11px', tail: '22px' },
+                            { x: '24%', y: '26%', d: '0.70s', shift: '30px', width: '32px', height: '11px', tail: '20px' },
                         ].map((icon, idx) => (
                             <div
                                 key={`range-modifier-icon-${idx}`}
@@ -506,8 +505,10 @@ const FieldCardComp: React.FC<Props> = ({ card, isOpponent = false, selected, gl
                                     left: icon.x,
                                     top: icon.y,
                                     ['--range-modifier-delay' as string]: icon.d,
-                                    ['--range-modifier-drift' as string]: icon.drift,
-                                    ['--range-modifier-size' as string]: icon.size,
+                                    ['--range-modifier-shift' as string]: icon.shift,
+                                    ['--range-modifier-width' as string]: icon.width,
+                                    ['--range-modifier-height' as string]: icon.height,
+                                    ['--range-tail-length' as string]: icon.tail,
                                 }}
                             />
                         ))}

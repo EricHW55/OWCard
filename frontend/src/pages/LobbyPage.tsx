@@ -885,7 +885,8 @@ const LobbyPage: React.FC = () => {
                                             <option value={deckId}>덱 없음</option>
                                         ) : (
                                             decks.map((d) => (
-                                                <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                                // <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                                <option key={d.id} value={d.id}>{d.name}</option>
                                             ))
                                         )}
                                     </select>
@@ -1029,7 +1030,8 @@ const LobbyPage: React.FC = () => {
                                     <option value={1}>덱 없음</option>
                                 ) : (
                                     decks.map((d) => (
-                                        <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                        // <option key={d.id} value={d.id}>{d.name} (ID: {d.id})</option>
+                                        <option key={d.id} value={d.id}>{d.name}</option>
                                     ))
                                 )}
                             </select>

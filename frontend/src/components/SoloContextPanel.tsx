@@ -115,9 +115,9 @@ const SoloContextPanel: React.FC<Props> = ({
               <span className="game-toolbar-title">스킬 카드 대상 선택</span>
               <span className="game-context-subtext">→ 아군 또는 상대 카드를 클릭</span>
             </div>
-            <div className="game-context-actions">
-              <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>
-            </div>
+            {/*<div className="game-context-actions">*/}
+            {/*  <button onClick={onCancelPendingSpell} style={{ ...BTN_SM, background: '#1a2342' }}>취소</button>*/}
+            {/*</div>*/}
           </div>
       )}
     </div>

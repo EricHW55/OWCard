@@ -347,7 +347,8 @@ const DeckBuilderPage: React.FC = () => {
                             <option value="">새 덱 만들기</option>
                             {myDecks.map(d => (
                                 <option key={d.id} value={d.id}>
-                                    {d.name} (ID:{d.id})
+                                    {/*{d.name} (ID:{d.id})*/}
+                                    {d.name}
                                 </option>
                             ))}
                         </select>
