@@ -103,6 +103,12 @@
     margin-left: 0;
 }
 
+.lobby-menu.private-mode {
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: 8px;
+}
+
 .desktop-menu-text {
     display: flex;
     flex-direction: column;
@@ -278,8 +284,25 @@
     background: rgba(7, 14, 35, 0.65);
 }
 
+.room-item-info {
+    min-width: 0;
+}
+
 .room-item-title {
     font-weight: 800;
+}
+
+.room-item-playerline {
+    font-size: 33px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+}
+
+.room-item-code {
+    margin-top: 6px;
+    font-size: 18px;
+    color: #e3b8ff;
+    font-weight: 700;
 }
 
 .room-item-sub,
@@ -463,6 +486,14 @@
 
     .hero-panel h1 {
         font-size: 34px;
+    }
+
+    .room-item-playerline {
+        font-size: 20px;
+    }
+
+    .room-item-code {
+        font-size: 14px;
     }
 }
 

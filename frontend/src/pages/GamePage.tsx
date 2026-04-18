@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
 import { CardFaceContent } from '../components/CardFaceContent';
@@ -25,8 +25,10 @@ function formatTimerClock(totalSeconds: number): string {
 
 const GamePage: React.FC = () => {
   const { gameId = '' } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const vm = useOnlineGameController(gameId);
+  const isSpectator = searchParams.get('spectate') === '1';
+  const vm = useOnlineGameController(gameId, { spectate: isSpectator });
   const apiBase = getApiBase();
   const session = vm.session;
   const [coinTossStage, setCoinTossStage] = React.useState<CoinTossStage>('hidden');
@@ -54,9 +56,10 @@ const GamePage: React.FC = () => {
   const headshotDoneTimerRef = React.useRef<number | null>(null);
 
   const isFirstPlayer = React.useMemo(() => {
+    if (isSpectator) return null;
     if (!vm.gs || !session || vm.gs.first_player == null) return null;
     return Number(vm.gs.first_player) === Number(session.player_id);
-  }, [vm.gs, session]);
+  }, [vm.gs, session, isSpectator]);
 
   const coinFace: CoinFace = React.useMemo(() => {
     if (isFirstPlayer == null) return 'front';
@@ -240,7 +243,7 @@ const GamePage: React.FC = () => {
       [revealIndex, currentRevealCard?.id, currentRevealCard?.hero_key, currentRevealCard?.name]
   );
 
-  if (!session) {
+  if (!session && !isSpectator) {
     return (
         <div className="game-loading-screen">
           <div>로그인이 필요합니다.</div>
@@ -249,15 +252,18 @@ const GamePage: React.FC = () => {
   }
 
   const isGameOver = vm.phase === 'game_over' && !!vm.gs;
-  const isWinner = isGameOver && vm.gs?.winner === session.player_id;
-  const resultTitle = !isGameOver ? '' : isWinner ? '승리!' : '패배';
+  const isWinner = !isSpectator && isGameOver && vm.gs?.winner === session?.player_id;
+  const resultTitle = !isGameOver ? '' : isSpectator ? '게임 종료' : isWinner ? '승리!' : '패배';
   const resultSubtitle = !isGameOver
       ? ''
+      : isSpectator
+          ? '관전 중이던 경기가 종료되었습니다.'
       : isWinner
           ? '상대가 항복했습니다.'
           : '당신이 항복하여 패배했습니다.';
 
   const handleSurrender = () => {
+    if (isSpectator) return;
     if (isGameOver) return;
     const confirmed = window.confirm('정말로 항복하시겠습니까?');
     if (!confirmed) return;
@@ -291,6 +297,7 @@ const GamePage: React.FC = () => {
   ].filter(Boolean) as React.ReactNode[];
 
   const openingActive = openingStage !== 'done' && openingStage !== 'idle';
+  const showOpeningCinematic = !isSpectator && openingStage !== 'done' && openingStage !== 'idle';
   const visibleHandCards = openingActive
       ? vm.my.hand.slice(0, revealedCount)
       : vm.my.hand;
@@ -369,7 +376,7 @@ const GamePage: React.FC = () => {
             </div>
           </div>
       )}
-      {openingStage !== 'done' && openingStage !== 'idle' && (
+      {showOpeningCinematic && (
           <div className="game-opening-overlay" aria-live="polite" aria-label="시작 패 드로우 연출">
             {openingStage === 'draw_back' && (
                 <div className="game-opening-backdraw-stack">
@@ -427,12 +434,12 @@ const GamePage: React.FC = () => {
       }
       topbarRight={
         <>
-          <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{vm.isMyTurn ? '● 내 턴' : '○ 상대 턴'}</div>
+          <div className={`game-turn-indicator ${vm.isMyTurn ? 'mine' : 'theirs'}`}>{isSpectator ? '관전 중' : (vm.isMyTurn ? '● 내 턴' : '○ 상대 턴')}</div>
           <div className="game-opponent-meta-inline">
-            상대: {vm.opp.username || '상대'} · 패:{vm.opp.hand_count} · 덱:{vm.opp.draw_pile_count}
+            {isSpectator ? '양쪽 손패 비공개 관전' : `상대: ${vm.opp.username || '상대'} · 패:${vm.opp.hand_count} · 덱:${vm.opp.draw_pile_count}`}
           </div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
-          <button onClick={handleSurrender} disabled={isGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isGameOver ? 0.5 : 1 }}>항복</button>
+          {!isSpectator && <button onClick={handleSurrender} disabled={isGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isGameOver ? 0.5 : 1 }}>항복</button>}
           <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>
         </>
       }
@@ -455,7 +462,7 @@ const GamePage: React.FC = () => {
       topField={{
         field: vm.opp.field,
         isOpponent: true,
-        isMyTurn: vm.isMyTurn,
+        isMyTurn: isSpectator ? false : vm.isMyTurn,
         phase: vm.phase,
         selectedUid: null,
         canActUids: [],
@@ -470,25 +477,25 @@ const GamePage: React.FC = () => {
       bottomField={{
         field: vm.my.field,
         isOpponent: false,
-        isMyTurn: vm.isMyTurn,
+        isMyTurn: isSpectator ? false : vm.isMyTurn,
         phase: vm.phase,
-        selectedUid: vm.selectedFieldUid,
-        canActUids: vm.canActUids,
+        selectedUid: isSpectator ? null : vm.selectedFieldUid,
+        canActUids: isSpectator ? [] : vm.canActUids,
         onCardClick: (card) => vm.handleFieldClick(card, false),
         onCardLongPress: (card) => vm.setDetailCard(card),
         cardEffects: vm.cardEffects,
-        placingCard: vm.phase === 'placement' && vm.isMyTurn
+        placingCard: isSpectator ? null : (vm.phase === 'placement' && vm.isMyTurn
             ? (vm.selectedHandCard && !vm.selectedHandCard.is_spell
                 ? vm.selectedHandCard
                 : (vm.pendingSpell === 'spell_duplicate' && vm.actionMode === 'duplicate_place' && vm.duplicateTargetRole
                     ? ({ role: vm.duplicateTargetRole } as any)
                     : null))
-            : null,
-        onPlaceClick: vm.handlePlace,
+            : null),
+        onPlaceClick: isSpectator ? (() => {}) : vm.handlePlace,
         canSelectEmptySlot: vm.canSelectEmptySlot,
         onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
-      contextPanel={openingActive ? null : (
+      contextPanel={openingActive || isSpectator ? null : (
         <OnlineContextPanel
           show={vm.showContextPanel}
           phase={vm.phase}
@@ -525,23 +532,23 @@ const GamePage: React.FC = () => {
           onResolveSpellChoice={vm.resolveSpellChoice}
         />
       )}
-      handCards={visibleHandCards}
+      handCards={isSpectator ? [] : visibleHandCards}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
       mulliganCinematicCard={vm.mulliganCinematicCard}
       mulliganReplacementCard={vm.mulliganReplacementCard}
       isMulliganCinematicActive={vm.isMulliganCinematicActive}
       onMulliganCinematicComplete={vm.completeMulliganCinematic}
-      isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
+      isHandSelected={(index) => isSpectator ? false : (vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index)}
       onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
-      bottomMeta={<>패:{vm.my.hand_count} · 덱:{vm.my.draw_pile_count} · 트래시:{vm.my.trash_count}</>}
+      bottomMeta={<>{isSpectator ? '관전 모드 · 손패 비공개' : `패:${vm.my.hand_count} · 덱:${vm.my.draw_pile_count} · 트래시:${vm.my.trash_count}`}</>}
       bottomActions={
         <>
-          {vm.phase === 'placement' && (
+          {!isSpectator && vm.phase === 'placement' && (
               <span className="game-placement-meta">
               배치 {vm.my.placement_cost_used}/{Number(vm.my?.placement_limit ?? 2)}
             </span>
           )}
-          {vm.phase !== 'mulligan' && (
+          {!isSpectator && vm.phase !== 'mulligan' && (
             <button className="game-endturn" disabled={!vm.isMyTurn || !!vm.pendingPassive || !!vm.pendingSpellChoice || !!vm.columnChoice} onClick={vm.handleEndMainButton} style={{ opacity: (vm.isMyTurn && !vm.pendingPassive && !vm.pendingSpellChoice && !vm.columnChoice) ? 1 : 0.5 }}>
               {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}
             </button>

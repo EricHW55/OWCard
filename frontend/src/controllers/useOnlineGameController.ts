@@ -338,7 +338,40 @@ function collectDamageMap(
   return out;
 }
 
-export function useOnlineGameController(gameId: string) {
+function mapSpectatorStateToGameState(spectatorState: any): GameState | null {
+  if (!spectatorState || typeof spectatorState !== 'object') return null;
+  const playersObj = spectatorState.players || {};
+  const players = Object.values(playersObj) as any[];
+  if (players.length < 2) return null;
+  const [p1, p2] = players;
+  const p1Id = Number(p1?.player_id ?? 0);
+  const p2Id = Number(p2?.player_id ?? 0);
+  const currentPlayer = Number(spectatorState.current_player ?? 0);
+  const timerByPlayer = spectatorState?.timer?.remaining_by_player || {};
+  return {
+    game_id: String(spectatorState.game_id || ''),
+    phase: spectatorState.phase,
+    turn: Number(spectatorState.turn ?? 0),
+    round: Number(spectatorState.round ?? 0),
+    current_player: Number.isFinite(currentPlayer) ? currentPlayer : null,
+    coin_result: spectatorState.coin_result ?? null,
+    first_player: spectatorState.first_player ?? null,
+    is_my_turn: currentPlayer === p1Id,
+    my_state: p1,
+    opponent_state: p2,
+    winner: spectatorState.winner ?? null,
+    commander_skill_limit: Number(spectatorState.commander_skill_limit ?? 1),
+    timer: {
+      initial_seconds: spectatorState?.timer?.initial_seconds,
+      increment_seconds: spectatorState?.timer?.increment_seconds,
+      my_remaining_seconds: Number(timerByPlayer?.[p1Id] ?? 0),
+      opponent_remaining_seconds: Number(timerByPlayer?.[p2Id] ?? 0),
+    },
+  } as GameState;
+}
+
+export function useOnlineGameController(gameId: string, options?: { spectate?: boolean }) {
+  const isSpectator = !!options?.spectate;
   const session = useMemo(() => getSession(), []);
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
 
@@ -702,7 +735,8 @@ export function useOnlineGameController(gameId: string) {
   }, [gs, showPhaseChange]);
 
   useEffect(() => {
-    if (!session || !gameId) return;
+    if (!gameId) return;
+    if (!isSpectator && !session) return;
     manualCloseRef.current = false;
     let localWs: GameSocket | null = null;
     let offFns: Array<() => void> = [];
@@ -741,7 +775,11 @@ export function useOnlineGameController(gameId: string) {
       const ws = new GameSocket();
       localWs = ws;
       wsRef.current = ws;
-      ws.connect(buildWsUrl(`/ws/game/${gameId}`, { token: session.token, player_id: session.player_id }));
+      if (isSpectator) {
+        ws.connect(buildWsUrl(`/ws/spectate/${gameId}`, {}));
+      } else {
+        ws.connect(buildWsUrl(`/ws/game/${gameId}`, { token: session!.token, player_id: session!.player_id }));
+      }
 
       offFns = [
         ws.on('_connected', () => {
@@ -751,7 +789,7 @@ export function useOnlineGameController(gameId: string) {
           clearReconnectTimer();
           reconnectAttemptRef.current = 0;
           addLog(wasReconnecting ? '재연결 성공' : '소켓 연결됨');
-          ws.send({ action: 'get_state' });
+          if (!isSpectator) ws.send({ action: 'get_state' });
           startHeartbeat();
         }),
         ws.on('_disconnected', () => {
@@ -861,6 +899,19 @@ export function useOnlineGameController(gameId: string) {
             return;
           }
           processGameState(msg);
+        }),
+        ws.on('spectator_state', (msg: any) => {
+          const mapped = mapSpectatorStateToGameState(msg?.state);
+          if (!mapped) return;
+          setGs(mapped);
+          setRenderGs(mapped);
+        }),
+        ws.on('game_action', (msg: any) => {
+          pendingDamageMapRef.current = collectDamageMap(msg?.result || {});
+          const mapped = mapSpectatorStateToGameState(msg?.spectator_state);
+          if (!mapped) return;
+          setGs(mapped);
+          setRenderGs(mapped);
         }),
         ws.on('action_result', (msg: any) => {
           addLog(`내 행동: ${msg.action}`);
@@ -1119,12 +1170,14 @@ export function useOnlineGameController(gameId: string) {
         }),
         ws.on('phase_change', (msg: any) => addLog(msg.message || `페이즈: ${msg.phase}`)),
         ws.on('game_over', (msg: any) => {
-          // addLog(`게임 종료! 승자: ${msg.winner_name ?? msg.winner}`);
-          const isWinner = Number(msg?.winner) === Number(session.player_id);
-          addLog(`게임 종료! ${isWinner ? '승리' : '패배'} · 승자: ${msg.winner_name ?? msg.winner}`);
+          const isWinner = !isSpectator && Number(msg?.winner) === Number(session?.player_id);
+          addLog(`게임 종료! ${isSpectator ? '관전 종료' : (isWinner ? '승리' : '패배')} · 승자: ${msg.winner_name ?? msg.winner}`);
           setReconnecting(false);
-          // showPhaseChange('게임 종료', `${msg.winner_name ?? msg.winner ?? '승자 미정'}`, 2000);
-          showPhaseChange(isWinner ? '승리' : '패배', `${msg.winner_name ?? msg.winner ?? '승자 미정'}`, 2800);
+          showPhaseChange(
+              isSpectator ? '게임 종료' : (isWinner ? '승리' : '패배'),
+              `${msg.winner_name ?? msg.winner ?? '승자 미정'}`,
+              isSpectator ? 2000 : 2800,
+          );
         }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
@@ -1162,12 +1215,13 @@ export function useOnlineGameController(gameId: string) {
       if (localWs) { try { localWs.disconnect(); } catch {} }
       wsRef.current = null;
     };
-  }, [session, gameId, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss]);
+  }, [session, gameId, isSpectator, addLog, showPhaseChange, showSkillUse, showSkillUseAfterPlacement, showSystemNotice, showPassiveNoticeFromLog, showDeathPassiveNotice, pushKillFeedByUids, showReactivePassiveFromStateDiff, queueHeadshotCoinToss]);
 
   const send = useCallback((data: Record<string, unknown>) => {
+    if (isSpectator) return;
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
     addLog('전송 실패(미연결)');
-  }, [addLog]);
+  }, [addLog, isSpectator]);
 
   const leaveGame = useCallback(() => {
     manualCloseRef.current = true;

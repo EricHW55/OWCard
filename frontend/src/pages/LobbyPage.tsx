@@ -175,6 +175,16 @@ const LobbyPage: React.FC = () => {
         });
     }, [ensureGameImageWarmup, navigate]);
 
+    const safeNavigateToSpectate = useCallback((gameId?: string, roomCode?: string) => {
+        if (!gameId || navigatingToGameRef.current) return;
+        navigatingToGameRef.current = true;
+        void ensureGameImageWarmup().then(() => {
+            const query = new URLSearchParams({ spectate: '1' });
+            if (roomCode) query.set('roomCode', roomCode);
+            navigate(`/game/${gameId}?${query.toString()}`);
+        });
+    }, [ensureGameImageWarmup, navigate]);
+
     const syncMatchStatus = useCallback(async (targetSession?: SessionInfo | null) => {
         const activeSession = targetSession ?? session;
         if (!activeSession) return;
@@ -513,6 +523,11 @@ const LobbyPage: React.FC = () => {
                 safeNavigateToGame(msg.game_id);
             });
 
+            ws.on('game_starting_spectate', (msg: any) => {
+                addLog(`관전 시작: ${msg.game_id}`);
+                safeNavigateToSpectate(msg.game_id, msg?.room?.room_code);
+            });
+
             ws.on('queue_joined', (msg: any) => {
                 clearQueueSyncTimer();
                 setQueueing(true);
@@ -546,7 +561,7 @@ const LobbyPage: React.FC = () => {
             wsRef.current?.disconnect();
             wsRef.current = null;
         };
-    }, [session, addLog, refreshRooms, applyDeckToRoom, safeNavigateToGame, syncMatchStatus, clearQueueSyncTimer]);
+    }, [session, addLog, refreshRooms, applyDeckToRoom, safeNavigateToGame, safeNavigateToSpectate, syncMatchStatus, clearQueueSyncTimer]);
 
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();
@@ -675,6 +690,15 @@ const LobbyPage: React.FC = () => {
         send({ action: 'join_room', room_code: joiningCode });
     };
 
+    const handleSpectateRoom = (targetRoom: RoomInfo) => {
+        if (!targetRoom.game_id) {
+            addLog('아직 게임이 시작되지 않아 관전할 수 없습니다.');
+            return;
+        }
+        send({ action: 'spectate', room_code: targetRoom.room_code });
+        safeNavigateToSpectate(targetRoom.game_id, targetRoom.room_code);
+    };
+
     const handleBackToLobby = () => {
         setActiveMenu(null);
         setPlayMode('none');
@@ -687,7 +711,7 @@ const LobbyPage: React.FC = () => {
     const useCompactMenuLayout = isPortrait || viewportSize.width <= 1280;
     const showMainMenu = !(activeMenu === 'play' && playMode === 'private');
     // const menuClassName = `lobby-menu ${isPortrait && showMainMenu ? 'main-menu-mode' : ''}`.trim();
-    const menuClassName = `lobby-menu ${useCompactMenuLayout && showMainMenu ? 'main-menu-mode' : ''}`.trim();
+    const menuClassName = `lobby-menu ${useCompactMenuLayout && showMainMenu ? 'main-menu-mode' : ''} ${useCompactMenuLayout && activeMenu === 'play' && playMode === 'private' ? 'private-mode' : ''}`.trim();
     const queueElapsedSec = queueStartedAt ? Math.max(0, Math.floor((queueNow - queueStartedAt) / 1000)) : 0;
     const queueElapsedMin = String(Math.floor(queueElapsedSec / 60)).padStart(2, '0');
     const queueElapsedRemainSec = String(queueElapsedSec % 60).padStart(2, '0');
@@ -879,16 +903,22 @@ const LobbyPage: React.FC = () => {
                                     {rooms.length === 0 && <div className="empty-text">현재 열린 방이 없음.</div>}
                                     {rooms.map((r) => (
                                         <div className="room-item" key={r.room_id}>
-                                            <div>
-                                                <div className="room-item-title">{r.room_code} · {r.status}</div>
-                                                <div className="room-item-sub">{r.host.username} vs {r.guest?.username ?? '대기 중'}</div>
+                                            <div className="room-item-info">
+                                                <div className="room-item-title room-item-playerline">{r.host.username} vs {r.guest?.username ?? '빈 자리'}</div>
+                                                <div className="room-item-sub room-item-code">{r.room_code}</div>
                                             </div>
                                             <button
                                                 className="lobby-ghost-btn"
-                                                disabled={r.status !== 'waiting'}
-                                                onClick={() => setPendingJoinRoom(r)}
+                                                disabled={r.status !== 'waiting' && r.status !== 'in_game'}
+                                                onClick={() => {
+                                                    if (r.status === 'in_game') {
+                                                        handleSpectateRoom(r);
+                                                        return;
+                                                    }
+                                                    setPendingJoinRoom(r);
+                                                }}
                                             >
-                                                참가
+                                                {r.status === 'in_game' ? '관전' : '참가'}
                                             </button>
                                         </div>
                                     ))}

@@ -131,12 +131,16 @@ class RoomManager:
 
             # 방장 나감 -> 방 삭제
             if target_room.host_id == player_id:
+                if target_room.status == RoomStatus.IN_GAME:
+                    return {"type": "player_left_in_game", "room": target_room}
                 self.rooms.pop(target_room.room_id, None)
                 self.code_map.pop(target_room.room_code, None)
                 return {"type": "room_closed", "room": target_room}
 
             # 게스트 나감 -> 다시 waiting
             if target_room.guest_id == player_id:
+                if target_room.status == RoomStatus.IN_GAME:
+                    return {"type": "player_left_in_game", "room": target_room}
                 target_room.guest_id = None
                 target_room.guest_username = None
                 target_room.guest_deck_id = None
