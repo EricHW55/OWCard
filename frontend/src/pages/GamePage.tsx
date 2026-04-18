@@ -257,14 +257,6 @@ const GamePage: React.FC = () => {
       [revealIndex, currentRevealCard?.id, currentRevealCard?.hero_key, currentRevealCard?.name]
   );
 
-  if (!session && !isSpectator) {
-    return (
-        <div className="game-loading-screen">
-          <div>로그인이 필요합니다.</div>
-        </div>
-    );
-  }
-
   const isGameOver = vm.phase === 'game_over' && !!vm.gs;
   const bo3 = vm.gs?.bo3;
   const isBetweenBo3Rounds = isGameOver && !!bo3?.pending_round_result;
@@ -397,6 +389,14 @@ const GamePage: React.FC = () => {
     setShowBo3DeckEditor(false);
   };
 
+  if (!session && !isSpectator) {
+    return (
+        <div className="game-loading-screen">
+          <div>로그인이 필요합니다.</div>
+        </div>
+    );
+  }
+  
   if (!vm.gs || !vm.my || !vm.opp) {
     return (
       <div className="game-loading-screen">
