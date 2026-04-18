@@ -163,7 +163,10 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const title = (() => {
       if (entry.type === 'placement') return entry.text || `${entry.actor?.name || '영웅'} 배치`;
       if (entry.type === 'destroy') return entry.text || `${entry.actor?.name || '영웅'} 파괴`;
-      return `${entry.actor?.name || ''} ${entry.skillName || ''}`.trim();
+      const actorName = entry.actor?.name || '';
+      const skillName = entry.skillName || '';
+      if (actorName && skillName) return `${actorName} · ${skillName}`;
+      return `${actorName}${skillName}`.trim();
     })();
     const isArrowLog = (entry.type === 'damage' || entry.type === 'heal') && !!entry.target;
     return (
