@@ -396,7 +396,7 @@ const GamePage: React.FC = () => {
         </div>
     );
   }
-  
+
   if (!vm.gs || !vm.my || !vm.opp) {
     return (
       <div className="game-loading-screen">

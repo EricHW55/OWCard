@@ -34,6 +34,7 @@ DECK_ROLE_MAX_COUNTS = {
     "spell": 1,
 }
 SPELL_CARD_MAX_COPIES = 1
+BO3_MAX_DECK_EDITS_PER_BREAK = int(os.getenv("BO3_MAX_DECK_EDITS_PER_BREAK", "1"))
 
 # Field limits
 MAIN_MAX_TANK = 1
