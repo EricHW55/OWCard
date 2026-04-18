@@ -6,8 +6,28 @@ import CardDetail from '../components/CardDetail';
 import { CardFaceContent } from './CardFaceContent';
 import type { GameScreenProps } from '../types/screen';
 import type { BattleLogActor, BattleLogEntry } from '../types/game';
-import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc } from '../utils/heroImage';
+import { getCardBackImageSrc, getCardImageSrc } from '../utils/heroImage';
 import { useCardImage } from '../hooks/useCardImage';
+
+const BattleLogAvatar: React.FC<{ actor?: BattleLogActor; className?: string }> = ({ actor, className = 'game-log-avatar' }) => {
+  const cardLike = React.useMemo(() => ({
+    name: actor?.name,
+    hero_key: actor?.heroKey,
+    is_spell: actor?.isSpell,
+  }), [actor?.heroKey, actor?.isSpell, actor?.name]);
+  const { currentImageSrc, onError } = useCardImage(cardLike, 'field', [actor?.heroKey, actor?.isSpell, actor?.name]);
+  return <img src={currentImageSrc} onError={onError} alt={actor?.name || 'actor'} className={className} />;
+};
+
+const KillFeedAvatar: React.FC<{ unit: { name: string; hero_key?: string; is_spell?: boolean }; className: string }> = ({ unit, className }) => {
+  const cardLike = React.useMemo(() => ({
+    name: unit.name,
+    hero_key: unit.hero_key,
+    is_spell: unit.is_spell,
+  }), [unit.hero_key, unit.is_spell, unit.name]);
+  const { currentImageSrc, onError } = useCardImage(cardLike, 'field', [unit.hero_key, unit.is_spell, unit.name]);
+  return <img src={currentImageSrc} onError={onError} alt={unit.name} className={className} />;
+};
 
 const GameScreen: React.FC<GameScreenProps> = ({
   announcerData,
@@ -132,12 +152,6 @@ const GameScreen: React.FC<GameScreenProps> = ({
     });
   }, [showLogModal, logs.length]);
 
-  const resolveActorImage = React.useCallback((actor?: BattleLogActor) => {
-    const cardLike = { name: actor?.name, hero_key: actor?.heroKey, is_spell: actor?.isSpell };
-    const illustrations = getCardArtCandidates(cardLike);
-    return illustrations[0] || getCardImageSrc(cardLike);
-  }, []);
-
   const renderBattleLog = React.useCallback((entry: BattleLogEntry) => {
     if (entry.type === 'turn') {
       return <div className="game-log-turn-divider">— {entry.text || `${entry.turn}턴`} 시작 —</div>;
@@ -146,26 +160,24 @@ const GameScreen: React.FC<GameScreenProps> = ({
       return <div className="game-log-neutral">{entry.text || '시스템 메시지'}</div>;
     }
     const isMine = entry.team === 'my';
-    const actorImage = resolveActorImage(entry.actor);
-    const targetImage = resolveActorImage(entry.target);
     return (
         <div className={`game-log-entry-box ${isMine ? 'my' : 'opponent'}`}>
           <div className="game-log-entry-title">{`${entry.actor?.name || ''} ${entry.skillName || ''}`.trim()}</div>
           <div className="game-log-entry-content">
-            <img src={actorImage} alt={entry.actor?.name || 'actor'} className="game-log-avatar" />
+            <BattleLogAvatar actor={entry.actor} />
             {entry.type === 'damage' && entry.target ? (
                 <>
                   <div className="game-log-arrow-wrap">
                     <span className="game-log-damage-value">{entry.damage ?? 0}</span>
                     <span className="game-log-arrow">➜</span>
                   </div>
-                  <img src={targetImage} alt={entry.target?.name || 'target'} className="game-log-avatar" />
+                  <BattleLogAvatar actor={entry.target} />
                 </>
             ) : null}
           </div>
         </div>
     );
-  }, [resolveActorImage]);
+  }, []);
 
   return (
     <GameBoardLayout announcerData={announcerData} onCloseAnnouncer={onCloseAnnouncer}>
@@ -188,13 +200,11 @@ const GameScreen: React.FC<GameScreenProps> = ({
         {killFeed.length > 0 && (
             <div className="game-killfeed" aria-live="polite">
               {killFeed.map((entry) => {
-                const killerSrc = getCardImageSrc({ hero_key: entry.killer.hero_key, name: entry.killer.name, is_spell: entry.killer.is_spell });
-                const victimSrc = getCardImageSrc({ hero_key: entry.victim.hero_key, name: entry.victim.name, is_spell: entry.victim.is_spell });
                 return (
                     <button key={entry.id} type="button" className="game-killfeed-item" onClick={() => onDismissKillFeedItem?.(entry.id)}>
-                      <img src={killerSrc} alt={entry.killer.name} className={`game-killfeed-icon ${entry.killer.team === 'my' ? 'ally' : 'enemy'}`} />
+                      <KillFeedAvatar unit={entry.killer} className={`game-killfeed-icon ${entry.killer.team === 'my' ? 'ally' : 'enemy'}`} />
                       <span className="game-killfeed-arrow">➜</span>
-                      <img src={victimSrc} alt={entry.victim.name} className={`game-killfeed-icon ${entry.victim.team === 'my' ? 'ally' : 'enemy'}`} />
+                      <KillFeedAvatar unit={entry.victim} className={`game-killfeed-icon ${entry.victim.team === 'my' ? 'ally' : 'enemy'}`} />
                     </button>
                 );
               })}
