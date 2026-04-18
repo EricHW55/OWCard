@@ -27,6 +27,7 @@ async def lifespan(app: FastAPI):
 
     print("✅ Database ready, cards seeded.")
     print("✅ CORS allow_origins =", app.state.cors_allow_origins)
+    print("✅ CORS allow_origin_regex =", app.state.cors_allow_origin_regex or "(none)")
     yield
     print("🔒 Shutting down.")
 
@@ -44,15 +45,18 @@ cors_allow_origins = parse_csv_env(
         [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
-            "https://web-owcard-frontend-mmxv5jrz842a887d.sel3.cloudtype.app",
             "https://www.owcard.xyz",
             "https://owcard.xyz",
         ]
     ),
 )
-cors_allow_origin_regex = os.getenv("CORS_ALLOW_ORIGIN_REGEX", "").strip()
+cors_allow_origin_regex = os.getenv(
+    "CORS_ALLOW_ORIGIN_REGEX",
+    "",
+).strip()
 
 app.state.cors_allow_origins = cors_allow_origins
+app.state.cors_allow_origin_regex = cors_allow_origin_regex
 
 cors_kwargs = dict(
     allow_origins=cors_allow_origins,
