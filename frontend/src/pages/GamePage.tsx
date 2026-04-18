@@ -252,6 +252,9 @@ const GamePage: React.FC = () => {
   }
 
   const isGameOver = vm.phase === 'game_over' && !!vm.gs;
+  const bo3 = vm.gs?.bo3;
+  const isBetweenBo3Rounds = isGameOver && !!bo3?.pending_round_result;
+  const isFinalGameOver = isGameOver && !isBetweenBo3Rounds;
   const isWinner = !isSpectator && isGameOver && vm.gs?.winner === session?.player_id;
   const resultTitle = !isGameOver ? '' : isSpectator ? '게임 종료' : isWinner ? '승리!' : '패배';
   const resultSubtitle = !isGameOver
@@ -264,11 +267,27 @@ const GamePage: React.FC = () => {
 
   const handleSurrender = () => {
     if (isSpectator) return;
-    if (isGameOver) return;
-    const confirmed = window.confirm('정말로 항복하시겠습니까?');
+    if (isFinalGameOver) return;
+    const confirmed = window.confirm('정말로 항복하시겠습니까? (BO3에서는 현재 세트만 패배 처리됩니다)');
     if (!confirmed) return;
     vm.surrenderGame();
     // navigate('/');
+  };
+
+  const handleSubmitBo3Deck = () => {
+    const current = bo3?.current_deck_template_ids || [];
+    const preset = current.join(',');
+    const raw = window.prompt(
+        `다음 세트 덱 카드 ID 20개를 쉼표로 입력하세요.\n(이번 휴식 구간 최대 ${bo3?.deck_edit_limit_per_break ?? 5}장 변경 가능)`,
+        preset,
+    );
+    if (!raw) return;
+    const ids = raw.split(',').map((v) => Number(v.trim())).filter((v) => Number.isFinite(v));
+    if (ids.length !== 20) {
+      window.alert('카드 ID는 정확히 20개여야 합니다.');
+      return;
+    }
+    vm.submitBo3Deck(ids);
   };
 
   if (!vm.gs || !vm.my || !vm.opp) {
@@ -439,7 +458,7 @@ const GamePage: React.FC = () => {
             {isSpectator ? '양쪽 손패 비공개 관전' : `상대: ${vm.opp.username || '상대'} · 패:${vm.opp.hand_count} · 덱:${vm.opp.draw_pile_count}`}
           </div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
-          {!isSpectator && <button onClick={handleSurrender} disabled={isGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isGameOver ? 0.5 : 1 }}>항복</button>}
+          {!isSpectator && <button onClick={handleSurrender} disabled={isFinalGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isFinalGameOver ? 0.5 : 1 }}>항복</button>}
           <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>
         </>
       }
@@ -562,7 +581,29 @@ const GamePage: React.FC = () => {
       detailCard={vm.detailCard}
       onCloseDetail={() => vm.setDetailCard(null)}
     />
-      {isGameOver && (
+      {isBetweenBo3Rounds && bo3 && !isSpectator && (
+          <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="game-result-modal">
+              <h2>{bo3.pending_round_result?.round}세트 종료</h2>
+              <p>
+                스코어 {Object.values(bo3.wins)[0] ?? 0}:{Object.values(bo3.wins)[1] ?? 0} ·
+                다음 세트 전 덱 수정 단계입니다.
+              </p>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {bo3.awaiting_first_player_choice && (
+                    <>
+                      <button onClick={() => vm.chooseBo3FirstPlayer('first')} style={{ ...BTN_SM, background: '#123e63' }}>선공 선택</button>
+                      <button onClick={() => vm.chooseBo3FirstPlayer('second')} style={{ ...BTN_SM, background: '#123e63' }}>후공 선택</button>
+                    </>
+                )}
+                {bo3.awaiting_deck_submit && (
+                    <button onClick={handleSubmitBo3Deck} style={{ ...BTN_SM, background: '#1a4f2a' }}>덱 제출/수정</button>
+                )}
+              </div>
+            </div>
+          </div>
+      )}
+      {isFinalGameOver && (
           <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
             <div className={`game-result-modal ${isWinner ? 'win' : 'lose'}`}>
               <h2>{resultTitle}</h2>

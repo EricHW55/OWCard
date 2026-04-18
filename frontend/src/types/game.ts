@@ -121,6 +121,23 @@ export interface GameState {
     my_remaining_seconds?: number;
     opponent_remaining_seconds?: number | null;
   };
+  bo3?: {
+    format: 'bo3';
+    current_round: number;
+    wins: Record<string, number>;
+    max_wins: number;
+    max_rounds: number;
+    deck_edit_limit_per_break: number;
+    awaiting_deck_submit: boolean;
+    awaiting_first_player_choice: boolean;
+    can_start_next_round: boolean;
+    pending_round_result?: {
+      winner: number;
+      loser: number;
+      round: number;
+      wins: Record<string, number>;
+    } | null;
+  };
 }
 
 export interface WSMessage {

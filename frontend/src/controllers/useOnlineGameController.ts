@@ -1331,6 +1331,18 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
               isSpectator ? 2000 : 2800,
           );
         }),
+        ws.on('bo3_round_end', (msg: any) => {
+          const round = Number(msg?.round || 0);
+          const winnerName = msg?.winner_name || `P${msg?.winner}`;
+          const nextRound = Number(msg?.next_round || round + 1);
+          addLog(`BO3 ${round}세트 종료 - ${winnerName} 승리. ${nextRound}세트 덱 수정 단계`);
+          showPhaseChange('세트 종료', `${winnerName} 승리 · 다음 세트 준비`, 2200);
+        }),
+        ws.on('bo3_round_started', (msg: any) => {
+          const round = Number(msg?.round || 0);
+          addLog(`BO3 ${round}세트 시작`);
+          showPhaseChange(`${round}세트`, '전투 시작', 1600);
+        }),
         ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
         ws.on('error', (msg: any) => {
@@ -1388,6 +1400,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const surrenderGame = useCallback(() => {
     if (gs && gs.phase !== 'game_over') send({ action: 'surrender' });
   }, [gs, send]);
+  const submitBo3Deck = useCallback((deckCardIds: number[]) => {
+    send({ action: 'submit_bo3_deck', deck_card_ids: deckCardIds });
+  }, [send]);
+  const chooseBo3FirstPlayer = useCallback((choice: 'first' | 'second') => {
+    send({ action: 'bo3_choose_first', choice });
+  }, [send]);
 
   const displayState = renderGs || gs;
   const my = displayState?.my_state || null;
@@ -1799,6 +1817,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     handleHandClick, handleFieldClick, handlePlace, prepareSkill, runMulligan, skipMulligan, completeMulliganCinematic,
     selectColumn, cancelColumnChoice, cancelPendingSpell, useSelectedSpell, cancelSelectedHand,
     resolveMercy, skipMercy, skipJetpackCat, resolveSpellChoice, handleEndMainButton, leaveGame, surrenderGame,
+    submitBo3Deck, chooseBo3FirstPlayer,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,
     duplicateTargetUid, duplicateTargetRole, duplicateTargetName,
     canSelectEmptySlot, handleEmptySlotSelect,

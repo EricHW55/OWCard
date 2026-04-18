@@ -12,6 +12,7 @@ from config import (
     TRASH_WIN_COUNT, 
     DECK_ROLE_MAX_COUNTS,
     SPELL_CARD_MAX_COPIES,
+    BO3_MAX_DECK_EDITS_PER_BREAK,
 )
 from services.matchmaking import matchmaking
 from services.room_manager import room_manager
@@ -33,6 +34,7 @@ async def get_game_config():
         "trash_win_count": TRASH_WIN_COUNT,
         "deck_role_max_counts": DECK_ROLE_MAX_COUNTS,
         "spell_card_max_copies": SPELL_CARD_MAX_COPIES,
+        "bo3_max_deck_edits_per_break": BO3_MAX_DECK_EDITS_PER_BREAK,
     }
 
 
