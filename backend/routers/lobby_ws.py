@@ -38,11 +38,12 @@ async def lobby_ws(
 
             if action == "join_queue":
                 deck_id = data.get("deck_id")
+                match_format = data.get("match_format", "bo1")
                 if not deck_id:
                     await ws.send_json({"event": "error", "message": "deck_id required"})
                     continue
 
-                result = await matchmaking.join_queue(player_id, username, deck_id)
+                result = await matchmaking.join_queue(player_id, username, deck_id, str(match_format))
                 if result:
                     game_id = await create_game_from_match(result)
                     await matchmaking.record_recent_match({
@@ -56,20 +57,26 @@ async def lobby_ws(
                             "event": "match_found",
                             "game_id": game_id,
                             "opponent": result[opp_key],
+                            "match_format": result.get("match_format", "bo1"),
                         })
                 else:
-                    await ws.send_json({"event": "queue_joined", "queue_size": matchmaking.queue_size()})
+                    await ws.send_json({
+                        "event": "queue_joined",
+                        "queue_size": matchmaking.queue_size(str(match_format)),
+                        "match_format": "bo3" if str(match_format).lower() == "bo3" else "bo1",
+                    })
 
             elif action == "leave_queue":
                 await matchmaking.leave_queue(player_id)
                 await ws.send_json({"event": "queue_left"})
 
             elif action == "create_room":
+                match_format = data.get("match_format", "bo1")
                 stale_room_code = await room_manager.cleanup_stale_room_for_host(player_id, set(active_games.keys()))
                 if stale_room_code:
                     await manager.broadcast_lobby({"event": "room_closed", "room_code": stale_room_code})
                 try:
-                    room = await room_manager.create_room(player_id, username)
+                    room = await room_manager.create_room(player_id, username, str(match_format))
                 except ValueError as exc:
                     await ws.send_json({"event": "error", "message": str(exc)})
                     continue

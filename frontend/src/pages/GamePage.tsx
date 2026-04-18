@@ -54,6 +54,8 @@ const GamePage: React.FC = () => {
   const headshotSpinTimerRef = React.useRef<number | null>(null);
   const headshotClearTimerRef = React.useRef<number | null>(null);
   const headshotDoneTimerRef = React.useRef<number | null>(null);
+  const [showBo3DeckEditor, setShowBo3DeckEditor] = React.useState(false);
+  const [bo3DeckInput, setBo3DeckInput] = React.useState('');
 
   const isFirstPlayer = React.useMemo(() => {
     if (isSpectator) return null;
@@ -275,19 +277,16 @@ const GamePage: React.FC = () => {
   };
 
   const handleSubmitBo3Deck = () => {
-    const current = bo3?.current_deck_template_ids || [];
-    const preset = current.join(',');
-    const raw = window.prompt(
-        `다음 세트 덱 카드 ID 20개를 쉼표로 입력하세요.\n(이번 휴식 구간 최대 ${bo3?.deck_edit_limit_per_break ?? 5}장 변경 가능)`,
-        preset,
-    );
-    if (!raw) return;
-    const ids = raw.split(',').map((v) => Number(v.trim())).filter((v) => Number.isFinite(v));
+    const ids = bo3DeckInput
+        .split(',')
+        .map((v) => Number(v.trim()))
+        .filter((v) => Number.isFinite(v));
     if (ids.length !== 20) {
       window.alert('카드 ID는 정확히 20개여야 합니다.');
       return;
     }
     vm.submitBo3Deck(ids);
+    setShowBo3DeckEditor(false);
   };
 
   if (!vm.gs || !vm.my || !vm.opp) {
@@ -597,8 +596,46 @@ const GamePage: React.FC = () => {
                     </>
                 )}
                 {bo3.awaiting_deck_submit && (
-                    <button onClick={handleSubmitBo3Deck} style={{ ...BTN_SM, background: '#1a4f2a' }}>덱 제출/수정</button>
+                    <button
+                        onClick={() => {
+                          const current = bo3?.current_deck_template_ids || [];
+                          setBo3DeckInput(current.join(','));
+                          setShowBo3DeckEditor(true);
+                        }}
+                        style={{ ...BTN_SM, background: '#1a4f2a' }}
+                    >
+                      덱 제출/수정
+                    </button>
                 )}
+              </div>
+            </div>
+          </div>
+      )}
+      {showBo3DeckEditor && bo3 && !isSpectator && (
+          <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="game-result-modal" style={{ width: 'min(720px, 92vw)' }}>
+              <h2>BO3 덱 수정</h2>
+              <p style={{ marginBottom: 12 }}>
+                쉼표(,)로 카드 ID 20개를 입력하세요. 이번 휴식 구간 변경 가능 수: 최대 {bo3.deck_edit_limit_per_break ?? 5}장.
+              </p>
+              <textarea
+                  value={bo3DeckInput}
+                  onChange={(e) => setBo3DeckInput(e.target.value)}
+                  placeholder="예: 1,2,3,..."
+                  style={{
+                    width: '100%',
+                    minHeight: 90,
+                    borderRadius: 10,
+                    border: '1px solid rgba(126,152,220,0.6)',
+                    background: 'rgba(8, 16, 40, 0.8)',
+                    color: '#eaf0ff',
+                    padding: 10,
+                    boxSizing: 'border-box',
+                  }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12 }}>
+                <button onClick={handleSubmitBo3Deck} style={{ ...BTN_SM, background: '#1a4f2a' }}>제출</button>
+                <button onClick={() => setShowBo3DeckEditor(false)} style={{ ...BTN_SM, background: '#4a5268' }}>취소</button>
               </div>
             </div>
           </div>

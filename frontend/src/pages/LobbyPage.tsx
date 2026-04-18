@@ -21,6 +21,7 @@ interface RoomInfo {
     game_id: string | null;
     host_deck_set?: boolean;
     guest_deck_set?: boolean;
+    match_format?: MatchFormat;
 }
 
 interface SessionInfo {
@@ -48,6 +49,7 @@ interface CardTemplateLite {
 
 type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects' | 'admin';
 type PlayMode = 'none' | 'quick' | 'private';
+type MatchFormat = 'bo1' | 'bo3';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 
 function getSession(): SessionInfo | null {
@@ -116,6 +118,7 @@ const LobbyPage: React.FC = () => {
     const [decks, setDecks] = useState<DeckInfo[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [queueing, setQueueing] = useState(false);
+    const [queueFormat, setQueueFormat] = useState<MatchFormat>('bo1');
     const [queueStartedAt, setQueueStartedAt] = useState<number | null>(null);
     const [queueNow, setQueueNow] = useState(() => Date.now());
     const [viewportSize, setViewportSize] = useState(() => ({
@@ -134,6 +137,8 @@ const LobbyPage: React.FC = () => {
     const [showPlayModal, setShowPlayModal] = useState(false);
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
+    const [quickMatchFormat, setQuickMatchFormat] = useState<MatchFormat>('bo1');
+    const [privateRoomFormat, setPrivateRoomFormat] = useState<MatchFormat>('bo1');
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
     const pendingSpectateRef = useRef<{ roomCode: string; gameId: string } | null>(null);
     const backgroundNaturalSizeRef = useRef<{ width: number; height: number } | null>(null);
@@ -200,12 +205,14 @@ const LobbyPage: React.FC = () => {
             }
             if (data?.state === 'queued') {
                 setQueueing(true);
+                setQueueFormat(data?.match_format === 'bo3' ? 'bo3' : 'bo1');
                 setQueueStartedAt((prev) => prev ?? Date.now());
                 setQueueNow(Date.now());
                 addLog('매칭 상태 복구: 대기열 상태를 복원했습니다.');
                 return;
             }
             setQueueing(false);
+            setQueueFormat('bo1');
             setQueueStartedAt(null);
         } catch (e: any) {
             addLog(`매칭 상태 조회 실패: ${e?.message ?? 'unknown error'}`);
@@ -487,6 +494,7 @@ const LobbyPage: React.FC = () => {
                 setRoom(msg.room);
                 addLog(`방 생성 완료 (${msg.room.room_code})`);
                 applyDeckToRoom(msg.room.room_id);
+                setPrivateRoomFormat(msg?.room?.match_format === 'bo3' ? 'bo3' : 'bo1');
                 setPlayMode('private');
                 setShowPlayModal(false);
                 refreshRooms();
@@ -496,6 +504,7 @@ const LobbyPage: React.FC = () => {
                 setRoom(msg.room);
                 addLog(`방 참가 완료 (${msg.room.room_code})`);
                 applyDeckToRoom(msg.room.room_id);
+                setPrivateRoomFormat(msg?.room?.match_format === 'bo3' ? 'bo3' : 'bo1');
                 setPlayMode('private');
                 setShowPlayModal(false);
                 refreshRooms();
@@ -525,6 +534,7 @@ const LobbyPage: React.FC = () => {
 
             ws.on('match_found', (msg: any) => {
                 clearQueueSyncTimer();
+                setQueueFormat(msg?.match_format === 'bo3' ? 'bo3' : 'bo1');
                 addLog(`퀵매칭 완료! 상대: ${msg.opponent?.username ?? '상대'}`);
                 safeNavigateToGame(msg.game_id);
             });
@@ -556,6 +566,7 @@ const LobbyPage: React.FC = () => {
             ws.on('queue_joined', (msg: any) => {
                 clearQueueSyncTimer();
                 setQueueing(true);
+                setQueueFormat(msg?.match_format === 'bo3' ? 'bo3' : quickMatchFormat);
                 setQueueStartedAt((prev) => prev ?? Date.now());
                 setQueueNow(Date.now());
                 addLog(`매칭 대기열 참가. 현재 큐 인원: ${msg.queue_size}`);
@@ -564,6 +575,7 @@ const LobbyPage: React.FC = () => {
             ws.on('queue_left', () => {
                 clearQueueSyncTimer();
                 setQueueing(false);
+                setQueueFormat('bo1');
                 setQueueStartedAt(null);
                 addLog('매칭 대기열에서 나왔습니다.');
             });
@@ -590,7 +602,7 @@ const LobbyPage: React.FC = () => {
             wsRef.current?.disconnect();
             wsRef.current = null;
         };
-    }, [session, addLog, refreshRooms, applyDeckToRoom, safeNavigateToGame, safeNavigateToSpectate, syncMatchStatus, clearQueueSyncTimer]);
+    }, [session, addLog, refreshRooms, applyDeckToRoom, safeNavigateToGame, safeNavigateToSpectate, syncMatchStatus, clearQueueSyncTimer, quickMatchFormat]);
 
     const createGuestSession = async () => {
         const nickname = nicknameInput.trim();
@@ -660,9 +672,10 @@ const LobbyPage: React.FC = () => {
         }
     };
 
-    const startQuickMatch = () => {
+    const startQuickMatch = (format: MatchFormat) => {
         setPlayMode('quick');
         setActiveMenu('play');
+        setQuickMatchFormat(format);
         if (queueing) {
             if (!connected) {
                 addLog('로비 연결이 끊겨 퀵매칭 취소 요청을 보낼 수 없습니다.');
@@ -682,10 +695,11 @@ const LobbyPage: React.FC = () => {
         }
         clearQueueSyncTimer();
         setQueueing(true);
+        setQueueFormat(quickMatchFormat);
         setQueueStartedAt(Date.now());
         setQueueNow(Date.now());
-        send({ action: 'join_queue', deck_id: quickMatchDeckId });
-        addLog(`퀵매칭 시작: 덱 ${quickMatchDeckId}`);
+        send({ action: 'join_queue', deck_id: quickMatchDeckId, match_format: quickMatchFormat });
+        addLog(`퀵매칭 시작(${quickMatchFormat.toUpperCase()}): 덱 ${quickMatchDeckId}`);
         queueSyncTimerRef.current = window.setTimeout(() => {
             addLog('퀵매칭 ACK 지연으로 상태 재동기화를 수행합니다.');
             void syncMatchStatus();
@@ -694,9 +708,10 @@ const LobbyPage: React.FC = () => {
         setShowPlayModal(false);
     };
 
-    const openPrivateLobby = () => {
+    const openPrivateLobby = (format: MatchFormat) => {
         setActiveMenu('play');
         setPlayMode('private');
+        setPrivateRoomFormat(format);
         setShowPlayModal(false);
     };
 
@@ -706,7 +721,7 @@ const LobbyPage: React.FC = () => {
             return;
         }
         setPrivateRoomLimitMessage('');
-        send({ action: 'create_room' });
+        send({ action: 'create_room', match_format: privateRoomFormat });
     };
 
     const handleJoinRoom = (code?: string) => {
@@ -804,7 +819,7 @@ const LobbyPage: React.FC = () => {
             {queueing && (
                 <div className={`queue-status-banner ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
                     <div className="queue-status-left">
-                        <div className="queue-status-label">퀵매칭</div>
+                        <div className="queue-status-label">퀵매칭 · {queueFormat.toUpperCase()}</div>
                         <div className="queue-status-text">게임 찾는 중...</div>
                     </div>
                     <div className="queue-status-right">
@@ -877,6 +892,20 @@ const LobbyPage: React.FC = () => {
                         <section className="panel private-room-grid">
                             <div>
                                 <h3>사설방</h3>
+                                <div className="mode-segment-wrap">
+                                    <button
+                                        className={`lobby-ghost-btn ${privateRoomFormat === 'bo1' ? 'active' : ''}`}
+                                        onClick={() => setPrivateRoomFormat('bo1')}
+                                    >
+                                        BO1 사설방
+                                    </button>
+                                    <button
+                                        className={`lobby-ghost-btn ${privateRoomFormat === 'bo3' ? 'active' : ''}`}
+                                        onClick={() => setPrivateRoomFormat('bo3')}
+                                    >
+                                        BO3 사설방
+                                    </button>
+                                </div>
 
                                 <div className="deck-row">
                                     <label>사용할 덱</label>
@@ -917,6 +946,7 @@ const LobbyPage: React.FC = () => {
                                 {room && (
                                     <div className="current-room">
                                         <div className="current-room-title">현재 방: {room.room_code}</div>
+                                        <div>모드: <b>{(room.match_format ?? 'bo1').toUpperCase()}</b></div>
                                         <div>상태: <b>{room.status}</b></div>
                                         <div>방장: <b>{room.host.username}</b></div>
                                         <div>참가자: <b>{room.guest?.username ?? '대기 중'}</b></div>
@@ -930,12 +960,12 @@ const LobbyPage: React.FC = () => {
                             <div>
                                 <h3>열린 방 목록</h3>
                                 <div className="room-list-wrap">
-                                    {rooms.length === 0 && <div className="empty-text">현재 열린 방이 없음.</div>}
-                                    {rooms.map((r) => (
+                                    {rooms.filter((r) => (r.match_format ?? 'bo1') === privateRoomFormat).length === 0 && <div className="empty-text">현재 열린 {privateRoomFormat.toUpperCase()} 방이 없음.</div>}
+                                    {rooms.filter((r) => (r.match_format ?? 'bo1') === privateRoomFormat).map((r) => (
                                         <div className="room-item" key={r.room_id}>
                                             <div className="room-item-info">
                                                 <div className="room-item-title room-item-playerline">{r.host.username} vs {r.guest?.username ?? '빈 자리'}</div>
-                                                <div className="room-item-sub room-item-code">{r.room_code}</div>
+                                                <div className="room-item-sub room-item-code">{r.room_code} · {(r.match_format ?? 'bo1').toUpperCase()}</div>
                                             </div>
                                             <button
                                                 className="lobby-ghost-btn"
@@ -971,12 +1001,14 @@ const LobbyPage: React.FC = () => {
                     <div className="play-modal">
                         <button className="play-modal-close" onClick={() => setShowPlayModal(false)}>×</button>
                         <h3>게임 플레이</h3>
-                        <p>모드를 선택하세요.</p>
+                        <p>플레이 타입을 선택하세요.</p>
                         <div className="play-modal-actions">
-                            <button className="lobby-ghost-btn" onClick={startQuickMatch}>
-                                {queueing ? '퀵매칭 취소' : '퀵매칭'}
+                            <button className="lobby-ghost-btn" onClick={() => startQuickMatch('bo1')}>
+                                {queueing ? '퀵매칭 취소' : '퀵매칭 (BO1)'}
                             </button>
-                            <button className="lobby-ghost-btn" onClick={openPrivateLobby}>사설방</button>
+                            <button className="lobby-ghost-btn" onClick={() => startQuickMatch('bo3')}>퀵매칭 (BO3)</button>
+                            <button className="lobby-ghost-btn" onClick={() => openPrivateLobby('bo1')}>사설방 (BO1)</button>
+                            <button className="lobby-ghost-btn" onClick={() => openPrivateLobby('bo3')}>사설방 (BO3)</button>
                             <button
                                 className="lobby-ghost-btn"
                                 onClick={() => {
@@ -1017,8 +1049,8 @@ const LobbyPage: React.FC = () => {
                 <div className="play-modal-backdrop" role="dialog" aria-modal="true">
                     <div className="play-modal">
                         <button className="play-modal-close" onClick={() => setShowQuickDeckModal(false)}>×</button>
-                        <h3>퀵매칭 덱 선택</h3>
-                        <p>퀵매칭에 사용할 덱을 골라주세요.</p>
+                        <h3>퀵매칭 덱 선택 ({quickMatchFormat.toUpperCase()})</h3>
+                        <p>{quickMatchFormat.toUpperCase()} 퀵매칭에 사용할 덱을 골라주세요.</p>
                         <div className="deck-row quick-match-deck-row">
                             <label>사용할 덱</label>
                             <select

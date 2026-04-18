@@ -44,14 +44,15 @@ class QueueJoinReq(BaseModel):
     player_id: int
     username: str
     deck_id: int
+    match_format: str = "bo1"
 
 
 @router.post("/matchmaking/join")
 async def join_queue(req: QueueJoinReq):
-    result = await matchmaking.join_queue(req.player_id, req.username, req.deck_id)
+    result = await matchmaking.join_queue(req.player_id, req.username, req.deck_id, req.match_format)
     if result:
         return {"matched": True, **result}
-    return {"matched": False, "queue_size": matchmaking.queue_size()}
+    return {"matched": False, "queue_size": matchmaking.queue_size(req.match_format)}
 
 
 @router.post("/matchmaking/leave")
@@ -92,6 +93,7 @@ async def lobby_match_status(player_id: int):
 class CreateRoomReq(BaseModel):
     player_id: int
     username: str
+    match_format: str = "bo1"
 
 
 class JoinRoomReq(BaseModel):
@@ -114,7 +116,7 @@ class SpectateReq(BaseModel):
 async def create_room(req: CreateRoomReq):
     # room = await room_manager.create_room(req.player_id, req.username)
     try:
-        room = await room_manager.create_room(req.player_id, req.username)
+        room = await room_manager.create_room(req.player_id, req.username, req.match_format)
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     return room.to_dict()

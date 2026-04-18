@@ -31,6 +31,7 @@ class Room:
     max_spectators: int = 10
     created_at: float = dc_field(default_factory=time.time)
     game_started_at: Optional[float] = None
+    match_format: str = "bo1"
 
     def to_dict(self) -> dict:
         return {
@@ -41,6 +42,7 @@ class Room:
             "status": self.status.value,
             "spectator_count": len(self.spectator_ids),
             "game_id": self.game_id,
+            "match_format": self.match_format,
         }
 
 
@@ -66,7 +68,7 @@ class RoomManager:
             if room:
                 self.code_map.pop(room.room_code, None)
 
-    async def create_room(self, host_id: int, host_username: str) -> Room:
+    async def create_room(self, host_id: int, host_username: str, match_format: str = "bo1") -> Room:
         async with self._lock:
             self._cleanup_expired_rooms_locked()
             existing_room = self.find_active_room_by_host(host_id)
@@ -74,7 +76,14 @@ class RoomManager:
                 raise ValueError("이미 생성한 사설방이 있습니다. 기존 방을 이용해주세요.")
             rid = f"room_{uuid.uuid4().hex[:12]}"
             code = uuid.uuid4().hex[:6].upper()
-            room = Room(room_id=rid, room_code=code, host_id=host_id, host_username=host_username)
+            normalized_format = "bo3" if str(match_format).lower() == "bo3" else "bo1"
+            room = Room(
+                room_id=rid,
+                room_code=code,
+                host_id=host_id,
+                host_username=host_username,
+                match_format=normalized_format,
+            )
             self.rooms[rid] = room
             self.code_map[code] = rid
             return room
@@ -147,6 +156,7 @@ class RoomManager:
         return {
             "game_id": gid,
             "room_id": room_id,
+            "match_format": room.match_format,
             "player1": {"id": room.host_id, "username": room.host_username, "deck_id": room.host_deck_id},
             "player2": {"id": room.guest_id, "username": room.guest_username, "deck_id": room.guest_deck_id},
         }
