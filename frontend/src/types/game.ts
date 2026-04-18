@@ -127,6 +127,7 @@ export interface GameState {
     wins: Record<string, number>;
     max_wins: number;
     max_rounds: number;
+    current_deck_template_ids?: number[];
     deck_edit_limit_per_break: number;
     awaiting_deck_submit: boolean;
     awaiting_first_player_choice: boolean;

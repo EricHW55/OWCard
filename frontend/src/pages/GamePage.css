@@ -246,6 +246,222 @@
     font-weight: 900;
 }
 
+.game-bo3-editor-modal {
+    width: min(1240px, 96vw);
+    max-height: min(92dvh, 920px);
+    overflow: auto;
+}
+
+.game-bo3-editor-desc {
+    margin: 0 0 8px;
+    color: #a8b9e8;
+}
+
+.game-bo3-editor-loading {
+    text-align: center;
+    color: #9fb5f0;
+    padding: 16px 0;
+}
+
+.game-bo3-editor-changes {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.game-bo3-editor-change-block {
+    border: 1px solid rgba(91, 122, 196, 0.48);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: rgba(11, 20, 48, 0.75);
+}
+
+.game-bo3-editor-change-block.removed {
+    text-align: left;
+}
+
+.game-bo3-editor-change-block.added {
+    text-align: right;
+}
+
+.game-bo3-editor-change-title {
+    font-size: 12px;
+    font-weight: 900;
+    color: #dce7ff;
+}
+
+.game-bo3-editor-change-items {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.game-bo3-editor-change-block.added .game-bo3-editor-change-items {
+    justify-content: flex-end;
+}
+
+.game-bo3-editor-change-items span {
+    border: 1px solid #334f8f;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #c6d8ff;
+    background: rgba(33, 55, 110, 0.5);
+}
+
+.game-bo3-editor-search-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.game-bo3-editor-search {
+    width: 100%;
+    border: 1px solid rgba(126, 152, 220, 0.6);
+    border-radius: 10px;
+    background: rgba(8, 16, 40, 0.8);
+    color: #eaf0ff;
+    padding: 8px 10px;
+    box-sizing: border-box;
+}
+
+.game-bo3-editor-total {
+    display: grid;
+    place-items: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(91, 122, 196, 0.48);
+    background: rgba(11, 20, 48, 0.75);
+    font-weight: 900;
+}
+
+.game-bo3-editor-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.game-bo3-editor-panel {
+    border: 1px solid rgba(91, 122, 196, 0.48);
+    border-radius: 10px;
+    background: rgba(11, 20, 48, 0.75);
+    padding: 8px;
+}
+
+.game-bo3-editor-panel-title {
+    font-size: 16px;
+    font-weight: 900;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.game-bo3-editor-card-grid {
+    max-height: 40dvh;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: 6px;
+    padding-right: 2px;
+}
+
+.game-bo3-editor-deck-grid {
+    max-height: 40dvh;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+}
+
+.game-bo3-editor-card-tile,
+.game-bo3-editor-selected-card {
+    position: relative;
+    border: 1px solid #243055;
+    border-radius: 8px;
+    background: #0d1225;
+    padding: 4px;
+}
+
+.game-bo3-editor-card-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #1a2342;
+}
+
+.game-bo3-editor-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.game-bo3-editor-card-name {
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 3px;
+}
+
+.game-bo3-editor-card-role {
+    font-size: 10px;
+    text-align: center;
+}
+
+.game-bo3-editor-controls {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-weight: 800;
+}
+
+.game-bo3-editor-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #3a4a78;
+    background: #243055;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.game-bo3-editor-selected-qty {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #ff9b30;
+    color: #0a0e1a;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.game-bo3-editor-empty {
+    text-align: center;
+    color: #7f90bf;
+    padding: 16px;
+}
+
+@media (min-width: 900px) {
+    .game-bo3-editor-changes {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .game-bo3-editor-grid {
+        grid-template-columns: 1.4fr 0.9fr;
+    }
+}
+
 .game-board-scale {
     display: flex;
     flex-direction: column;

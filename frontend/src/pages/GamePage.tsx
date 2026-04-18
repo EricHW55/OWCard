@@ -15,6 +15,13 @@ import '../styles/animations/index.css';
 type CoinFace = 'front' | 'back';
 type CoinTossStage = 'hidden' | 'spinning' | 'result' | 'clearing' | 'done';
 type OpeningStage = 'idle' | 'draw_back' | 'reveal_front' | 'done';
+type Bo3EditorCard = {
+  id: number;
+  name: string;
+  role: string;
+  is_spell?: boolean;
+  hero_key?: string;
+};
 
 function formatTimerClock(totalSeconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
@@ -55,7 +62,12 @@ const GamePage: React.FC = () => {
   const headshotClearTimerRef = React.useRef<number | null>(null);
   const headshotDoneTimerRef = React.useRef<number | null>(null);
   const [showBo3DeckEditor, setShowBo3DeckEditor] = React.useState(false);
-  const [bo3DeckInput, setBo3DeckInput] = React.useState('');
+  const [bo3EditorLoading, setBo3EditorLoading] = React.useState(false);
+  const [bo3EditorCards, setBo3EditorCards] = React.useState<Bo3EditorCard[]>([]);
+  const [bo3EditorEntries, setBo3EditorEntries] = React.useState<Record<number, number>>({});
+  const [bo3EditorBaseDeck, setBo3EditorBaseDeck] = React.useState<number[]>([]);
+  const [bo3EditorDeckSize, setBo3EditorDeckSize] = React.useState(20);
+  const [bo3EditorSearch, setBo3EditorSearch] = React.useState('');
 
   const isFirstPlayer = React.useMemo(() => {
     if (isSpectator) return null;
@@ -276,13 +288,109 @@ const GamePage: React.FC = () => {
     // navigate('/');
   };
 
+  const addBo3EditorCard = React.useCallback((cardId: number) => {
+    setBo3EditorEntries((prev) => ({ ...prev, [cardId]: (prev[cardId] ?? 0) + 1 }));
+  }, []);
+
+  const removeBo3EditorCard = React.useCallback((cardId: number) => {
+    setBo3EditorEntries((prev) => {
+      const next = { ...prev };
+      const current = next[cardId] ?? 0;
+      if (current <= 1) delete next[cardId];
+      else next[cardId] = current - 1;
+      return next;
+    });
+  }, []);
+
+  const openBo3DeckEditor = React.useCallback(async () => {
+    const bo3State = vm.gs?.bo3 as any;
+    const currentDeckIdsRaw = bo3State?.current_deck_template_ids
+        || bo3State?.current_deck_card_ids
+        || bo3State?.deck_template_ids
+        || bo3State?.deck_card_ids
+        || [];
+    const currentDeckIds = Array.isArray(currentDeckIdsRaw)
+        ? currentDeckIdsRaw.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v))
+        : [];
+    setBo3EditorBaseDeck(currentDeckIds);
+    const nextEntries: Record<number, number> = {};
+    currentDeckIds.forEach((id) => {
+      nextEntries[id] = (nextEntries[id] ?? 0) + 1;
+    });
+    setBo3EditorEntries(nextEntries);
+    setBo3EditorSearch('');
+    setBo3EditorLoading(true);
+    setShowBo3DeckEditor(true);
+    try {
+      const [cfgRes, cardsRes] = await Promise.all([
+        fetch(`${apiBase}/public/game-config`),
+        fetch(`${apiBase}/cards/`),
+      ]);
+      if (!cfgRes.ok || !cardsRes.ok) throw new Error();
+      const cfg = await cfgRes.json();
+      const cardList = await cardsRes.json();
+      setBo3EditorDeckSize(Number(cfg?.deck_size) > 0 ? Number(cfg.deck_size) : 20);
+      setBo3EditorCards(Array.isArray(cardList) ? [...cardList].sort((a, b) => Number(a.id) - Number(b.id)) : []);
+    } catch {
+      window.alert('BO3 덱 편집 데이터를 불러오지 못했습니다.');
+      setShowBo3DeckEditor(false);
+    } finally {
+      setBo3EditorLoading(false);
+    }
+  }, [vm.gs, apiBase]);
+
+  const bo3EditorTotalCount = React.useMemo(
+      () => Object.values(bo3EditorEntries).reduce((sum, qty) => sum + qty, 0),
+      [bo3EditorEntries]
+  );
+  const bo3EditorSelectedCards = React.useMemo(
+      () => bo3EditorCards
+          .filter((card) => (bo3EditorEntries[card.id] ?? 0) > 0)
+          .map((card) => ({ ...card, quantity: bo3EditorEntries[card.id] ?? 0 }))
+          .sort((a, b) => a.id - b.id),
+      [bo3EditorCards, bo3EditorEntries]
+  );
+  const bo3EditorFilteredCards = React.useMemo(() => {
+    const q = bo3EditorSearch.trim().toLowerCase();
+    if (!q) return bo3EditorCards;
+    return bo3EditorCards.filter((card) => `${card.name} ${card.role}`.toLowerCase().includes(q));
+  }, [bo3EditorCards, bo3EditorSearch]);
+  const bo3EditorChanges = React.useMemo(() => {
+    const toCountMap = (ids: number[]) => {
+      const countMap: Record<number, number> = {};
+      ids.forEach((id) => { countMap[id] = (countMap[id] ?? 0) + 1; });
+      return countMap;
+    };
+    const baseMap = toCountMap(bo3EditorBaseDeck);
+    const removed: number[] = [];
+    const added: number[] = [];
+    const allIds = new Set<number>([
+      ...Object.keys(baseMap).map(Number),
+      ...Object.keys(bo3EditorEntries).map(Number),
+    ]);
+    allIds.forEach((id) => {
+      const before = baseMap[id] ?? 0;
+      const after = bo3EditorEntries[id] ?? 0;
+      if (after > before) {
+        for (let i = 0; i < after - before; i += 1) added.push(id);
+      } else if (before > after) {
+        for (let i = 0; i < before - after; i += 1) removed.push(id);
+      }
+    });
+    return { removed, added };
+  }, [bo3EditorBaseDeck, bo3EditorEntries]);
+
   const handleSubmitBo3Deck = () => {
-    const ids = bo3DeckInput
-        .split(',')
-        .map((v) => Number(v.trim()))
-        .filter((v) => Number.isFinite(v));
-    if (ids.length !== 20) {
-      window.alert('카드 ID는 정확히 20개여야 합니다.');
+    const ids = Object.entries(bo3EditorEntries).flatMap(([id, qty]) =>
+        Array.from({ length: qty }, () => Number(id))
+    );
+    if (ids.length !== bo3EditorDeckSize) {
+      window.alert(`카드 수는 정확히 ${bo3EditorDeckSize}장이어야 합니다.`);
+      return;
+    }
+    const editLimit = Number(bo3?.deck_edit_limit_per_break ?? 5);
+    if (bo3EditorChanges.removed.length > editLimit || bo3EditorChanges.added.length > editLimit) {
+      window.alert(`이번 휴식 구간에서는 최대 ${editLimit}장까지 수정할 수 있습니다.`);
       return;
     }
     vm.submitBo3Deck(ids);
@@ -597,11 +705,7 @@ const GamePage: React.FC = () => {
                 )}
                 {bo3.awaiting_deck_submit && (
                     <button
-                        onClick={() => {
-                          const current = bo3?.current_deck_template_ids || [];
-                          setBo3DeckInput(current.join(','));
-                          setShowBo3DeckEditor(true);
-                        }}
+                        onClick={openBo3DeckEditor}
                         style={{ ...BTN_SM, background: '#1a4f2a' }}
                     >
                       덱 제출/수정
@@ -613,26 +717,89 @@ const GamePage: React.FC = () => {
       )}
       {showBo3DeckEditor && bo3 && !isSpectator && (
           <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
-            <div className="game-result-modal" style={{ width: 'min(720px, 92vw)' }}>
+            <div className="game-result-modal game-bo3-editor-modal">
               <h2>BO3 덱 수정</h2>
-              <p style={{ marginBottom: 12 }}>
-                쉼표(,)로 카드 ID 20개를 입력하세요. 이번 휴식 구간 변경 가능 수: 최대 {bo3.deck_edit_limit_per_break ?? 5}장.
+              <p className="game-bo3-editor-desc">
+                이번 휴식 구간 변경 가능 수: 최대 {bo3.deck_edit_limit_per_break ?? 5}장
               </p>
-              <textarea
-                  value={bo3DeckInput}
-                  onChange={(e) => setBo3DeckInput(e.target.value)}
-                  placeholder="예: 1,2,3,..."
-                  style={{
-                    width: '100%',
-                    minHeight: 90,
-                    borderRadius: 10,
-                    border: '1px solid rgba(126,152,220,0.6)',
-                    background: 'rgba(8, 16, 40, 0.8)',
-                    color: '#eaf0ff',
-                    padding: 10,
-                    boxSizing: 'border-box',
-                  }}
-              />
+              {bo3EditorLoading ? (
+                  <div className="game-bo3-editor-loading">카드 데이터를 불러오는 중...</div>
+              ) : (
+                  <>
+                    <div className="game-bo3-editor-changes">
+                      <div className="game-bo3-editor-change-block removed">
+                        <div className="game-bo3-editor-change-title">뺀 카드 ({bo3EditorChanges.removed.length})</div>
+                        <div className="game-bo3-editor-change-items">
+                          {bo3EditorChanges.removed.length === 0 ? <span>-</span> : bo3EditorChanges.removed.map((id, idx) => (
+                              <span key={`removed-${id}-${idx}`}>#{id}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="game-bo3-editor-change-block added">
+                        <div className="game-bo3-editor-change-title">추가한 카드 ({bo3EditorChanges.added.length})</div>
+                        <div className="game-bo3-editor-change-items">
+                          {bo3EditorChanges.added.length === 0 ? <span>-</span> : bo3EditorChanges.added.map((id, idx) => (
+                              <span key={`added-${id}-${idx}`}>#{id}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="game-bo3-editor-search-row">
+                      <input
+                          className="game-bo3-editor-search"
+                          value={bo3EditorSearch}
+                          onChange={(e) => setBo3EditorSearch(e.target.value)}
+                          placeholder="카드 검색"
+                      />
+                      <div className="game-bo3-editor-total">{bo3EditorTotalCount}/{bo3EditorDeckSize}</div>
+                    </div>
+                    <div className="game-bo3-editor-grid">
+                      <section className="game-bo3-editor-panel">
+                        <div className="game-bo3-editor-panel-title">카드 목록</div>
+                        <div className="game-bo3-editor-card-grid">
+                          {bo3EditorFilteredCards.map((card) => {
+                            const qty = bo3EditorEntries[card.id] ?? 0;
+                            const roleColor = card.is_spell ? '#ffaa22' : (ROLE_COLOR[card.role] || '#9aa6cc');
+                            return (
+                                <div key={`bo3-card-${card.id}`} className="game-bo3-editor-card-tile" style={{ borderColor: qty > 0 ? roleColor : undefined }}>
+                                  <div className="game-bo3-editor-card-img">
+                                    <img src={getCardImageSrc(card as any)} alt={card.name} />
+                                  </div>
+                                  <div className="game-bo3-editor-card-name">{card.name}</div>
+                                  <div className="game-bo3-editor-card-role" style={{ color: roleColor }}>{card.is_spell ? '스킬' : card.role}</div>
+                                  <div className="game-bo3-editor-controls">
+                                    <button className="game-bo3-editor-btn" onClick={() => removeBo3EditorCard(card.id)} disabled={qty <= 0}>-</button>
+                                    <span>{qty}</span>
+                                    <button className="game-bo3-editor-btn" onClick={() => addBo3EditorCard(card.id)}>+</button>
+                                  </div>
+                                </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                      <section className="game-bo3-editor-panel">
+                        <div className="game-bo3-editor-panel-title">내 덱 <span>{bo3EditorTotalCount}/{bo3EditorDeckSize}</span></div>
+                        <div className="game-bo3-editor-deck-grid">
+                          {bo3EditorSelectedCards.length === 0 ? (
+                              <div className="game-bo3-editor-empty">카드를 추가하세요</div>
+                          ) : bo3EditorSelectedCards.map((card) => (
+                              <div key={`bo3-selected-${card.id}`} className="game-bo3-editor-selected-card">
+                                <div className="game-bo3-editor-selected-qty">{card.quantity}</div>
+                                <div className="game-bo3-editor-card-img">
+                                  <img src={getCardImageSrc(card as any)} alt={card.name} />
+                                </div>
+                                <div className="game-bo3-editor-card-name">{card.name}</div>
+                                <div className="game-bo3-editor-controls">
+                                  <button className="game-bo3-editor-btn" onClick={() => removeBo3EditorCard(card.id)}>-</button>
+                                  <button className="game-bo3-editor-btn" onClick={() => addBo3EditorCard(card.id)}>+</button>
+                                </div>
+                              </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+                  </>
+              )}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12 }}>
                 <button onClick={handleSubmitBo3Deck} style={{ ...BTN_SM, background: '#1a4f2a' }}>제출</button>
                 <button onClick={() => setShowBo3DeckEditor(false)} style={{ ...BTN_SM, background: '#4a5268' }}>취소</button>
