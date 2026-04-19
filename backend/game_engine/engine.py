@@ -509,11 +509,24 @@ class GameEngine:
         if len(self.players) != 2:
             return {"error": "Need 2 players"}
         self.turn_timer_started_at = None
+        self.winner = None
+        self.action_log = []
+        self.pending_end_turn_effects = []
+        self.round_number = 1
         for ps in self.players.values():
+            ps.field = Field()
+            ps.trash = []
+            ps.pending_passive = None
+            ps.pending_spell = None
+            ps.placement_cost_used = 0
+            ps.mulligan_done = False
+            ps.mulligan_used = 0
+            ps.mulligan_excluded = []
             shuffled = list(ps.deck)
             random.shuffle(shuffled)
             ps.hand = shuffled[:HAND_SIZE]
             ps.draw_pile = shuffled[HAND_SIZE:]
+            self.remaining_time[ps.player_id] = float(self.initial_time_seconds)
         preset_first_player_id = self.first_player_id if self.first_player_id in self.player_order else None
         if preset_first_player_id is not None:
             first_idx = self.player_order.index(preset_first_player_id)

@@ -401,6 +401,33 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         if len(submitted_ids) != DECK_SIZE:
             await manager.send_game(game_id, player_id, {"event": "error", "message": f"덱은 {DECK_SIZE}장이어야 합니다."})
             return
+        prev_ids = bo3_session.deck_template_ids_by_player.get(player_id, [])
+        before_count: dict[int, int] = {}
+        after_count: dict[int, int] = {}
+        for cid in prev_ids:
+            before_count[int(cid)] = int(before_count.get(int(cid), 0)) + 1
+        for cid in submitted_ids:
+            after_count[int(cid)] = int(after_count.get(int(cid), 0)) + 1
+        all_ids = set(before_count.keys()) | set(after_count.keys())
+        removed_count = 0
+        added_count = 0
+        for cid in all_ids:
+            before = int(before_count.get(cid, 0))
+            after = int(after_count.get(cid, 0))
+            if before > after:
+                removed_count += before - after
+            elif after > before:
+                added_count += after - before
+        if removed_count > BO3_MAX_DECK_EDITS_PER_BREAK or added_count > BO3_MAX_DECK_EDITS_PER_BREAK:
+            await manager.send_game(
+                game_id,
+                player_id,
+                {
+                    "event": "error",
+                    "message": f"이번 휴식 구간에서는 최대 {BO3_MAX_DECK_EDITS_PER_BREAK}장까지 덱을 변경할 수 있습니다.",
+                },
+            )
+            return
         cards = await load_cards_from_template_ids(submitted_ids)
         if len(cards) != len(submitted_ids):
             await manager.send_game(game_id, player_id, {"event": "error", "message": "존재하지 않는 카드가 포함되어 있습니다."})

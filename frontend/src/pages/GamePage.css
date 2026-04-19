@@ -247,9 +247,11 @@
 }
 
 .game-bo3-editor-modal {
-    width: min(1380px, 94vw);
-    max-height: min(94dvh, 980px);
+    width: min(1680px, 98vw);
+    max-height: 96dvh;
+    min-height: min(760px, 92dvh);
     overflow: auto;
+    padding: clamp(16px, 1.8vw, 24px) clamp(12px, 1.5vw, 20px);
 }
 
 .game-bo3-editor-desc {
@@ -371,7 +373,7 @@
 }
 
 .game-bo3-editor-panel-title {
-    font-size: 16px;
+    font-size: clamp(16px, 1.3vw, 20px);
     font-weight: 900;
     margin-bottom: 6px;
     display: flex;
@@ -379,20 +381,20 @@
 }
 
 .game-bo3-editor-card-grid {
-    max-height: 40dvh;
+    max-height: 60dvh;
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 8px;
     padding-right: 2px;
 }
 
 .game-bo3-editor-deck-grid {
-    max-height: 40dvh;
+    max-height: 60dvh;
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px;
 }
 
 .game-bo3-editor-card-tile,
@@ -402,6 +404,7 @@
     border-radius: 8px;
     background: #0d1225;
     padding: 4px;
+    touch-action: manipulation;
 }
 
 .game-bo3-editor-card-img {
@@ -419,14 +422,14 @@
 }
 
 .game-bo3-editor-card-name {
-    font-size: 11px;
+    font-size: clamp(11px, 0.9vw, 13px);
     font-weight: 800;
     text-align: center;
     margin-top: 3px;
 }
 
 .game-bo3-editor-card-role {
-    font-size: 10px;
+    font-size: clamp(10px, 0.8vw, 12px);
     text-align: center;
 }
 
@@ -483,8 +486,9 @@
 
 @media (max-width: 899px) {
     .game-bo3-editor-modal {
-        width: min(96vw, 680px);
+        width: min(98vw, 980px);
         max-height: min(95dvh, 1180px);
+        min-height: auto;
         padding: 16px 12px;
     }
 
@@ -494,7 +498,8 @@
 
     .game-bo3-editor-card-grid,
     .game-bo3-editor-deck-grid {
-        max-height: 32dvh;
+        max-height: 35dvh;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     }
 }
 
