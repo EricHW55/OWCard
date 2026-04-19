@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getCardImageSrc } from '../utils/heroImage';
+import { getCardImageSrc, resolveSpellKey } from '../utils/heroImage';
 import './GameAnnouncer.css';
 
 export interface AnnouncerData {
@@ -20,6 +20,21 @@ interface Props {
     onClose: () => void;
 }
 
+const spellSoundExistsCache = new Map<string, boolean>();
+
+async function canPlaySpellSound(url: string): Promise<boolean> {
+    if (spellSoundExistsCache.has(url)) return spellSoundExistsCache.get(url) === true;
+    try {
+        const response = await fetch(url, { method: 'HEAD' });
+        const ok = response.ok;
+        spellSoundExistsCache.set(url, ok);
+        return ok;
+    } catch {
+        spellSoundExistsCache.set(url, false);
+        return false;
+    }
+}
+
 const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
     const handleSkip = () => onClose();
     const [imgError, setImgError] = useState(false);
@@ -34,6 +49,38 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
         const timer = window.setTimeout(() => onClose(), displayTime);
         return () => window.clearTimeout(timer);
     }, [data, onClose]);
+
+    useEffect(() => {
+        if (!data || data.type !== 'skill' || !data.isSpell) return;
+
+        const spellKey = resolveSpellKey({
+            hero_key: data.heroKey,
+            name: data.imageName || data.title,
+            is_spell: true,
+        });
+        if (!spellKey) return;
+
+        const soundUrl = `/sounds/skills/${spellKey}/place.ogg`;
+        let cancelled = false;
+        const audio = new Audio(soundUrl);
+        audio.preload = 'auto';
+
+        (async () => {
+            const exists = await canPlaySpellSound(soundUrl);
+            if (!exists || cancelled) return;
+            try {
+                await audio.play();
+            } catch {
+                // 브라우저 자동재생 정책 또는 파일 문제 시 조용히 무시
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+            audio.pause();
+            audio.currentTime = 0;
+        };
+    }, [data]);
 
     const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);
 
