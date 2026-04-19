@@ -73,6 +73,7 @@ export function normalizeErrorMessage(raw: unknown): string {
   if (lower.includes('cannot place dealer') && lower.includes('side')) return '사이드 딜러 자리가 가득 차서 배치할 수 없습니다.';
   if (lower.includes('cannot place') && lower.includes('main')) return '본대 자리가 가득 차서 배치할 수 없습니다.';
   if (lower.includes('cannot place') && lower.includes('side')) return '사이드 자리가 가득 차서 배치할 수 없습니다.';
+  if (lower.includes('not in mulligan phase')) return '멀리건 단계에서만 다시 뽑기를 할 수 있습니다.';
 
   return message;
 }

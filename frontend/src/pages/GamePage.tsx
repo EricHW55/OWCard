@@ -9,6 +9,7 @@ import { ROLE_COLOR } from '../types/constants';
 import { BTN_SM, phaseLabel } from '../utils/ui';
 import { getApiBase } from '../api/ws';
 import { getCardArtCandidates, getCardBackImageSrc, getCardImageSrc, preloadImageAssets } from '../utils/heroImage';
+import { getDeckCardAddLimitMessage } from '../utils/deckEditor';
 import './GamePage.css';
 import '../styles/animations/index.css';
 
@@ -77,6 +78,8 @@ const GamePage: React.FC = () => {
   const [bo3EditorEntries, setBo3EditorEntries] = React.useState<Record<number, number>>({});
   const [bo3EditorBaseDeck, setBo3EditorBaseDeck] = React.useState<number[]>([]);
   const [bo3EditorDeckSize, setBo3EditorDeckSize] = React.useState(20);
+  const [bo3EditorRoleMaxCounts, setBo3EditorRoleMaxCounts] = React.useState<Record<string, number>>({});
+  const [bo3EditorSpellCardMaxCopies, setBo3EditorSpellCardMaxCopies] = React.useState(1);
   const [bo3EditorSearch, setBo3EditorSearch] = React.useState('');
   const longPressTimerRef = React.useRef<number | null>(null);
   const longPressTriggeredRef = React.useRef(false);
@@ -321,8 +324,24 @@ const GamePage: React.FC = () => {
   }, [bo3EditorBaseDeck]);
 
   const addBo3EditorCard = React.useCallback((cardId: number) => {
-    setBo3EditorEntries((prev) => ({ ...prev, [cardId]: (prev[cardId] ?? 0) + 1 }));
-  }, []);
+    setBo3EditorEntries((prev) => {
+      const total = Object.values(prev).reduce((sum, qty) => sum + qty, 0);
+      if (total >= bo3EditorDeckSize) return prev;
+      const card = bo3EditorCards.find((v) => v.id === cardId);
+      const currentQty = prev[cardId] ?? 0;
+      const limitMessage = getDeckCardAddLimitMessage(
+          card,
+          currentQty,
+          bo3EditorRoleMaxCounts,
+          bo3EditorSpellCardMaxCopies
+      );
+      if (limitMessage) {
+        window.alert(limitMessage);
+        return prev;
+      }
+      return { ...prev, [cardId]: currentQty + 1 };
+    });
+  }, [bo3EditorCards, bo3EditorDeckSize, bo3EditorRoleMaxCounts, bo3EditorSpellCardMaxCopies]);
 
   const removeBo3EditorCard = React.useCallback((cardId: number) => {
     setBo3EditorEntries((prev) => {
@@ -407,6 +426,8 @@ const GamePage: React.FC = () => {
       const cfg = await cfgRes.json();
       const cardList = await cardsRes.json();
       setBo3EditorDeckSize(Number(cfg?.deck_size) > 0 ? Number(cfg.deck_size) : 20);
+      setBo3EditorRoleMaxCounts(cfg?.deck_role_max_counts ?? {});
+      setBo3EditorSpellCardMaxCopies(Number(cfg?.spell_card_max_copies) > 0 ? Number(cfg.spell_card_max_copies) : 1);
       setBo3EditorCards(Array.isArray(cardList) ? [...cardList].sort((a, b) => Number(a.id) - Number(b.id)) : []);
     } catch {
       window.alert('BO3 덱 편집 데이터를 불러오지 못했습니다.');
@@ -870,7 +891,13 @@ const GamePage: React.FC = () => {
                                     {...getLongPressHandlers(card, () => addBo3EditorCard(card.id))}
                                 >
                                   <div className="game-bo3-editor-card-img">
-                                    <img src={getCardImageSrc(card as any)} alt={card.name} />
+                                    <img
+                                        src={getCardImageSrc(card as any)}
+                                        alt={card.name}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onTouchStart={(e) => e.stopPropagation()}
+                                        onClick={(e) => { e.stopPropagation(); addBo3EditorCard(card.id); }}
+                                    />
                                   </div>
                                   <div className="game-bo3-editor-card-name">{card.name}</div>
                                   <div className="game-bo3-editor-card-role" style={{ color: roleColor }}>{card.is_spell ? '스킬' : card.role}</div>
@@ -908,11 +935,17 @@ const GamePage: React.FC = () => {
                               <div
                                   key={`bo3-selected-${card.id}`}
                                   className="game-bo3-editor-selected-card"
-                                  {...getLongPressHandlers(card, () => removeBo3EditorCard(card.id))}
+                                  {...getLongPressHandlers(card, () => addBo3EditorCard(card.id))}
                               >
                                 <div className="game-bo3-editor-selected-qty">{card.quantity}</div>
                                 <div className="game-bo3-editor-card-img">
-                                  <img src={getCardImageSrc(card as any)} alt={card.name} />
+                                  <img
+                                      src={getCardImageSrc(card as any)}
+                                      alt={card.name}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onTouchStart={(e) => e.stopPropagation()}
+                                      onClick={(e) => { e.stopPropagation(); addBo3EditorCard(card.id); }}
+                                  />
                                 </div>
                                 <div className="game-bo3-editor-card-name">{card.name}</div>
                                 <div className="game-bo3-editor-controls">

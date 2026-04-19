@@ -5,6 +5,7 @@ import GameAnnouncer from '../components/GameAnnouncer';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { getCardImageSrc } from '../utils/heroImage';
+import { getDeckCardAddLimitMessage } from '../utils/deckEditor';
 import './DeckBuilderPage.css';
 
 interface CardTemplate {
@@ -204,18 +205,10 @@ const DeckBuilderPage: React.FC = () => {
         if (totalCount >= deckSize) return;
 
         const card = cards.find(c => c.id === id);
-        if (!card) return;
-
         const currentQty = entries[id] ?? 0;
-        if (card.is_spell && currentQty >= spellCardMaxCopies) {
-            showDeckLimitAnnouncer(`${card.name} 스킬 카드는 최대 ${spellCardMaxCopies}장까지 가능합니다.`);
-            return;
-        }
-
-        const roleKey = card.is_spell ? 'spell' : card.role;
-        const perCardLimit = roleMaxCounts[roleKey];
-        if (!card.is_spell && typeof perCardLimit === 'number' && currentQty >= perCardLimit) {
-            showDeckLimitAnnouncer(`${card.name} 카드는 최대 ${perCardLimit}장까지 넣을 수 있습니다.`);
+        const limitMessage = getDeckCardAddLimitMessage(card, currentQty, roleMaxCounts, spellCardMaxCopies);
+        if (limitMessage) {
+            showDeckLimitAnnouncer(limitMessage);
             return;
         }
 

@@ -246,7 +246,7 @@
     font-weight: 900;
 }
 
-.game-bo3-editor-modal {
+.game-result-modal.game-bo3-editor-modal {
     width: min(1680px, 98vw);
     max-height: 96dvh;
     min-height: min(760px, 92dvh);
@@ -384,7 +384,7 @@
     max-height: 60dvh;
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
     gap: 8px;
     padding-right: 2px;
 }
@@ -393,7 +393,7 @@
     max-height: 60dvh;
     overflow: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
     gap: 8px;
 }
 
@@ -485,7 +485,7 @@
 }
 
 @media (max-width: 899px) {
-    .game-bo3-editor-modal {
+    .game-result-modal.game-bo3-editor-modal {
         width: min(98vw, 980px);
         max-height: min(95dvh, 1180px);
         min-height: auto;
