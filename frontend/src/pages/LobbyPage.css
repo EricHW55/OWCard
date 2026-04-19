@@ -582,8 +582,44 @@
 }
 
 .play-entry-icon {
-    font-size: 38px;
-    line-height: 1;
+    width: 72px;
+    height: 72px;
+    display: block;
+    background-color: var(--entry-icon-color, #78c2ff);
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    transition: background-color 200ms ease, filter 220ms ease, transform 200ms ease;
+}
+
+.play-entry-icon-quick {
+    --entry-icon-color: #1cb5ff;
+    -webkit-mask-image: url('../../public/UI/quick.svg');
+    mask-image: url('../../public/UI/quick.svg');
+}
+
+.play-entry-icon-competitive {
+    --entry-icon-color: #ff3f78;
+    -webkit-mask-image: url('../../public/UI/rank.svg');
+    mask-image: url('../../public/UI/rank.svg');
+}
+
+.play-entry-icon-private {
+    --entry-icon-color: #38ff54;
+    -webkit-mask-image: url('../../public/UI/private.svg');
+    mask-image: url('../../public/UI/private.svg');
+}
+
+.play-entry-card:hover .play-entry-icon {
+    background-color: #d8ff44;
+    filter:
+            drop-shadow(0 0 6px rgba(216, 255, 68, 0.95))
+            drop-shadow(0 0 12px rgba(216, 255, 68, 0.88))
+            drop-shadow(0 0 20px rgba(216, 255, 68, 0.7));
+    transform: scale(1.05);
 }
 
 .play-entry-title {
