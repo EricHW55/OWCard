@@ -586,6 +586,7 @@
     height: 72px;
     display: block;
     position: relative;
+    isolation: isolate;
     background-color: var(--entry-icon-color, #78c2ff);
     -webkit-mask-position: center;
     -webkit-mask-repeat: no-repeat;
@@ -596,34 +597,87 @@
     transition: background-color 200ms ease, filter 220ms ease, transform 200ms ease;
 }
 
+.play-entry-icon::before,
+.play-entry-icon::after {
+    content: '';
+    position: absolute;
+    inset: -18px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 360ms ease, transform 380ms ease, filter 380ms ease;
+}
+
+.play-entry-icon::before {
+    inset: -16px;
+    border-radius: 50%;
+    background:
+            radial-gradient(circle, var(--entry-glow-soft, rgba(255, 236, 122, 0.52)) 0%, rgba(255, 236, 122, 0.12) 42%, rgba(255, 236, 122, 0) 70%),
+            radial-gradient(circle, var(--entry-glow-hard, rgba(255, 255, 200, 0.94)) 0%, rgba(255, 255, 200, 0) 63%);
+    transform: scale(0.7);
+}
+
+.play-entry-icon::after {
+    background:
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0 12%, rgba(255, 255, 255, 0) 42%),
+            conic-gradient(
+                    from 0deg,
+                    transparent 0deg 12deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 12deg 26deg,
+                    transparent 26deg 44deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 44deg 56deg,
+                    transparent 56deg 72deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 72deg 86deg,
+                    transparent 86deg 108deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 108deg 122deg,
+                    transparent 122deg 144deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 144deg 158deg,
+                    transparent 158deg 180deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 180deg 196deg,
+                    transparent 196deg 216deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 216deg 230deg,
+                    transparent 230deg 252deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 252deg 266deg,
+                    transparent 266deg 288deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 288deg 302deg,
+                    transparent 302deg 324deg,
+                    var(--entry-ray-color, rgba(255, 245, 182, 0.95)) 324deg 338deg,
+                    transparent 338deg 360deg
+            );
+    mask-image: radial-gradient(circle, transparent 0 26%, #000 28% 60%, transparent 72%);
+    -webkit-mask-image: radial-gradient(circle, transparent 0 26%, #000 28% 60%, transparent 72%);
+    filter: blur(0.8px);
+    transform: scale(0.55) rotate(0deg);
+}
+
 .play-entry-icon-quick {
     --entry-icon-color: #1cb5ff;
+    --entry-glow-soft: rgba(153, 236, 255, 0.68);
+    --entry-glow-hard: rgba(229, 253, 255, 0.98);
+    --entry-ray-color: rgba(203, 248, 255, 0.98);
     -webkit-mask-image: url('../../public/UI/quick.svg');
     mask-image: url('../../public/UI/quick.svg');
 }
 
 .play-entry-icon-competitive {
     --entry-icon-color: #ff3f78;
+    --entry-glow-soft: rgba(255, 150, 196, 0.62);
+    --entry-glow-hard: rgba(255, 230, 240, 0.96);
+    --entry-ray-color: rgba(255, 200, 220, 0.98);
     -webkit-mask-image: url('../../public/UI/rank.svg');
     mask-image: url('../../public/UI/rank.svg');
 }
 
 .play-entry-icon-private {
     --entry-icon-color: #b44bff;
+    --entry-glow-soft: rgba(255, 214, 116, 0.58);
+    --entry-glow-hard: rgba(255, 243, 191, 0.98);
+    --entry-ray-color: rgba(255, 232, 151, 0.98);
     -webkit-mask-image: url('../../public/UI/private.svg');
     mask-image: url('../../public/UI/private.svg');
 }
 
 .play-entry-icon-private::before {
-    content: '';
-    position: absolute;
-    inset: -18px;
-    background: center / contain no-repeat url('../../public/UI/vendetta-target.svg');
-    opacity: 0;
-    transform: scale(0.86);
-    filter: drop-shadow(0 0 10px rgba(255, 225, 84, 0.5));
-    transition: opacity 220ms ease, transform 240ms ease, filter 220ms ease;
-    pointer-events: none;
+    inset: -17px;
 }
 
 @keyframes private-vendetta-glow {
@@ -648,7 +702,21 @@
             drop-shadow(0 0 6px rgba(216, 255, 68, 0.95))
             drop-shadow(0 0 12px rgba(216, 255, 68, 0.88))
             drop-shadow(0 0 20px rgba(216, 255, 68, 0.7));
-    transform: scale(1.05);
+    transform: scale(1.08);
+}
+
+.play-entry-card:hover .play-entry-icon::before {
+    opacity: 1;
+    transform: scale(1.12);
+}
+
+.play-entry-card:hover .play-entry-icon::after {
+    opacity: 0.95;
+    transform: scale(1.06) rotate(14deg);
+    filter:
+            blur(0.2px)
+            drop-shadow(0 0 6px rgba(255, 244, 186, 0.95))
+            drop-shadow(0 0 16px rgba(255, 235, 138, 0.82));
 }
 
 .play-entry-card.private:hover .play-entry-icon-private {
@@ -657,8 +725,8 @@
 }
 
 .play-entry-card.private:hover .play-entry-icon-private::before {
-    opacity: 0.95;
-    transform: scale(1);
+    opacity: 1;
+    transform: scale(1.14);
     filter:
             drop-shadow(0 0 10px rgba(255, 225, 84, 0.95))
             drop-shadow(0 0 22px rgba(255, 225, 84, 0.65));
