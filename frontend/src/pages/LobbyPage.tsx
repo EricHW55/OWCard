@@ -50,6 +50,7 @@ interface CardTemplateLite {
 type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects' | 'admin';
 type PlayMode = 'none' | 'quick' | 'private';
 type MatchFormat = 'bo1' | 'bo3';
+type PlayEntryType = 'quick' | 'competitive' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 
 function getSession(): SessionInfo | null {
@@ -708,11 +709,22 @@ const LobbyPage: React.FC = () => {
         setShowPlayModal(false);
     };
 
-    const openPrivateLobby = (format: MatchFormat) => {
+    const openPrivateLobby = () => {
         setActiveMenu('play');
         setPlayMode('private');
-        setPrivateRoomFormat(format);
         setShowPlayModal(false);
+    };
+
+    const handlePlayEntrySelect = (entryType: PlayEntryType) => {
+        if (entryType === 'quick') {
+            startQuickMatch('bo1');
+            return;
+        }
+        if (entryType === 'competitive') {
+            startQuickMatch('bo3');
+            return;
+        }
+        openPrivateLobby();
     };
 
     const handleCreateRoom = () => {
@@ -727,7 +739,7 @@ const LobbyPage: React.FC = () => {
     const handleJoinRoom = (code?: string) => {
         const joiningCode = (code ?? roomCode).trim().toUpperCase();
         if (!joiningCode) {
-            addLog('방 코드를 입력해줘.');
+            addLog('방 코드를 입력해주세요.');
             return;
         }
         setRoomCode(joiningCode);
@@ -998,25 +1010,37 @@ const LobbyPage: React.FC = () => {
 
             {showPlayModal && (
                 <div className="play-modal-backdrop" role="dialog" aria-modal="true">
-                    <div className="play-modal">
+                    <div className={`play-modal ${useCompactMenuLayout ? '' : 'play-selection-modal'}`.trim()}>
                         <button className="play-modal-close" onClick={() => setShowPlayModal(false)}>×</button>
                         <h3>게임 플레이</h3>
                         <p>플레이 타입을 선택하세요.</p>
-                        <div className="play-modal-actions">
-                            <button className="lobby-ghost-btn" onClick={() => startQuickMatch('bo1')}>
-                                {queueing ? '퀵매칭 취소' : '퀵매칭 (BO1)'}
-                            </button>
-                            <button className="lobby-ghost-btn" onClick={() => startQuickMatch('bo3')}>퀵매칭 (BO3)</button>
-                            <button className="lobby-ghost-btn" onClick={() => openPrivateLobby('bo1')}>사설방 (BO1)</button>
-                            <button className="lobby-ghost-btn" onClick={() => openPrivateLobby('bo3')}>사설방 (BO3)</button>
+                        <div className={`play-entry-grid ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
                             <button
-                                className="lobby-ghost-btn"
-                                onClick={() => {
-                                    setShowPlayModal(false);
-                                    navigate('/solo-game');
-                                }}
+                                className="play-entry-card quick"
+                                onClick={() => handlePlayEntrySelect('quick')}
+                                type="button"
                             >
-                                솔로 모드
+                                <div className="play-entry-icon" aria-hidden="true">⚡</div>
+                                <div className="play-entry-title">{queueing && queueFormat === 'bo1' ? '빠른대전 취소' : '빠른대전'}</div>
+                                <div className="play-entry-desc">BO1 퀵매칭으로 빠르게 게임을 시작합니다.</div>
+                            </button>
+                            <button
+                                className="play-entry-card competitive"
+                                onClick={() => handlePlayEntrySelect('competitive')}
+                                type="button"
+                            >
+                                <div className="play-entry-icon" aria-hidden="true">🏆</div>
+                                <div className="play-entry-title">{queueing && queueFormat === 'bo3' ? '경쟁전 취소' : '경쟁전'}</div>
+                                <div className="play-entry-desc">BO3 퀵매칭으로 실력을 겨루는 경쟁 모드입니다.</div>
+                            </button>
+                            <button
+                                className="play-entry-card private"
+                                onClick={() => handlePlayEntrySelect('private')}
+                                type="button"
+                            >
+                                <div className="play-entry-icon" aria-hidden="true">🛠️</div>
+                                <div className="play-entry-title">사설방</div>
+                                <div className="play-entry-desc">방 생성 시 BO1/BO3를 선택하고 원하는 룰로 플레이합니다.</div>
                             </button>
                         </div>
                     </div>
