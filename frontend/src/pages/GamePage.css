@@ -247,11 +247,13 @@
 }
 
 .game-result-modal.game-bo3-editor-modal {
-    width: min(1680px, 98vw);
+    width: min(1680px, calc(100vw - 24px));
+    max-width: 100%;
     max-height: 96dvh;
     min-height: min(760px, 92dvh);
     overflow: auto;
     padding: clamp(16px, 1.8vw, 24px) clamp(12px, 1.5vw, 20px);
+    box-sizing: border-box;
 }
 
 .game-bo3-editor-desc {
@@ -409,7 +411,7 @@
 
 .game-bo3-editor-card-img {
     width: 100%;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 0.86 / 1;
     overflow: hidden;
     border-radius: 6px;
     background: #1a2342;
@@ -486,10 +488,10 @@
 
 @media (max-width: 899px) {
     .game-result-modal.game-bo3-editor-modal {
-        width: min(98vw, 980px);
+        width: min(980px, calc(100vw - 12px));
         max-height: min(95dvh, 1180px);
         min-height: auto;
-        padding: 16px 12px;
+        padding: 14px 10px;
     }
 
     .game-bo3-editor-grid {
@@ -499,7 +501,21 @@
     .game-bo3-editor-card-grid,
     .game-bo3-editor-deck-grid {
         max-height: 35dvh;
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+        gap: 6px;
+    }
+
+    .game-bo3-editor-card-tile,
+    .game-bo3-editor-selected-card {
+        padding: 3px;
+    }
+
+    .game-bo3-editor-card-name {
+        font-size: 11px;
+    }
+
+    .game-bo3-editor-card-role {
+        font-size: 10px;
     }
 }
 
@@ -1105,6 +1121,8 @@
     place-items: center;
     z-index: 120;
     padding: 16px;
+    box-sizing: border-box;
+    overflow: auto;
 }
 
 .game-result-modal {

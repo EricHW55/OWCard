@@ -276,17 +276,25 @@ async def game_ws(
 
         while True:
             data = await ws.receive_json()
-            await _handle_action(game_id, player_id, data, engine)
+            live_engine = active_games.get(game_id)
+            if not live_engine:
+                await manager.send_game(game_id, player_id, {"event": "error", "message": "게임이 종료되었습니다."})
+                return
+            await _handle_action(game_id, player_id, data, live_engine)
 
     except WebSocketDisconnect:
-        engine.players[player_id].connected = False
+        live_engine = active_games.get(game_id) or engine
+        if player_id in live_engine.players:
+            live_engine.players[player_id].connected = False
         manager.disconnect_game(game_id, player_id)
         _cancel_disconnect_task(game_id, player_id)
         _disconnect_tasks[(game_id, player_id)] = asyncio.create_task(_delayed_forfeit(game_id, player_id))
         await manager.broadcast_spectators(game_id, {"event": "player_disconnected", "player_id": player_id})
     except Exception as e:
         print(f"[GAME_WS] unexpected error game={game_id} player={player_id}: {e}")
-        engine.players[player_id].connected = False
+        live_engine = active_games.get(game_id) or engine
+        if player_id in live_engine.players:
+            live_engine.players[player_id].connected = False
         manager.disconnect_game(game_id, player_id)
         _cancel_disconnect_task(game_id, player_id)
         _disconnect_tasks[(game_id, player_id)] = asyncio.create_task(_delayed_forfeit(game_id, player_id))
