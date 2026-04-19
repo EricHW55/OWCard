@@ -1,6 +1,7 @@
 {
   "short_name": "OWCard",
-  "name": "OWCard",
+  "name": "OWCard - 오버워치 전략 카드 배틀",
+  "description": "오버워치 영웅 카드로 즐기는 온라인 턴제 전략 카드 배틀, OWCard.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,14 +9,10 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "owcard_icon.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",

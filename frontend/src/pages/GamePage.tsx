@@ -810,6 +810,9 @@ const GamePage: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {bo3.awaiting_first_player_choice && (
                     <>
+                      <div style={{ width: '100%', fontSize: 13, color: '#cbe7ff', marginBottom: 4 }}>
+                        직전 세트에서 진 플레이어가 다음 세트 선/후공을 선택합니다.
+                      </div>
                       <button onClick={() => vm.chooseBo3FirstPlayer('first')} style={{ ...BTN_SM, background: '#123e63' }}>선공 선택</button>
                       <button onClick={() => vm.chooseBo3FirstPlayer('second')} style={{ ...BTN_SM, background: '#123e63' }}>후공 선택</button>
                     </>

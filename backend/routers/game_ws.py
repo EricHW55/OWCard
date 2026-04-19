@@ -455,7 +455,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
             await manager.send_game(game_id, player_id, {"event": "error", "message": "선후공 선택 가능 상태가 아닙니다."})
             return
         if bo3_session.first_player_choice_player_id != player_id:
-            await manager.send_game(game_id, player_id, {"event": "error", "message": "이번 세트는 승자만 선후공을 선택할 수 있습니다."})
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "이번 세트는 직전 세트 패자만 선후공을 선택할 수 있습니다."})
             return
         choice = str(data.get("choice", "first")).lower()
         winner_id = int(bo3_session.pending_round_result["winner"])
@@ -536,7 +536,7 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
             bo3_session.current_round += 1
             bo3_session.awaiting_deck_submit = set(bo3_session.player_ids)
             bo3_session.awaiting_first_player_choice = True
-            bo3_session.first_player_choice_player_id = winner_id
+            bo3_session.first_player_choice_player_id = loser_id
             bo3_session.chosen_first_player_id = None
 
             await manager.broadcast_all(game_id, {"event": "bo3_round_end", "round": bo3_session.pending_round_result["round"], "winner": winner_id, "winner_name": engine.players[winner_id].username, "next_round": bo3_session.current_round})
