@@ -501,13 +501,17 @@
     .game-bo3-editor-card-grid,
     .game-bo3-editor-deck-grid {
         max-height: 35dvh;
-        grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
         gap: 6px;
     }
 
     .game-bo3-editor-card-tile,
     .game-bo3-editor-selected-card {
         padding: 3px;
+    }
+
+    .game-bo3-editor-card-img {
+        aspect-ratio: 1 / 1;
     }
 
     .game-bo3-editor-card-name {
