@@ -1022,7 +1022,7 @@ const LobbyPage: React.FC = () => {
                             >
                                 <div className="play-entry-icon play-entry-icon-quick" aria-hidden="true" />
                                 <div className="play-entry-title">{queueing && queueFormat === 'bo1' ? '빠른대전 취소' : '빠른대전'}</div>
-                                <div className="play-entry-desc">BO1 퀵매칭으로 빠르게 게임을 시작합니다.</div>
+                                <div className="play-entry-desc">단판전 퀵매칭으로 빠르게 게임을 시작합니다.</div>
                             </button>
                             <button
                                 className="play-entry-card competitive"
@@ -1031,7 +1031,7 @@ const LobbyPage: React.FC = () => {
                             >
                                 <div className="play-entry-icon play-entry-icon-competitive" aria-hidden="true" />
                                 <div className="play-entry-title">{queueing && queueFormat === 'bo3' ? '경쟁전 취소' : '경쟁전'}</div>
-                                <div className="play-entry-desc">BO3 퀵매칭으로 실력을 겨루는 경쟁 모드입니다.</div>
+                                <div className="play-entry-desc">3판 2선승제 퀵매칭으로 실력을 겨루는 경쟁 모드입니다.</div>
                             </button>
                             <button
                                 className="play-entry-card private"
@@ -1040,7 +1040,7 @@ const LobbyPage: React.FC = () => {
                             >
                                 <div className="play-entry-icon play-entry-icon-private" aria-hidden="true" />
                                 <div className="play-entry-title">사설방</div>
-                                <div className="play-entry-desc">방 생성 시 BO1/BO3를 선택하고 원하는 룰로 플레이합니다.</div>
+                                <div className="play-entry-desc">방 생성 시 단판전/3판 2선승제를 선택하고 원하는 룰로 플레이합니다.</div>
                             </button>
                         </div>
                     </div>
