@@ -136,6 +136,11 @@ function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: 
     return null;
   }
 
+  // 대상/선택이 필요한 스킬 카드는 실제 적용 직전까지 상대 화면에서 숨긴다.
+  if (action === 'place_card' && result?.type === 'spell_played' && (result?.needs_target || result?.needs_choice)) {
+    return null;
+  }
+
   if (result?.hidden) return null;
   const hasSkillSignal = action === 'use_skill' || action === 'execute_spell' || !!msg?.skill_name || !!result?.skill_name || !!result?.skill || result?.type === 'spell_played';
   if (!hasSkillSignal) return null;
@@ -410,6 +415,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const phaseStampRef = useRef('');
   const gsRef = useRef<GameState | null>(null);
   const pendingSpellNameRef = useRef<string | null>(null);
+  const pendingSpellCardRef = useRef<any | null>(null);
   const announcerDataRef = useRef(announcerData);
   const deferredGameStateRef = useRef<any | null>(null);
   const processGameStateRef = useRef<((msg: any) => void) | null>(null);
@@ -1004,6 +1010,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           }
 
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
+            pendingSpellCardRef.current = result?.card || null;
             if (result?.hero_key === 'spell_duplicate') {
               setDuplicateTargetUid(null);
               setDuplicateTargetRole(null);
@@ -1029,6 +1036,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             }
           }
           if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_choice) {
+            pendingSpellCardRef.current = result?.card || null;
             setPendingSpell(null);
             setPendingSpellName(spellName);
             setActionMode(null);
@@ -1130,9 +1138,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
             if (resolvedSkillName) {
-              const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
+              const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key)
+                  || result?.card
+                  || pendingSpellCardRef.current;
               showSkillUse({ skillName: resolvedSkillName, description: getSkillDescriptionFromCard(spellCard), heroKey: result?.hero_key || spellCard?.hero_key || '', imageName: spellCard?.name || resolvedSkillName, isSpell: true, duration: 3200 });
             }
+            pendingSpellCardRef.current = null;
           }
           if (msg.action === 'execute_spell' && result?.rescued) showSystemNotice(result.rescued, 'TRASH → 패', 1400);
           if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice(result.drawn_card, '덱 → 패', 1400);
@@ -1441,12 +1452,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     if (pendingPassive?.type === 'jetpack_cat_extra_place') {
       if (card.is_spell) { addLog('스킬 카드는 추가 배치할 수 없음'); return; }
       if (selectedHandIdx === index) { setSelectedHandIdx(null); return; }
-      setSelectedHandIdx(index); setSelectedFieldUid(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); return;
+      setSelectedHandIdx(index); setSelectedFieldUid(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); pendingSpellCardRef.current = null; return;
     }
     if (selectedHandIdx === index) {
       setDetailCard(card); setSelectedHandIdx(null); setActionMode(null); setColumnChoice(null); return;
     }
-    setSelectedHandIdx(index); setSelectedFieldUid(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null);
+    setSelectedHandIdx(index); setSelectedFieldUid(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); pendingSpellCardRef.current = null;
   }, [my, phase, pendingPassive, selectedHandIdx, addLog]);
 
   const isHazardWallTargeting =
@@ -1510,6 +1521,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       }
       send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: card.uid });
       addLog(`스킬 카드 → ${card.name}`);
+      pendingSpellCardRef.current = null;
       setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); setSelectedHandIdx(null); return;
     }
     if (actionMode && actionMode !== 'spell' && selectedFieldUid) {
@@ -1537,7 +1549,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     }
     if (!isOpponent) {
       if (selectedFieldUid === card.uid) { setDetailCard(card); setSelectedFieldUid(null); }
-      else { setSelectedFieldUid(card.uid); setSelectedHandIdx(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setColumnChoice(null); }
+      else { setSelectedFieldUid(card.uid); setSelectedHandIdx(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); pendingSpellCardRef.current = null; setColumnChoice(null); }
     } else setDetailCard(card);
   }, [columnChoice, actionMode, pendingSpell, pendingSpellName, selectedFieldUid, send, addLog, showSystemNotice, allMyField, my]);
 
@@ -1552,6 +1564,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       setDuplicateTargetUid(null);
       setDuplicateTargetRole(null);
       setDuplicateTargetName(null);
+      pendingSpellCardRef.current = null;
       setSelectedHandIdx(null);
       return;
     }
@@ -1581,6 +1594,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
       setSelectedHandIdx(null);
       setPendingSpell(null);
       setPendingSpellName(null);
+      pendingSpellCardRef.current = null;
       setDuplicateTargetUid(null);
       setDuplicateTargetRole(null);
       setDuplicateTargetName(null);
@@ -1662,17 +1676,19 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     if (columnChoice?.source === 'spell' && pendingSpell) {
       send({ action: 'execute_spell', hero_key: pendingSpell, target_uid: repUid });
       addLog(`${columnChoice.skillName} → ${label}`);
+      pendingSpellCardRef.current = null;
     } else if (columnChoice?.source === 'skill' && selectedMyFieldCard && columnChoice.skillKey) {
       send({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: columnChoice.skillKey, target_uid: repUid });
       addLog(`${selectedMyFieldCard.name} → ${label} (${columnChoice.skillName})`);
     }
     setColumnChoice(null); setActionMode(null); setPendingSpell(null); setPendingSpellName(null); setSelectedHandIdx(null);
   }, [columnChoice, pendingSpell, selectedMyFieldCard, send, addLog]);
-  const cancelColumnChoice = useCallback(() => { setColumnChoice(null); setPendingSpell(null); setPendingSpellName(null); }, []);
+  const cancelColumnChoice = useCallback(() => { setColumnChoice(null); setPendingSpell(null); setPendingSpellName(null); pendingSpellCardRef.current = null; }, []);
   const cancelPendingSpell = useCallback(() => {
     setActionMode(null);
     setPendingSpell(null);
     setPendingSpellName(null);
+    pendingSpellCardRef.current = null;
     setDuplicateTargetUid(null);
     setDuplicateTargetRole(null);
     setDuplicateTargetName(null);

@@ -1086,6 +1086,18 @@ class GameEngine:
 
         if result.get("skill") and not result.get("skill_name"):
             result["skill_name"] = result["skill"]
+            
+        if result.get("success"):
+            result["hero_key"] = hero_key
+            if not isinstance(result.get("card"), dict):
+                spell_card = self._get_spell_template_data(ps, hero_key)
+                result["card"] = {
+                    "hero_key": hero_key,
+                    "name": spell_card.get("name", hero_key),
+                    "description": spell_card.get("description", ""),
+                    "skill_meta": dict(spell_card.get("skill_meta", {})),
+                    "is_spell": True,
+                }
 
         if hasattr(self, "_finalize_deaths"):
             self._finalize_deaths(opp, ps)
