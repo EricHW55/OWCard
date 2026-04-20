@@ -700,12 +700,12 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
         barrier = card.get_status("barrier")
         if barrier:
             broken["barrier_broken"] = True
-            broken["trigger_zarya_buff"] = str(getattr(particle, "source_uid", "") or "")
             card.remove_status("barrier")
 
         particle = card.get_status("particle_barrier")
         if particle:
             broken["particle_barrier_broken"] = True
+            broken["trigger_zarya_buff"] = str(getattr(particle, "source_uid", "") or "")
             card.remove_status("particle_barrier")
 
         extra_hp = card.get_status("extra_hp")
