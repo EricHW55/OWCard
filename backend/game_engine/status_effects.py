@@ -683,6 +683,11 @@ class PhoenixRebirthPending(StatusEffect):
         self.duration = max(0, int(self.duration) - 1)
         if self.duration > 0:
             return {"revive_pending": True, "duration": self.duration}
+        # 부활 시 기존 상태효과를 전부 제거하고 새 카드처럼 시작한다.
+        for status in list(card.statuses):
+            if status is self:
+                continue
+            card.remove_status(status.name)
         card.current_hp = card.max_hp
         card.remove_status(self.name)
         return {"revived": True, "hp": card.current_hp}

@@ -241,15 +241,12 @@ def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 
     empowered = bool(caster.extra.pop("empowered_punch", False))
     enemy = game.get_enemy_field(caster)
-    td = enemy.get_distance(target)
     
     if empowered:
         dmg = game.get_skill_damage(caster, "skill_1_empowered")
         result = target.take_damage(dmg)
-        for layer in enemy._main_layers():
-            for c in layer:
-                if enemy.get_distance(c) == td + 1:
-                    c.take_damage(dmg)
+        for card in _get_immediately_behind_targets(enemy, target):
+            card.take_damage(dmg)
         return {"success": True, "skill": "강화 로켓 펀치", "damage_log": result}
 
     dmgs = game.get_skill_damage(caster, "skill_1")
@@ -257,10 +254,8 @@ def doomfist_punch(caster: FieldCard, target: FieldCard, game: GameState) -> dic
     behind_d = dmgs[1] if isinstance(dmgs, list) and len(dmgs) > 1 else 0
     result = target.take_damage(main_d)
     if behind_d > 0:
-        for layer in enemy._main_layers():
-            for c in layer:
-                if enemy.get_distance(c) == td + 1:
-                    c.take_damage(behind_d)
+        for card in _get_immediately_behind_targets(enemy, target):
+            card.take_damage(behind_d)
     return {"success": True, "skill": "로켓 펀치", "damage_log": result}
 
 @register_skill("doomfist", "skill_2")
@@ -421,12 +416,36 @@ def orisa_passive(card: FieldCard, game: GameState) -> dict:
 
 def _orisa_has_javelin_bonus_target(enemy_field, target) -> bool:
     from game_engine.field import Role
+    def _slot_index(card: FieldCard) -> int:
+        try:
+            return 1 if int(card.extra.get("slot_index", 0)) == 1 else 0
+        except Exception:
+            return 0
 
     if target.role == Role.TANK:
         return len(enemy_field.get_role_row_in_zone(Role.DEALER, target.zone)) > 0
     if target.role == Role.DEALER:
-        return len(enemy_field.get_role_row_in_zone(Role.HEALER, target.zone)) > 0
+        dealer_slot = _slot_index(target)
+        healers = enemy_field.get_role_row_in_zone(Role.HEALER, target.zone)
+        return any(_slot_index(healer) == dealer_slot for healer in healers)
     return False
+
+def _get_immediately_behind_targets(enemy_field, target: FieldCard) -> list[FieldCard]:
+    from game_engine.field import Role
+    def _slot_index(card: FieldCard) -> int:
+        try:
+            return 1 if int(card.extra.get("slot_index", 0)) == 1 else 0
+        except Exception:
+            return 0
+
+    if target.role == Role.TANK:
+        return enemy_field.get_role_row_in_zone(Role.DEALER, target.zone)
+    if target.role == Role.DEALER:
+        dealer_slot = _slot_index(target)
+        healers = enemy_field.get_role_row_in_zone(Role.HEALER, target.zone)
+        return [healer for healer in healers if _slot_index(healer) == dealer_slot]
+    return []
+
 
 
 @register_skill("orisa", "skill_1")
