@@ -52,6 +52,11 @@ type PlayMode = 'none' | 'quick' | 'private';
 type MatchFormat = 'bo1' | 'bo3';
 type PlayEntryType = 'quick' | 'competitive' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
+const CRITICAL_LOBBY_ICON_SOURCES = ['/UI/quick.svg', '/UI/rank.svg', '/UI/private.svg'] as const;
+
+function getMatchFormatLabel(format?: MatchFormat | null): string {
+    return format === 'bo3' ? '3판 2선승제' : '단판전';
+}
 
 function getSession(): SessionInfo | null {
     const token = sessionStorage.getItem('access_token');
@@ -137,6 +142,7 @@ const LobbyPage: React.FC = () => {
     const [playMode, setPlayMode] = useState<PlayMode>('none');
     const [showPlayModal, setShowPlayModal] = useState(false);
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
+    const [isLobbyReady, setIsLobbyReady] = useState(false);
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
     const [quickMatchFormat, setQuickMatchFormat] = useState<MatchFormat>('bo1');
     const [privateRoomFormat, setPrivateRoomFormat] = useState<MatchFormat>('bo1');
@@ -167,6 +173,7 @@ const LobbyPage: React.FC = () => {
                 ...buildCoreImagePreloadList(),
                 getCardBackImageSrc(),
                 '/illustration/card_back.png',
+                ...CRITICAL_LOBBY_ICON_SOURCES,
             ], 2200);
         }
         return preloadPromiseRef.current;
@@ -246,6 +253,17 @@ const LobbyPage: React.FC = () => {
         // 로비 진입 시점에 선행 로드해서 게임 진입 시 코인 토스 첫 프레임 깨짐을 줄인다.
         void ensureGameImageWarmup();
     }, [ensureGameImageWarmup]);
+
+    useEffect(() => {
+        let alive = true;
+        void preloadImageAssets([...CRITICAL_LOBBY_ICON_SOURCES], 1800).then(() => {
+            if (!alive) return;
+            setIsLobbyReady(true);
+        });
+        return () => {
+            alive = false;
+        };
+    }, []);
 
     const applyDeckToRoom = useCallback((roomId: string, selectedDeckId?: number) => {
         const chosenDeckId = selectedDeckId ?? deckId;
@@ -707,7 +725,7 @@ const LobbyPage: React.FC = () => {
         setQueueStartedAt(Date.now());
         setQueueNow(Date.now());
         send({ action: 'join_queue', deck_id: quickMatchDeckId, match_format: quickMatchFormat });
-        addLog(`퀵매칭 시작(${quickMatchFormat.toUpperCase()}): 덱 ${quickMatchDeckId}`);
+        addLog(`퀵매칭 시작(${getMatchFormatLabel(quickMatchFormat)}): 덱 ${quickMatchDeckId}`);
         queueSyncTimerRef.current = window.setTimeout(() => {
             addLog('퀵매칭 ACK 지연으로 상태 재동기화를 수행합니다.');
             void syncMatchStatus();
@@ -850,7 +868,7 @@ const LobbyPage: React.FC = () => {
             {queueing && (
                 <div className={`queue-status-banner ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
                     <div className="queue-status-left">
-                        <div className="queue-status-label">퀵매칭 · {queueFormat.toUpperCase()}</div>
+                        <div className="queue-status-label">퀵매칭 · {getMatchFormatLabel(queueFormat)}</div>
                         <div className="queue-status-text">게임 찾는 중...</div>
                     </div>
                     <div className="queue-status-right">
@@ -928,13 +946,13 @@ const LobbyPage: React.FC = () => {
                                         className={`lobby-ghost-btn ${privateRoomFormat === 'bo1' ? 'active' : ''}`}
                                         onClick={() => setPrivateRoomFormat('bo1')}
                                     >
-                                        BO1 사설방
+                                        단판전 사설방
                                     </button>
                                     <button
                                         className={`lobby-ghost-btn ${privateRoomFormat === 'bo3' ? 'active' : ''}`}
                                         onClick={() => setPrivateRoomFormat('bo3')}
                                     >
-                                        BO3 사설방
+                                        3판 2선승제 사설방
                                     </button>
                                 </div>
 
@@ -977,7 +995,7 @@ const LobbyPage: React.FC = () => {
                                 {room && (
                                     <div className="current-room">
                                         <div className="current-room-title">현재 방: {room.room_code}</div>
-                                        <div>모드: <b>{(room.match_format ?? 'bo1').toUpperCase()}</b></div>
+                                        <div>모드: <b>{getMatchFormatLabel(room.match_format ?? 'bo1')}</b></div>
                                         <div>상태: <b>{room.status}</b></div>
                                         <div>방장: <b>{room.host.username}</b></div>
                                         <div>참가자: <b>{room.guest?.username ?? '대기 중'}</b></div>
@@ -999,7 +1017,7 @@ const LobbyPage: React.FC = () => {
                                         <div className="room-item" key={r.room_id}>
                                             <div className="room-item-info">
                                                 <div className="room-item-title room-item-playerline">{r.host.username} vs {r.guest?.username ?? '빈 자리'}</div>
-                                                <div className="room-item-sub room-item-code">{r.room_code} · {(r.match_format ?? 'bo1').toUpperCase()}</div>
+                                                <div className="room-item-sub room-item-code">{r.room_code} · {getMatchFormatLabel(r.match_format ?? 'bo1')}</div>
                                             </div>
                                             <button
                                                 className="lobby-ghost-btn"
@@ -1095,8 +1113,8 @@ const LobbyPage: React.FC = () => {
                 <div className="play-modal-backdrop" role="dialog" aria-modal="true">
                     <div className="play-modal">
                         <button className="play-modal-close" onClick={() => setShowQuickDeckModal(false)}>×</button>
-                        <h3>퀵매칭 덱 선택 ({quickMatchFormat.toUpperCase()})</h3>
-                        <p>{quickMatchFormat.toUpperCase()} 퀵매칭에 사용할 덱을 골라주세요.</p>
+                        <h3>퀵매칭 덱 선택 ({getMatchFormatLabel(quickMatchFormat)})</h3>
+                        <p>{getMatchFormatLabel(quickMatchFormat)} 퀵매칭에 사용할 덱을 골라주세요.</p>
                         <div className="deck-row quick-match-deck-row">
                             <label>사용할 덱</label>
                             <select
@@ -1123,6 +1141,17 @@ const LobbyPage: React.FC = () => {
                     </div>
                 </div>
             )}
+            {!isLobbyReady && (
+                <div className="lobby-initial-loader" role="status" aria-live="polite">
+                    <div className="lobby-initial-loader-text">로비 리소스를 불러오는 중입니다…</div>
+                </div>
+            )}
+
+            <div className="lobby-critical-assets" aria-hidden="true">
+                {CRITICAL_LOBBY_ICON_SOURCES.map((src) => (
+                    <img key={src} src={src} alt="" loading="eager" fetchPriority="high" decoding="sync" />
+                ))}
+            </div>
         </div>
     );
 };

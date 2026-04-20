@@ -314,16 +314,16 @@
 }
 
 .room-item-playerline {
-    font-size: 33px;
+    font-size: 26px;
     line-height: 1.08;
     letter-spacing: -0.02em;
 }
 
 .room-item-code {
     margin-top: 6px;
-    font-size: 18px;
+    font-size: 22px;
     color: #e3b8ff;
-    font-weight: 700;
+    font-weight: 800;
 }
 
 .room-item-sub,
@@ -331,6 +331,35 @@
 .log-list {
     color: #9aa8cb;
     font-size: 12px;
+}
+
+.lobby-critical-assets {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lobby-initial-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at center, rgba(11, 28, 72, 0.76), rgba(3, 9, 28, 0.94));
+    backdrop-filter: blur(6px);
+}
+
+.lobby-initial-loader-text {
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(115, 154, 255, 0.65);
+    background: rgba(13, 28, 68, 0.88);
+    color: #f2f6ff;
+    font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 .log-title {
@@ -510,11 +539,11 @@
     }
 
     .room-item-playerline {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .room-item-code {
-        font-size: 14px;
+        font-size: 16px;
     }
 }
 
