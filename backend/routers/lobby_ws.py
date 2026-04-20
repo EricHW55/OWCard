@@ -95,6 +95,14 @@ async def lobby_ws(
                 ok = await room_manager.set_deck(data.get("room_id", ""), player_id, data.get("deck_id"))
                 await ws.send_json({"event": "deck_set" if ok else "error", "message": "" if ok else "Failed"})
 
+            elif action == "delete_room":
+                deleted_room = await room_manager.close_room_by_host(player_id)
+                if deleted_room:
+                    await manager.broadcast_lobby({"event": "room_closed", "room_code": deleted_room.room_code})
+                    await ws.send_json({"event": "room_deleted", "room_code": deleted_room.room_code})
+                else:
+                    await ws.send_json({"event": "error", "message": "삭제 가능한 방이 없습니다."})
+
             elif action == "start_game":
                 result = await room_manager.start_game(data.get("room_id", ""))
                 if result:

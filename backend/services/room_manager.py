@@ -166,6 +166,17 @@ class RoomManager:
         if room:
             self.code_map.pop(room.room_code, None)
 
+    async def close_room_by_host(self, host_id: int) -> Optional[Room]:
+        async with self._lock:
+            target_room = self.find_active_room_by_host(host_id)
+            if not target_room:
+                return None
+            if target_room.status == RoomStatus.IN_GAME:
+                return None
+            self.rooms.pop(target_room.room_id, None)
+            self.code_map.pop(target_room.room_code, None)
+            return target_room
+
     async def remove_player(self, player_id: int) -> Optional[dict]:
         async with self._lock:
             target_room: Optional[Room] = None

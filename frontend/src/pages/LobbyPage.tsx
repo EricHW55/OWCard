@@ -533,6 +533,13 @@ const LobbyPage: React.FC = () => {
                 refreshRooms();
             });
 
+            ws.on('room_deleted', (msg: any) => {
+                const deletedCode = String(msg?.room_code ?? '');
+                setRoom((prev) => (prev?.room_code === deletedCode ? null : prev));
+                addLog(`방 삭제 완료: ${deletedCode || '알 수 없음'}`);
+                refreshRooms();
+            });
+
             ws.on('match_found', (msg: any) => {
                 clearQueueSyncTimer();
                 setQueueFormat(msg?.match_format === 'bo3' ? 'bo3' : 'bo1');
@@ -734,6 +741,18 @@ const LobbyPage: React.FC = () => {
         }
         setPrivateRoomLimitMessage('');
         send({ action: 'create_room', match_format: privateRoomFormat });
+    };
+
+    const handleDeleteRoom = () => {
+        if (!room) {
+            addLog('삭제할 방이 없습니다.');
+            return;
+        }
+        if (!isHost) {
+            addLog('방장만 방을 삭제할 수 있습니다.');
+            return;
+        }
+        send({ action: 'delete_room', room_id: room.room_id });
     };
 
     const handleJoinRoom = (code?: string) => {
@@ -963,7 +982,10 @@ const LobbyPage: React.FC = () => {
                                         <div>방장: <b>{room.host.username}</b></div>
                                         <div>참가자: <b>{room.guest?.username ?? '대기 중'}</b></div>
                                         {isHost && (
-                                            <button className="lobby-solid-btn" onClick={() => send({ action: 'start_game', room_id: room.room_id })}>게임 시작</button>
+                                            <div className="current-room-actions">
+                                                <button className="lobby-solid-btn" onClick={() => send({ action: 'start_game', room_id: room.room_id })}>게임 시작</button>
+                                                <button className="lobby-ghost-btn room-delete-btn" onClick={handleDeleteRoom}>방 삭제</button>
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -972,8 +994,8 @@ const LobbyPage: React.FC = () => {
                             <div>
                                 <h3>열린 방 목록</h3>
                                 <div className="room-list-wrap">
-                                    {rooms.filter((r) => (r.match_format ?? 'bo1') === privateRoomFormat).length === 0 && <div className="empty-text">현재 열린 {privateRoomFormat.toUpperCase()} 방이 없음.</div>}
-                                    {rooms.filter((r) => (r.match_format ?? 'bo1') === privateRoomFormat).map((r) => (
+                                    {rooms.length === 0 && <div className="empty-text">현재 열린 방이 없습니다.</div>}
+                                    {rooms.map((r) => (
                                         <div className="room-item" key={r.room_id}>
                                             <div className="room-item-info">
                                                 <div className="room-item-title room-item-playerline">{r.host.username} vs {r.guest?.username ?? '빈 자리'}</div>
