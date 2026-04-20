@@ -270,8 +270,7 @@ def doomfist_block(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 # ── 시그마 ────────────────────────────────
 @register_skill("sigma", "skill_1")
 def sigma_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    caster.add_status(Barrier(barrier_hp=10, duration=-1, source_uid=caster.uid))
-    caster.add_status(Taunt(duration=-1, source_uid=caster.uid))
+    caster.add_status(Barrier(barrier_hp=10, has_taunt=True, duration=-1, source_uid=caster.uid))
     return {"success": True, "skill": "실험용 방벽"}
 
 @register_skill("sigma", "skill_2")
