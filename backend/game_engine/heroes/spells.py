@@ -399,16 +399,18 @@ def spell_rescue(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
 @register_skill("spell_sound_barrier", "skill_1")
 def spell_sound_barrier(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """소리방벽: 모든 아군이 2턴 동안 20 추가체력."""
+    """소리방벽: 모든 아군에게 추가 체력을 부여한다."""
     my_field = game.get_my_field(caster)
     allies = my_field.all_cards()
+    extra_hp = max(10, int(caster.extra.get("extra_hp", 10) or 10))
+    duration = max(1, int(caster.extra.get("duration", 2) or 2))
     logs = []
     for ally in allies:
         if ally.extra.get("token_kind") == "hazard_wall":
             logs.append({"target": ally.uid, "skipped": "hazard_wall"})
             continue
-        ally.add_status(ExtraHP(value=20, duration=2, source_uid="spell"))
-        logs.append({"target": ally.uid, "extra_hp": 20})
+        ally.add_status(ExtraHP(value=extra_hp, duration=duration, source_uid="spell"))
+        logs.append({"target": ally.uid, "extra_hp": extra_hp})
 
     return {"success": True, "skill": "소리방벽", "affected": logs}
 
