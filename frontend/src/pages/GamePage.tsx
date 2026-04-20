@@ -661,7 +661,7 @@ const GamePage: React.FC = () => {
           </div>
       )}
     <GameScreen
-      announcerData={coinTossStage === 'done' ? vm.announcerData : null}
+        announcerData={(isSpectator || coinTossStage === 'done') ? vm.announcerData : null}
       onCloseAnnouncer={vm.closeAnnouncer}
       topbarLeft={
         <>

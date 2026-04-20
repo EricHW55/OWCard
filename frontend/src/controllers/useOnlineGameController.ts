@@ -163,6 +163,58 @@ function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: 
   return { title: skillName, subtitle: `${actorName} 사용`, heroKey, imageName: isSpell ? (spellCard?.name || skillName) : (actorCard?.name || actorName), isSpell, description };
 }
 
+function buildSpectatorSkillCue(msg: any, currentState?: GameState | null): OpponentSkillCue | null {
+  const result = msg?.result || {};
+  const action = msg?.action;
+  const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
+  const resultHeroKey = String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').toLowerCase();
+  const isHiddenInstallSpell = hiddenInstallSpellKeys.has(resultHeroKey);
+
+  if (isHiddenInstallSpell && (result?.type === 'spell_played' || action === 'execute_spell' || action === 'place_card')) {
+    return null;
+  }
+  if (action === 'place_card' && result?.type === 'spell_played' && (result?.needs_target || result?.needs_choice)) {
+    return null;
+  }
+  if (result?.hidden) return null;
+
+  const hasSkillSignal = action === 'use_skill' || action === 'execute_spell' || !!msg?.skill_name || !!result?.skill_name || !!result?.skill || result?.type === 'spell_played';
+  if (!hasSkillSignal) return null;
+
+  const skillName = msg?.skill_name || result?.skill_name || result?.skill || result?.display_name || result?.card?.skill_name || result?.card?.name;
+  if (!skillName) return null;
+
+  const allFieldCards = [
+    ...(currentState?.my_state?.field?.main || []),
+    ...(currentState?.my_state?.field?.side || []),
+    ...(currentState?.opponent_state?.field?.main || []),
+    ...(currentState?.opponent_state?.field?.side || []),
+  ];
+  const actorName = msg?.caster_name || result?.caster_name || msg?.actor_name || msg?.card_name || result?.caster?.name || result?.card?.name || '플레이어';
+  const actorCard = allFieldCards.find((c: any) => c.uid === (msg?.caster_uid || result?.caster_uid))
+      || allFieldCards.find((c: any) => c.name === actorName)
+      || result?.caster
+      || null;
+
+  const isSpell = action === 'execute_spell' || result?.type === 'spell_played' || !!result?.card?.is_spell || String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').startsWith('spell_');
+  const spellCard = result?.card || { hero_key: result?.hero_key || msg?.hero_key, name: skillName, is_spell: true, description: result?.description };
+  const heroKey = isSpell
+      ? (result?.hero_key || msg?.hero_key || spellCard?.hero_key || undefined)
+      : (getHeroKey(actorCard) || result?.caster_hero_key || getHeroKey(result?.caster) || undefined);
+  const description = isSpell
+      ? getSkillDescriptionFromCard(spellCard, result?.skill_key || result?.skill || skillName)
+      : getSkillDescriptionFromCard(actorCard, msg?.skill_key || result?.skill_key || result?.skill_name || result?.skill || skillName);
+
+  return {
+    title: skillName,
+    subtitle: `${actorName} 사용`,
+    heroKey,
+    imageName: isSpell ? (spellCard?.name || skillName) : (actorCard?.name || actorName),
+    isSpell,
+    description,
+  };
+}
+
 function isTargetlessSkill(card: any, skillKey: string): boolean {
   const hero = getHeroKey(card);
   const statuses = card?.statuses || [];
@@ -937,6 +989,20 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         }),
         ws.on('game_action', (msg: any) => {
           pendingDamageMapRef.current = collectDamageMap(msg?.result || {});
+          if (isSpectator) {
+            const cue = buildSpectatorSkillCue(msg, gsRef.current);
+            if (cue) {
+              showSkillUse({
+                skillName: cue.title,
+                description: cue.description || '',
+                heroKey: cue.heroKey || '',
+                imageName: cue.imageName,
+                subtitle: cue.subtitle,
+                isSpell: !!cue.isSpell,
+                duration: 3200,
+              });
+            }
+          }
           const mapped = mapSpectatorStateToGameState(msg?.spectator_state);
           if (!mapped) return;
           setGs(mapped);
