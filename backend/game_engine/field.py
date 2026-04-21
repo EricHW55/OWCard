@@ -159,6 +159,22 @@ class FieldCard:
         log = {"original_damage": damage, "target": self.uid}
         current_damage = damage
         # source_uid = str(kwargs.get("source_uid") or "").strip()
+        reduction_status_names = {"damage_reduction", "next_turn_start_damage_reduction", "orisa_fortify_passive"}
+
+        def _effective_damage_reduction_percent() -> int:
+            max_percent = 0
+            for status in self.statuses:
+                if status.name not in reduction_status_names:
+                    continue
+                percent = 0
+                if status.name == "orisa_fortify_passive" and not bool(getattr(status, "active", False)):
+                    continue
+                if hasattr(status, "percent"):
+                    percent = int(getattr(status, "percent", 0) or 0)
+                elif hasattr(status, "reduction_percent"):
+                    percent = int(getattr(status, "reduction_percent", 0) or 0)
+                max_percent = max(max_percent, percent)
+            return min(50, max(0, max_percent))
 
         def _damage_hook_priority(status: StatusEffect) -> int:
             name = status.name
@@ -173,6 +189,8 @@ class FieldCard:
             return 25
 
         for status in sorted(list(self.statuses), key=_damage_hook_priority):
+            if status.name in reduction_status_names:
+                continue
             result = status.on_take_damage(self, current_damage, **kwargs)
             if result.get("particle_barrier_broken"):
                 log["particle_barrier_broken"] = True
@@ -192,6 +210,12 @@ class FieldCard:
                 log["final_damage"] = 0
                 return log
             current_damage = result.get("damage", current_damage)
+            
+        reduction_percent = _effective_damage_reduction_percent()
+        if reduction_percent > 0:
+            current_damage = int(current_damage * (1 - reduction_percent / 100))
+            log["damage_reduction_percent"] = reduction_percent
+
 
         current_damage = max(0, current_damage)
         self.current_hp = max(0, self.current_hp - current_damage)

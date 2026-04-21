@@ -76,20 +76,34 @@ def spell_blizzard(caster: FieldCard, target: FieldCard, game: GameState) -> dic
 
 @register_skill("spell_earthshatter", "skill_1")
 def spell_earthshatter(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """대지분쇄: 사이드 or 본대 중 한 곳, 모든 적 스킬 봉쇄."""
-    from game_engine.field import Zone
+    """대지분쇄: 지정 대상 + 바로 뒤 줄(총 2줄) 스킬 봉쇄."""
+    from game_engine.field import Role
     if not target:
         return {"success": False, "message": "영역을 선택하세요"}
 
     enemy_field = game.get_enemy_field(caster)
-    zone = target.zone
-    targets = enemy_field.get_row(zone)
-    logs = []
+    targets = [target]
+    if target.role == Role.TANK:
+        targets.extend(enemy_field.get_role_row_in_zone(Role.DEALER, target.zone))
+    elif target.role == Role.DEALER:
+        target_slot = int(target.extra.get("slot_index", 0) or 0)
+        healers = enemy_field.get_role_row_in_zone(Role.HEALER, target.zone)
+        targets.extend([healer for healer in healers if int(healer.extra.get("slot_index", 0) or 0) == target_slot])
+
+    unique_targets = []
+    seen_uids = set()
     for card in targets:
+        if card.uid in seen_uids:
+            continue
+        seen_uids.add(card.uid)
+        unique_targets.append(card)
+
+    logs = []
+    for card in unique_targets:
         card.add_status(SkillSilence(duration=1, source_uid="spell"))
         logs.append({"target": card.uid, "silenced": True})
 
-    return {"success": True, "skill": "대지분쇄", "zone": zone.value, "affected": logs}
+    return {"success": True, "skill": "대지분쇄", "zone": target.zone.value, "affected": logs}
 
 
 @register_skill("spell_gravity_flux", "skill_1")
@@ -111,13 +125,13 @@ def spell_gravity_flux(caster: FieldCard, target: FieldCard, game: GameState) ->
     logs = []
     target_uids = []
     for card in targets:
-        card.add_status(GravityFluxAirborne(duration=-1, source_uid="spell"))
+        card.add_status(GravityFluxAirborne(duration=2, source_uid="spell"))
         target_uids.append(card.uid)
         logs.append({"target": card.uid, "airborne": True})
 
     game._engine.pending_end_turn_effects.append({
         "kind": "gravity_flux",
-        "trigger_player_id": my_player.player_id,
+        "trigger_player_id": enemy_player.player_id,
         "target_player_id": enemy_player.player_id,
         "target_uids": target_uids,
     })
@@ -457,13 +471,15 @@ def spell_amp_matrix(caster: FieldCard, target: FieldCard, game: GameState) -> d
 
 @register_skill("spell_nano_boost", "skill_1")
 def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
-    """나노 강화제: 아군 한명 스킬 피해량 +50%, 피해감소 50%. 영구."""
+    """나노 강화제: 아군 한명 강화(내 턴 기준 3턴) + 즉시 회복."""
     if not target:
         return {"success": False, "message": "강화할 아군을 선택하세요"}
 
     damage_multiplier = float(caster.extra.get("damage_multiplier", 1.5) or 1.5)
     damage_reduction = int(caster.extra.get("damage_reduction", 50) or 50)
-    duration = int(caster.extra.get("duration", -1) or -1)
+    duration = int(caster.extra.get("duration", 3) or 3)
+    instant_heal = int(caster.extra.get("instant_heal", 3) or 0)
+    healed = target.heal(max(0, instant_heal))
     
     target.add_status(DamageMultiplier(
         value=damage_multiplier,
@@ -483,6 +499,7 @@ def spell_nano_boost(caster: FieldCard, target: FieldCard, game: GameState) -> d
         "success": True,
         "skill": "나노 강화제",
         "target": target.uid,
+        "healed": healed,
         "attack_bonus": damage_multiplier,
         "damage_reduction": damage_reduction,
         "duration": duration,
