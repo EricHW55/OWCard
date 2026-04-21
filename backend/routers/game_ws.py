@@ -460,7 +460,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         choice = str(data.get("choice", "first")).lower()
         winner_id = int(bo3_session.pending_round_result["winner"])
         loser_id = int(bo3_session.pending_round_result["loser"])
-        bo3_session.chosen_first_player_id = winner_id if choice == "first" else loser_id
+        bo3_session.chosen_first_player_id = loser_id if choice == "first" else winner_id
         bo3_session.awaiting_first_player_choice = False
         await manager.send_game(game_id, player_id, {"event": "action_result", "action": action, "result": {"ok": True, "choice": choice}})
         for pid in bo3_session.player_ids:
