@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getCardImageSrc, resolveHeroKey, resolveSpellKey } from '../utils/heroImage';
-import { soundManager } from '../utils/soundManager';
+import { getCardImageSrc } from '../utils/heroImage';
 import './GameAnnouncer.css';
 
 export interface AnnouncerData {
@@ -21,21 +20,6 @@ interface Props {
     onClose: () => void;
 }
 
-const placementSoundExistsCache = new Map<string, boolean>();
-
-async function canPlayPlacementSound(url: string): Promise<boolean> {
-    if (placementSoundExistsCache.has(url)) return placementSoundExistsCache.get(url) === true;
-    try {
-        const response = await fetch(url, { method: 'HEAD' });
-        const ok = response.ok;
-        placementSoundExistsCache.set(url, ok);
-        return ok;
-    } catch {
-        placementSoundExistsCache.set(url, false);
-        return false;
-    }
-}
-
 const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
     const handleSkip = () => onClose();
     const [imgError, setImgError] = useState(false);
@@ -50,28 +34,6 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
         const timer = window.setTimeout(() => onClose(), displayTime);
         return () => window.clearTimeout(timer);
     }, [data, onClose]);
-
-    useEffect(() => {
-        if (!data || data.type !== 'skill') return;
-
-        const cardLike = {
-            hero_key: data.heroKey,
-            name: data.imageName || data.title,
-            is_spell: data.isSpell,
-        };
-
-        const soundKey = data.isSpell ? resolveSpellKey(cardLike) : resolveHeroKey(cardLike);
-        if (!soundKey) return;
-
-        const baseFolder = data.isSpell ? 'skills' : 'heroes';
-        const soundUrl = `/sounds/${baseFolder}/${soundKey}/place.ogg`;
-
-        void (async () => {
-            const exists = await canPlayPlacementSound(soundUrl);
-            if (!exists) return;
-            await soundManager.playPlacementSound(soundUrl);
-        })();
-    }, [data]);
 
     const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);
 

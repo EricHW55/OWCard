@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CardVisualEffect, FieldState, FieldCard, HandCard as HandCardType } from '../types/game';
 import FieldCardComp from './FieldCardComp';
-import { buildCardImageChain } from '../utils/heroImage';
+import { buildCardImageChain, resolveHeroKey } from '../utils/heroImage';
 import { CardFaceContent } from './CardFaceContent';
 import { ROLE_COLOR } from '../types/constants';
+import { soundManager } from '../utils/soundManager';
 
 interface Props {
     field: FieldState;
@@ -101,6 +102,15 @@ const FieldSection: React.FC<Props> = ({
             return;
         }
 
+        if (phase === 'placement') {
+            newcomers.forEach((card) => {
+                if (card?.is_spell) return;
+                const soundKey = resolveHeroKey(card);
+                if (!soundKey) return;
+                void soundManager.playPlacementSound(`/sounds/heroes/${soundKey}/place.ogg`);
+            });
+        }
+
         const rafId = window.requestAnimationFrame(() => {
             const scenes: PlacementCinematic[] = newcomers.flatMap((card) => {
                 const targetNode = cardRefMap.current[card.uid];
@@ -170,7 +180,7 @@ const FieldSection: React.FC<Props> = ({
 
         knownCardUidsRef.current = currentUidSet;
         return () => window.cancelAnimationFrame(rafId);
-    }, [allFieldCards]);
+    }, [allFieldCards, phase]);
 
 
     const renderCard = (card: FieldCard, hidden = false) => (
