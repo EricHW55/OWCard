@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getCardImageSrc } from '../utils/heroImage';
+import { getCardImageSrc, resolveHeroKey, resolveSpellKey } from '../utils/heroImage';
+import { soundManager } from '../utils/soundManager';
 import './GameAnnouncer.css';
 
 export interface AnnouncerData {
@@ -34,6 +35,19 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
         const timer = window.setTimeout(() => onClose(), displayTime);
         return () => window.clearTimeout(timer);
     }, [data, onClose]);
+
+    useEffect(() => {
+        if (!data || data.type !== 'skill') return;
+
+        const cardLike = {
+            hero_key: data.heroKey,
+            name: data.imageName || data.title,
+            is_spell: !!data.isSpell,
+        };
+        const spellKey = resolveSpellKey(cardLike);
+        const heroKey = resolveHeroKey(cardLike);
+        void soundManager.playCardVoice({ isSpell: !!data.isSpell, heroKey, spellKey });
+    }, [data]);
 
     const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);
 

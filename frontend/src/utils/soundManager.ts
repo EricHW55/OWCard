@@ -135,6 +135,16 @@ class SoundManager {
             }
         }, { once: true });
     }
+
+    async playCardVoice(params: { heroKey?: string | null; spellKey?: string | null; isSpell?: boolean }) {
+        const isSpell = !!params.isSpell;
+        const key = isSpell ? params.spellKey : params.heroKey;
+        if (!key) return;
+        const soundUrl = isSpell
+            ? `/sounds/skills/${key}/place.ogg`
+            : `/sounds/heroes/${key}/place.ogg`;
+        await this.playPlacementSound(soundUrl);
+    }
 }
 
 export const soundManager = new SoundManager();
