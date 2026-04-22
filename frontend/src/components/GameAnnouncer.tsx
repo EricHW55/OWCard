@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getCardImageSrc, resolveSpellKey } from '../utils/heroImage';
+import { getCardImageSrc, resolveHeroKey, resolveSpellKey } from '../utils/heroImage';
+import { soundManager } from '../utils/soundManager';
 import './GameAnnouncer.css';
 
 export interface AnnouncerData {
@@ -20,17 +21,17 @@ interface Props {
     onClose: () => void;
 }
 
-const spellSoundExistsCache = new Map<string, boolean>();
+const placementSoundExistsCache = new Map<string, boolean>();
 
-async function canPlaySpellSound(url: string): Promise<boolean> {
-    if (spellSoundExistsCache.has(url)) return spellSoundExistsCache.get(url) === true;
+async function canPlayPlacementSound(url: string): Promise<boolean> {
+    if (placementSoundExistsCache.has(url)) return placementSoundExistsCache.get(url) === true;
     try {
         const response = await fetch(url, { method: 'HEAD' });
         const ok = response.ok;
-        spellSoundExistsCache.set(url, ok);
+        placementSoundExistsCache.set(url, ok);
         return ok;
     } catch {
-        spellSoundExistsCache.set(url, false);
+        placementSoundExistsCache.set(url, false);
         return false;
     }
 }
@@ -51,35 +52,25 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
     }, [data, onClose]);
 
     useEffect(() => {
-        if (!data || data.type !== 'skill' || !data.isSpell) return;
+        if (!data || data.type !== 'skill') return;
 
-        const spellKey = resolveSpellKey({
+        const cardLike = {
             hero_key: data.heroKey,
             name: data.imageName || data.title,
-            is_spell: true,
-        });
-        if (!spellKey) return;
-
-        const soundUrl = `/sounds/skills/${spellKey}/place.ogg`;
-        let cancelled = false;
-        const audio = new Audio(soundUrl);
-        audio.preload = 'auto';
-
-        (async () => {
-            const exists = await canPlaySpellSound(soundUrl);
-            if (!exists || cancelled) return;
-            try {
-                await audio.play();
-            } catch {
-                // 브라우저 자동재생 정책 또는 파일 문제 시 조용히 무시
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-            audio.pause();
-            audio.currentTime = 0;
+            is_spell: data.isSpell,
         };
+
+        const soundKey = data.isSpell ? resolveSpellKey(cardLike) : resolveHeroKey(cardLike);
+        if (!soundKey) return;
+
+        const baseFolder = data.isSpell ? 'skills' : 'heroes';
+        const soundUrl = `/sounds/${baseFolder}/${soundKey}/place.ogg`;
+
+        void (async () => {
+            const exists = await canPlayPlacementSound(soundUrl);
+            if (!exists) return;
+            await soundManager.playPlacementSound(soundUrl);
+        })();
     }, [data]);
 
     const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);

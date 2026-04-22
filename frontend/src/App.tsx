@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LobbyPage from './pages/LobbyPage';
 import GamePage from './pages/GamePage';
 import DeckBuilderPage from './pages/DeckBuilderPage';
@@ -7,6 +7,18 @@ import GameRulesPage from './pages/GameRulesPage';
 import SoloGamePage from './pages/SoloGamePage';
 import StatusEffectsPage from './pages/StatusEffectsPage';
 import AdminPage from './pages/AdminPage';
+import { soundManager } from './utils/soundManager';
+
+const RouteBgmController: React.FC = () => {
+    const location = useLocation();
+
+    React.useEffect(() => {
+        const isInGame = location.pathname.startsWith('/game/') || location.pathname === '/solo-game';
+        soundManager.ensureBgm(isInGame ? 'ingame' : 'lobby');
+    }, [location.pathname]);
+
+    return null;
+};
 
 const App: React.FC = () => {
     React.useEffect(() => {
@@ -58,6 +70,7 @@ const App: React.FC = () => {
     
     return (
         <BrowserRouter>
+            <RouteBgmController />
             <Routes>
                 <Route path="/" element={<LobbyPage />} />
                 <Route path="/deck-builder" element={<DeckBuilderPage />} />
