@@ -1,8 +1,8 @@
 export type BgmType = 'lobby' | 'ingame';
 
-const BGM_SOURCE: Record<BgmType, string> = {
-    lobby: '/sounds/bgm/lobby.ogg',
-    ingame: '/sounds/bgm/ingame.ogg',
+const BGM_SOURCE: Record<BgmType, string[]> = {
+    lobby: ['/sounds/bgm/lobby.ogg', '/sounds/bgm/lobby.mp3'],
+    ingame: ['/sounds/bgm/ingame.ogg'],
 };
 
 const DEFAULT_BGM_VOLUME = 0.4;
@@ -41,6 +41,8 @@ class SoundManager {
     private bgmType: BgmType | null = null;
     private bgmToken = 0;
     private placementAudio: HTMLAudioElement | null = null;
+    private pendingBgmType: BgmType | null = null;
+    private unlockListenersAttached = false;
 
     ensureBgm(type: BgmType) {
         if (typeof window === 'undefined') return;
@@ -56,7 +58,7 @@ class SoundManager {
 
     private async switchBgm(type: BgmType) {
         const token = ++this.bgmToken;
-        const nextAudio = new Audio(BGM_SOURCE[type]);
+        const nextAudio = new Audio(this.pickBgmSource(type));
         nextAudio.preload = 'auto';
         nextAudio.loop = true;
         nextAudio.volume = 0;
@@ -67,6 +69,8 @@ class SoundManager {
             if (token === this.bgmToken) {
                 this.bgmType = type;
                 this.bgmAudio = nextAudio;
+                this.pendingBgmType = type;
+                this.attachUnlockListeners();
             }
             return;
         }
@@ -80,6 +84,8 @@ class SoundManager {
         const previous = this.bgmAudio;
         this.bgmAudio = nextAudio;
         this.bgmType = type;
+        this.pendingBgmType = null;
+        this.detachUnlockListeners();
 
         this.fadeIn(nextAudio, DEFAULT_BGM_VOLUME, 500);
 
@@ -145,6 +151,41 @@ class SoundManager {
             : `/sounds/heroes/${key}/place.ogg`;
         await this.playPlacementSound(soundUrl);
     }
+
+    private pickBgmSource(type: BgmType): string {
+        const [defaultSource, ...fallbacks] = BGM_SOURCE[type];
+        const probe = new Audio();
+        const sources = [defaultSource, ...fallbacks];
+        return sources.find((source) => {
+            if (source.endsWith('.ogg')) return probe.canPlayType('audio/ogg; codecs="vorbis"') !== '';
+            if (source.endsWith('.mp3')) return probe.canPlayType('audio/mpeg') !== '';
+            return false;
+        }) ?? defaultSource;
+    }
+
+    private attachUnlockListeners() {
+        if (this.unlockListenersAttached || typeof window === 'undefined') return;
+        window.addEventListener('pointerdown', this.ensurePendingUnlock, { once: true });
+        window.addEventListener('touchstart', this.ensurePendingUnlock, { once: true });
+        window.addEventListener('keydown', this.ensurePendingUnlock, { once: true });
+        this.unlockListenersAttached = true;
+    }
+
+    private detachUnlockListeners() {
+        if (!this.unlockListenersAttached || typeof window === 'undefined') return;
+        window.removeEventListener('pointerdown', this.ensurePendingUnlock);
+        window.removeEventListener('touchstart', this.ensurePendingUnlock);
+        window.removeEventListener('keydown', this.ensurePendingUnlock);
+        this.unlockListenersAttached = false;
+    }
+
+    private ensurePendingUnlock = () => {
+        const pendingType = this.pendingBgmType;
+        if (!pendingType) return;
+        this.pendingBgmType = null;
+        this.detachUnlockListeners();
+        this.ensureBgm(pendingType);
+    };
 }
 
 export const soundManager = new SoundManager();
