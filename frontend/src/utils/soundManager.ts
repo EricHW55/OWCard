@@ -48,7 +48,10 @@ class SoundManager {
         if (typeof window === 'undefined') return;
         if (this.bgmType === type && this.bgmAudio) {
             if (this.bgmAudio.paused) {
-                this.bgmAudio.play().catch(() => undefined);
+                this.bgmAudio.play().catch(() => {
+                    this.pendingBgmType = type;
+                    this.attachUnlockListeners();
+                });
             }
             return;
         }
@@ -167,6 +170,7 @@ class SoundManager {
         if (this.unlockListenersAttached || typeof window === 'undefined') return;
         window.addEventListener('pointerdown', this.ensurePendingUnlock, { once: true });
         window.addEventListener('touchstart', this.ensurePendingUnlock, { once: true });
+        window.addEventListener('click', this.ensurePendingUnlock, { once: true });
         window.addEventListener('keydown', this.ensurePendingUnlock, { once: true });
         this.unlockListenersAttached = true;
     }
@@ -175,6 +179,7 @@ class SoundManager {
         if (!this.unlockListenersAttached || typeof window === 'undefined') return;
         window.removeEventListener('pointerdown', this.ensurePendingUnlock);
         window.removeEventListener('touchstart', this.ensurePendingUnlock);
+        window.removeEventListener('click', this.ensurePendingUnlock);
         window.removeEventListener('keydown', this.ensurePendingUnlock);
         this.unlockListenersAttached = false;
     }

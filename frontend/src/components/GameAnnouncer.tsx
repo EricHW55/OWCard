@@ -44,9 +44,10 @@ const GameAnnouncer: React.FC<Props> = ({ data, onClose }) => {
             name: data.imageName || data.title,
             is_spell: !!data.isSpell,
         };
+        if (!data.isSpell) return;
         const spellKey = resolveSpellKey(cardLike);
         const heroKey = resolveHeroKey(cardLike);
-        void soundManager.playCardVoice({ isSpell: !!data.isSpell, heroKey, spellKey });
+        void soundManager.playCardVoice({ isSpell: true, heroKey, spellKey });
     }, [data]);
 
     const displayTime = data?.duration || (data?.type === 'skill' ? 2000 : 1500);
