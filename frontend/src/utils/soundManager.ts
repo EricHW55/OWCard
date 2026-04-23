@@ -44,19 +44,23 @@ class SoundManager {
     private pendingBgmType: BgmType | null = null;
     private unlockListenersAttached = false;
 
-    ensureBgm(type: BgmType) {
+    async ensureBgm(type: BgmType): Promise<void> {
         if (typeof window === 'undefined') return;
         if (this.bgmType === type && this.bgmAudio) {
             if (this.bgmAudio.paused) {
-                this.bgmAudio.play().catch(() => {
+                try {
+                    await this.bgmAudio.play();
+                    this.pendingBgmType = null;
+                    this.detachUnlockListeners();
+                } catch {
                     this.pendingBgmType = type;
                     this.attachUnlockListeners();
-                });
+                }
             }
             return;
         }
 
-        this.switchBgm(type);
+        await this.switchBgm(type);
     }
 
     private async switchBgm(type: BgmType) {
@@ -66,12 +70,19 @@ class SoundManager {
         nextAudio.loop = true;
         nextAudio.volume = 0;
 
+        const previous = this.bgmAudio;
+        this.bgmAudio = nextAudio;
+        this.bgmType = type;
+        this.pendingBgmType = null;
+
+        if (previous) {
+            await fadeOutAudio(previous, 500);
+        }
+
         try {
             await nextAudio.play();
         } catch {
             if (token === this.bgmToken) {
-                this.bgmType = type;
-                this.bgmAudio = nextAudio;
                 this.pendingBgmType = type;
                 this.attachUnlockListeners();
             }
@@ -84,17 +95,10 @@ class SoundManager {
             return;
         }
 
-        const previous = this.bgmAudio;
-        this.bgmAudio = nextAudio;
-        this.bgmType = type;
         this.pendingBgmType = null;
         this.detachUnlockListeners();
 
         this.fadeIn(nextAudio, DEFAULT_BGM_VOLUME, 500);
-
-        if (previous) {
-            await fadeOutAudio(previous, 500);
-        }
     }
 
     private fadeIn(audio: HTMLAudioElement, targetVolume: number, durationMs = 500) {
@@ -168,10 +172,10 @@ class SoundManager {
 
     private attachUnlockListeners() {
         if (this.unlockListenersAttached || typeof window === 'undefined') return;
-        window.addEventListener('pointerdown', this.ensurePendingUnlock, { once: true });
-        window.addEventListener('touchstart', this.ensurePendingUnlock, { once: true });
-        window.addEventListener('click', this.ensurePendingUnlock, { once: true });
-        window.addEventListener('keydown', this.ensurePendingUnlock, { once: true });
+        window.addEventListener('pointerdown', this.ensurePendingUnlock);
+        window.addEventListener('touchstart', this.ensurePendingUnlock);
+        window.addEventListener('click', this.ensurePendingUnlock);
+        window.addEventListener('keydown', this.ensurePendingUnlock);
         this.unlockListenersAttached = true;
     }
 
@@ -184,12 +188,13 @@ class SoundManager {
         this.unlockListenersAttached = false;
     }
 
-    private ensurePendingUnlock = () => {
+    private ensurePendingUnlock = async () => {
         const pendingType = this.pendingBgmType;
         if (!pendingType) return;
-        this.pendingBgmType = null;
-        this.detachUnlockListeners();
-        this.ensureBgm(pendingType);
+        await this.ensureBgm(pendingType);
+        if (this.pendingBgmType === null) {
+            this.detachUnlockListeners();
+        }
     };
 }
 

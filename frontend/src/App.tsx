@@ -14,7 +14,7 @@ const RouteBgmController: React.FC = () => {
 
     React.useEffect(() => {
         const isInGame = location.pathname.startsWith('/game/') || location.pathname === '/solo-game';
-        soundManager.ensureBgm(isInGame ? 'ingame' : 'lobby');
+        void soundManager.ensureBgm(isInGame ? 'ingame' : 'lobby');
     }, [location.pathname]);
 
     return null;
