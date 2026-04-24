@@ -254,6 +254,52 @@ export function buildSpectatorSkillCue(msg: any, currentState?: GameState | null
     };
 }
 
+export function getSymmetraTeleportBlockReason(caster: any, target: any, myField: any): string | null {
+    if (getHeroKey(caster) !== 'symmetra') return null;
+    if (!target || !myField) return '행동 불가';
+    const role = String(target?.role || '');
+    const nextZone = target?.zone === 'main' ? 'side' : 'main';
+    const sideCards = Array.isArray(myField?.side) ? myField.side : [];
+    if (nextZone === 'side') {
+        const hasSameRoleInSide = sideCards.some((c: any) => c?.uid !== target?.uid && c?.alive !== false && c?.role === role);
+        if (!hasSameRoleInSide) return null;
+        if (role === 'tank') return '행동 불가: 사이드 자리가 꽉 찼습니다';
+        return `행동 불가: 사이드 ${role} 자리가 꽉 찼습니다`;
+    }
+    const mainCards = Array.isArray(myField?.main) ? myField.main : [];
+    const occupiedSlots = new Set(
+        mainCards
+            .filter((c: any) => c?.uid !== target?.uid && c?.role === role && c?.alive !== false)
+            .map((c: any) => Number(c?.extra?.slot_index ?? 0)),
+    );
+    const isMainBlocked = role === 'tank'
+        ? occupiedSlots.has(0)
+        : occupiedSlots.has(0) && occupiedSlots.has(1);
+    if (!isMainBlocked) return null;
+    if (role === 'tank') return '행동 불가: 본대 탱커 자리가 꽉 찼습니다';
+    return `행동 불가: 본대 ${role} 자리가 꽉 찼습니다`;
+}
+
+export function collectFatalUids(node: any, found = new Set<string>()): Set<string> {
+    if (!node || typeof node !== 'object') return found;
+    const uid = node?.target || node?.uid;
+    const remainingHp = node?.remaining_hp;
+    if (uid && typeof remainingHp === 'number' && remainingHp <= 0) found.add(String(uid));
+    Object.values(node).forEach((value) => {
+        if (value && typeof value === 'object') collectFatalUids(value, found);
+    });
+    return found;
+}
+
+export function collectAllFieldCards(state: any) {
+    return [
+        ...(state?.my_state?.field?.main || []),
+        ...(state?.my_state?.field?.side || []),
+        ...(state?.opponent_state?.field?.main || []),
+        ...(state?.opponent_state?.field?.side || []),
+    ];
+}
+
 export function isTargetlessSkill(card: any, skillKey: string): boolean {
     const hero = getHeroKey(card);
     const statuses = card?.statuses || [];

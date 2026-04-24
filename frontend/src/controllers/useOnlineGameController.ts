@@ -11,21 +11,27 @@ import {
   buildHeadshotCoinFaces,
   buildOpponentSkillCue,
   buildSpectatorSkillCue,
+  collectAllFieldCards,
+  collectFatalUids,
   collectDamageMap,
   findFieldCardByUid,
   getChargeLevel,
-  getColumnTargetSideForSpell,
   getHeroKey,
+  getSymmetraTeleportBlockReason,
   getHeroSkillBlockReason,
   getSkillDescriptionFromCard,
   getSkillNameFromCard,
-  isColumnTargetSpell,
   isTargetlessSkill,
   needsColumnSelector,
   pushSkillActionLogs as pushSharedSkillActionLogs,
   resolveHeadshotOutcome,
   useAnnouncerHelpers,
 } from './shared/gamePresentation';
+import {
+  handlePassiveTriggeredUi,
+  handleSpellPlayedPlacementUi,
+  pushPlacementActionLogs,
+} from './shared/onlineActionPresentation';
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -54,53 +60,6 @@ function getSession() {
   if (!token || !pid) return null;
   const decoded = decodeJwt(token);
   return { token, player_id: Number(pid), username: sessionStorage.getItem('username') || decoded?.username || `p${pid}` };
-}
-
-
-function getSymmetraTeleportBlockReason(caster: any, target: any, myField: any): string | null {
-  if (getHeroKey(caster) !== 'symmetra') return null;
-  if (!target || !myField) return '행동 불가';
-  const role = String(target?.role || '');
-  const nextZone = target?.zone === 'main' ? 'side' : 'main';
-  const sideCards = Array.isArray(myField?.side) ? myField.side : [];
-  if (nextZone === 'side') {
-    const hasSameRoleInSide = sideCards.some((c: any) => c?.uid !== target?.uid && c?.alive !== false && c?.role === role);
-    if (!hasSameRoleInSide) return null;
-    if (role === 'tank') return '행동 불가: 사이드 자리가 꽉 찼습니다';
-    return `행동 불가: 사이드 ${role} 자리가 꽉 찼습니다`;
-  }
-  const mainCards = Array.isArray(myField?.main) ? myField.main : [];
-  const occupiedSlots = new Set(
-      mainCards
-          .filter((c: any) => c?.uid !== target?.uid && c?.role === role && c?.alive !== false)
-          .map((c: any) => Number(c?.extra?.slot_index ?? 0)),
-  );
-  const isMainBlocked = role === 'tank'
-      ? occupiedSlots.has(0)
-      : occupiedSlots.has(0) && occupiedSlots.has(1);
-  if (!isMainBlocked) return null;
-  if (role === 'tank') return '행동 불가: 본대 탱커 자리가 꽉 찼습니다';
-  return `행동 불가: 본대 ${role} 자리가 꽉 찼습니다`;
-}
-
-function collectFatalUids(node: any, found = new Set<string>()): Set<string> {
-  if (!node || typeof node !== 'object') return found;
-  const uid = node?.target || node?.uid;
-  const remainingHp = node?.remaining_hp;
-  if (uid && typeof remainingHp === 'number' && remainingHp <= 0) found.add(String(uid));
-  Object.values(node).forEach((value) => {
-    if (value && typeof value === 'object') collectFatalUids(value, found);
-  });
-  return found;
-}
-
-function collectAllFieldCards(state: any) {
-  return [
-    ...(state?.my_state?.field?.main || []),
-    ...(state?.my_state?.field?.side || []),
-    ...(state?.opponent_state?.field?.main || []),
-    ...(state?.opponent_state?.field?.side || []),
-  ];
 }
 
 const HP_ANIMATION_MS = 500;
@@ -698,92 +657,50 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           if (msg.action === 'end_turn') {
             pushBattleLog({ type: 'turn_end', team: 'my', turn: gsRef.current?.turn, text: '내 턴 종료' });
           }
-          if (msg.action === 'place_card') {
-            const placedCard = result?.card || null;
-            if (placedCard && !placedCard?.is_spell) {
-              pushBattleLog({
-                type: 'placement',
-                team: 'my',
-                turn: gsRef.current?.turn,
-                actor: toActor(placedCard, placedCard?.name || '영웅'),
-                text: `${placedCard?.name || '영웅'} 배치`,
-              });
-            }
-            if ((placedCard && placedCard?.is_spell) || result?.type === 'spell_played') {
-              const spellCard = placedCard || myHand.find((c: any) => c.hero_key === result?.hero_key);
-              if (spellCard) {
-                pushBattleLog({
-                  type: 'skill',
-                  team: 'my',
-                  turn: gsRef.current?.turn,
-                  actor: toActor(spellCard, spellCard?.name || '스킬 카드'),
-                  skillName: spellName,
-                });
-              }
-            }
-          }
+          pushPlacementActionLogs({
+            action: msg.action,
+            result,
+            team: 'my',
+            turn: gsRef.current?.turn,
+            myHand,
+            spellName,
+            toActor,
+            pushBattleLog,
+          });
 
-          if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_target) {
-            pendingSpellCardRef.current = result?.card || null;
-            if (result?.hero_key === 'spell_duplicate') {
+          handleSpellPlayedPlacementUi({
+            action: msg.action,
+            result,
+            spellName: resolvedSkillName || spellName,
+            addLog,
+            showSystemNotice,
+            setPendingSpellCard: (card) => {
+              pendingSpellCardRef.current = card;
+            },
+            setPendingSpell,
+            setPendingSpellName,
+            setActionMode,
+            setColumnChoice,
+            setLocalPendingSpellChoice,
+            resetDuplicateTarget: () => {
               setDuplicateTargetUid(null);
               setDuplicateTargetRole(null);
               setDuplicateTargetName(null);
-            }
-            setPendingSpell(result.hero_key);
-            setPendingSpellName(spellName);
-            setLocalPendingSpellChoice(null);
-            addLog('스킬 카드 대상 선택');
-            if (isColumnTargetSpell(result?.hero_key)) {
-              setActionMode(null);
-              setColumnChoice({
-                source: 'spell',
-                heroKey: result.hero_key,
-                skillName: spellName,
-                targetSide: getColumnTargetSideForSpell(result?.hero_key),
-              });
-              showSystemNotice(spellName, '열을 선택하세요', 1200);
-            } else {
-              setActionMode('spell');
-              setColumnChoice(null);
-              showSystemNotice(spellName, '대상을 선택하세요', 1200);
-            }
-          }
-          if (msg.action === 'place_card' && result?.type === 'spell_played' && result?.needs_choice) {
-            pendingSpellCardRef.current = result?.card || null;
-            setPendingSpell(null);
-            setPendingSpellName(spellName);
-            setActionMode(null);
-            setLocalPendingSpellChoice(result?.choice || null);
-            addLog('스킬 카드 추가 선택 필요');
-            showSystemNotice(spellName, '카드를 선택하세요', 1300);
-          }
-          if (msg.action === 'place_card' && result?.type === 'spell_played' && !result?.needs_target && !result?.needs_choice) {
-            const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key) || result?.card;
-            showSkillUse({ skillName: resolvedSkillName || spellName, description: getSkillDescriptionFromCard(spellCard), heroKey: result?.hero_key || spellCard?.hero_key || '', imageName: spellCard?.name || spellName, isSpell: true, duration: 3200 });
-            setLocalPendingSpellChoice(null);
-          }
+            },
+            showSkillUse,
+            myHand,
+          });
 
-          if (result?.passive_triggered?.summoned) {
-            addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
-            showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
-          }
-          if (result?.passive_triggered?.passive) {
-            showSkillUseAfterPlacement({
-              skillName: result.passive_triggered.passive,
-              subtitle: `${actorName} 패시브`,
-              description: result?.passive_triggered?.message || '',
-              heroKey: getHeroKey(myCasterCard) || String(result?.caster?.hero_key || msg?.hero_key || ''),
-              imageName: myCasterCard?.name || actorName,
-              isSpell: false,
-              duration: 3000,
-            });
-          }
-          if (result?.passive_triggered?.needs_choice) {
-            setLocalPendingPassive(result.passive_triggered.needs_choice);
-            addLog('패시브 추가 선택 필요');
-            if (result.passive_triggered.passive) showSystemNotice(result.passive_triggered.passive, '선택이 필요합니다', 1300);
-          }
+          handlePassiveTriggeredUi({
+            result,
+            actorName,
+            myCasterCard,
+            msgHeroKey: msg?.hero_key,
+            addLog,
+            showSystemNotice,
+            showSkillUseAfterPlacement,
+            setLocalPendingPassive,
+          });
           if (msg.action === 'resolve_passive_choice') {
             setLocalPendingPassive(null);
             if (result?.card?.name) {
@@ -938,30 +855,14 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           if (msg.action === 'end_turn') {
             pushBattleLog({ type: 'turn_end', team: 'opponent', turn: gsRef.current?.turn, text: '상대 턴 종료' });
           }
-          if (msg.action === 'place_card') {
-            const placedCard = result?.card || null;
-            if (placedCard && !placedCard?.is_spell) {
-              pushBattleLog({
-                type: 'placement',
-                team: 'opponent',
-                turn: gsRef.current?.turn,
-                actor: toActor(placedCard, placedCard?.name || '영웅'),
-                text: `${placedCard?.name || '영웅'} 배치`,
-              });
-            }
-            if ((placedCard && placedCard?.is_spell) || result?.type === 'spell_played') {
-              const spellCard = placedCard || result?.card || null;
-              if (spellCard) {
-                pushBattleLog({
-                  type: 'skill',
-                  team: 'opponent',
-                  turn: gsRef.current?.turn,
-                  actor: toActor(spellCard, spellCard?.name || '스킬 카드'),
-                  skillName: result?.skill_name || result?.skill || spellCard?.name || '스킬 카드',
-                });
-              }
-            }
-          }
+          pushPlacementActionLogs({
+            action: msg.action,
+            result,
+            team: 'opponent',
+            turn: gsRef.current?.turn,
+            toActor,
+            pushBattleLog,
+          });
           if (result?.passive_triggered?.passive) {
             const passiveSource = findFieldCardByUid(gsRef.current?.opponent_state, result?.card_uid)
                 || opponentCasterCard
