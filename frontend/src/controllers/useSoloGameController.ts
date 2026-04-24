@@ -2,11 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldCard, GameState, HandCard } from '../types/game';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
-import { computeSoloActionableUids, computeSoloFieldSkills, mapSoloStateFromOnline, Side } from './soloOnlineBridge';
+import { mapSoloStateFromOnline, Side } from './soloOnlineBridge';
 import { createSoloAdapter } from './adapters/soloAdapter';
 import type { UnifiedGameAction } from './gameModeAdapter';
-import { useAnnouncerHelpers } from './shared/gamePresentation';
-import { ONLINE_GAME_UI_PRESET, shouldShowSharedContextPanel } from './shared/gameUiPreset';
+import { getHeroKey, getSkillDescriptionFromCard, useAnnouncerHelpers } from './shared/gamePresentation';
+import { ONLINE_GAME_UI_PRESET } from './shared/gameUiPreset';
+import { computeActionableUids, useGameFlowState } from './shared/gameFlowState';
+import { useMulliganCinematic } from './shared/useMulliganCinematic';
+import { useSharedGameFlowActions } from './shared/useSharedGameFlowActions';
+import { handleSpellPlayedPlacementUi } from './shared/onlineActionPresentation';
+import {
+  handleSwiftStrikeResetPresentation,
+  showDeathPassiveNotice,
+  showPassiveNoticeFromLog,
+  showReactivePassiveFromStateDiff,
+} from './shared/gameEventPresentation';
 
 type SoloState = {
   top: { hand: HandCard[]; field: any; drawPile: HandCard[]; mulliganDone: boolean; placementUsed: number };
@@ -25,7 +35,7 @@ export function useSoloGameController() {
   const apiBase = getApiBase();
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
   const uiTimersRef = useRef<number[]>([]);
-  const { showPhaseChange, showSystemNotice } = useAnnouncerHelpers({
+  const { showPhaseChange, showSystemNotice, showSkillUse, showSkillUseAfterPlacement } = useAnnouncerHelpers({
     enqueueAnnouncer,
     uiTimersRef,
     placementDelayMs: ONLINE_GAME_UI_PRESET.timings.placementCinematicMs,
@@ -46,24 +56,51 @@ export function useSoloGameController() {
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [actionMode, setActionMode] = useState<string | null>(null);
   const [pendingSpellCard, setPendingSpellCard] = useState<HandCard | null>(null);
+  const [pendingSpell, setPendingSpell] = useState<string | null>(null);
+  const [pendingSpellName, setPendingSpellName] = useState<string | null>(null);
+  const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
+  const [columnChoice, setColumnChoice] = useState<{
+    source: 'skill' | 'spell';
+    heroKey?: string;
+    skillKey?: string;
+    skillName: string;
+    targetSide: 'my' | 'opponent';
+  } | null>(null);
 
   const players: SoloState | null = useMemo(() => (gs ? mapSoloStateFromOnline(gs, activeSide) : null), [gs, activeSide]);
   const phase = gs?.phase || 'waiting';
   const activePlayer = players?.[activeSide] || null;
-
-  const selectedHandCard = useMemo(() => {
-    if (!activePlayer || selectedHandIdx === null) return null;
-    return activePlayer.hand[selectedHandIdx] || null;
-  }, [activePlayer, selectedHandIdx]);
-
-  const selectedMyFieldCard = useMemo(() => {
-    if (!players || !selectedFieldUid) return null;
-    const field = players[activeSide].field;
-    return [...field.main, ...field.side].find((c: any) => c.uid === selectedFieldUid) || null;
-  }, [players, selectedFieldUid, activeSide]);
-
-  const selectedHeroKey = selectedMyFieldCard?.hero_key || selectedMyFieldCard?.extra?._hero_key || '';
-  const selectedChargeLevel = Number(selectedMyFieldCard?.extra?.charge_level || 0);
+  const opponentPlayer = players ? players[activeSide === 'top' ? 'bottom' : 'top'] : null;
+  const {
+    selectedHandCard,
+    selectedMyFieldCard,
+    selectedHeroKey,
+    selectedChargeLevel,
+    actionModeLabel,
+    allMyField,
+    fieldSkills,
+    showContextPanel,
+    availableColumns,
+  } = useGameFlowState({
+    my: activePlayer,
+    opponent: opponentPlayer,
+    phase,
+    isMyTurn: true,
+    selectedHandIdx,
+    selectedFieldUid,
+    actionMode,
+    pendingSpell: pendingSpell || pendingSpellCard?.hero_key || null,
+    columnChoice,
+    pendingSpellChoice: localPendingSpellChoice,
+  });
+  const {
+    mulliganAnimatingIndex,
+    mulliganCinematicCard,
+    mulliganReplacementCard,
+    isMulliganCinematicActive,
+    beginMulliganCinematic,
+    completeMulliganCinematic,
+  } = useMulliganCinematic(activePlayer?.hand);
 
   const refreshBySide = useCallback(async (gameId: string, side: Side) => {
     const res = await fetch(`${apiBase}/solo/${gameId}/state?side=${side}`);
@@ -85,14 +122,94 @@ export function useSoloGameController() {
       showSystemNotice('실행 실패', await readError(res), 1200);
       return;
     }
+    const previousState = gs;
     const body = await res.json();
+    const result = body?.result || {};
+    const nextState = body.state as GameState;
+    const action = String(payload?.action || '');
+    const spellName = result?.card?.name || result?.skill_name || result?.skill || selectedHandCard?.name || pendingSpellName || '스킬 카드';
+
+    showReactivePassiveFromStateDiff({
+      prevState: previousState,
+      nextState,
+      showSkillUse,
+    });
+    [ ...(result?.turn_start_logs || []), ...(result?.turn_end_logs || []) ].forEach((entry: any) => {
+      showPassiveNoticeFromLog({
+        entry,
+        owner: 'my',
+        gameState: previousState,
+        showSkillUseAfterPlacement,
+        showSystemNotice,
+      });
+    });
+    showDeathPassiveNotice({
+      result,
+      gameState: previousState,
+      showSkillUse,
+      showSystemNotice,
+    });
+    handleSpellPlayedPlacementUi({
+      action,
+      result,
+      spellName,
+      addLog: () => {},
+      showSystemNotice,
+      setPendingSpellCard,
+      setPendingSpell,
+      setPendingSpellName,
+      setActionMode,
+      setColumnChoice,
+      setLocalPendingSpellChoice,
+      resetDuplicateTarget: () => {},
+      showSkillUse,
+      myHand: activePlayer?.hand || [],
+      uiPreset: ONLINE_GAME_UI_PRESET,
+    });
+
+    let keepSelection = false;
+    if (action === 'use_skill' && selectedMyFieldCard) {
+      const resolvedSkillName = result?.skill_name || result?.skill || null;
+      keepSelection = handleSwiftStrikeResetPresentation({
+        result,
+        msg: payload,
+        casterCard: selectedMyFieldCard,
+        actorName: selectedMyFieldCard.name,
+        resolvedSkillName,
+        showSkillUse,
+        setSelectedHandIdx,
+        setColumnChoice,
+        setSelectedFieldUid,
+        setActionMode,
+        addLog: () => {},
+      });
+      if (!keepSelection && resolvedSkillName) {
+        showSkillUse({
+          skillName: resolvedSkillName,
+          description: getSkillDescriptionFromCard(selectedMyFieldCard, payload?.skill_key || result?.skill_key || result?.skill),
+          heroKey: getHeroKey(selectedMyFieldCard) || String(result?.caster?.hero_key || payload?.hero_key || ''),
+          imageName: selectedMyFieldCard?.name || result?.caster_name || result?.caster?.name,
+          subtitle: result?.caster_name || selectedMyFieldCard?.name,
+          isSpell: false,
+          duration: 3200,
+        });
+      }
+    }
+
     setGs(body.state as GameState);
     setActiveSide(body.active_side as Side);
-    setSelectedHandIdx(null);
-    setSelectedFieldUid(null);
-    setActionMode(null);
-    setPendingSpellCard(null);
-  }, [apiBase, soloGameId, activeSide, showSystemNotice]);
+    if (!keepSelection) {
+      setSelectedHandIdx(null);
+      setSelectedFieldUid(null);
+      setActionMode(null);
+      setColumnChoice(null);
+    }
+    if (action !== 'place_card' || !result?.needs_target) {
+      setPendingSpellCard(null);
+      setPendingSpell(null);
+      setPendingSpellName(null);
+    }
+  }, [apiBase, soloGameId, activeSide, gs, selectedMyFieldCard, selectedHandCard, pendingSpellName, activePlayer, showSkillUse, showSkillUseAfterPlacement, showSystemNotice]);
 
   const soloAdapter = useMemo(() => createSoloAdapter({
     getViewModel: () => ({ mode: 'solo', gameState: gs, phase: gs?.phase || 'waiting', isMyTurn: gs?.is_my_turn }),
@@ -134,85 +251,48 @@ export function useSoloGameController() {
     showPhaseChange(phase, activeSide === 'bottom' ? '아래쪽 턴' : '위쪽 턴');
   }, [phase, activeSide, showPhaseChange]);
 
-  const handleHandClick = useCallback((card: HandCard, index: number) => {
-    if (phase === 'mulligan') {
-      setSelectedMulligan((prev) => (prev.includes(index) ? prev.filter((v) => v !== index) : [...prev, index].slice(0, 2)));
-      return;
-    }
-    if (selectedHandIdx === index) {
-      setDetailCard(card);
-      setSelectedHandIdx(null);
-      return;
-    }
-    setSelectedHandIdx(index);
-    setSelectedFieldUid(null);
-  }, [phase, selectedHandIdx]);
+  const canActTop = computeActionableUids({ phase, isMyTurn: activeSide === 'top', field: players?.top.field });
+  const canActBottom = computeActionableUids({ phase, isMyTurn: activeSide === 'bottom', field: players?.bottom.field });
 
-  const runMulligan = useCallback(() => {
-    if (!selectedMulligan.length) return;
-    void dispatchAction({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
-    setSelectedMulligan([]);
-  }, [selectedMulligan, dispatchAction]);
-
-  const skipMulligan = useCallback(() => {
-    void dispatchAction({ action: 'skip_mulligan' });
-    setSelectedMulligan([]);
-  }, [dispatchAction]);
-
-  const placeCard = useCallback((zone: 'main' | 'side', slotIndex?: 0 | 1) => {
-    if (selectedHandIdx === null) return;
-    void dispatchAction({ action: 'place_card', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
-  }, [selectedHandIdx, dispatchAction]);
-
-  const endPlacement = useCallback(() => { void dispatchAction({ action: 'end_placement' }); }, [dispatchAction]);
-  const endTurn = useCallback(() => { void dispatchAction({ action: 'end_turn' }); }, [dispatchAction]);
-
-  const handleEndMainButton = useCallback(() => {
-    if (phase === 'placement') endPlacement();
-    if (phase === 'action') endTurn();
-  }, [phase, endPlacement, endTurn]);
-
-  const prepareSkill = useCallback((skillKey: string) => setActionMode(skillKey), []);
-
-  const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
-    if (phase === 'placement' && selectedHandCard?.is_spell) {
-      act({ action: 'execute_spell', hero_key: selectedHandCard.hero_key, target_uid: card.uid });
-      return;
-    }
-    if (isOpponent && phase === 'action' && actionMode && selectedMyFieldCard) {
-      act({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: actionMode, target_uid: card.uid });
-      return;
-    }
-    if (!isOpponent) {
-      setSelectedFieldUid((prev) => (prev === card.uid ? null : card.uid));
-      return;
-    }
-    setDetailCard(card);
-  }, [phase, selectedHandCard, actionMode, selectedMyFieldCard, act])
-
-  const useSelectedSpell = useCallback(() => {
-    if (selectedHandCard?.is_spell) {
-      setPendingSpellCard(selectedHandCard);
-      setActionMode('spell');
-    }
-  }, [selectedHandCard]);
-
-  const canActTop = computeSoloActionableUids(phase as any, activeSide, 'top', players?.top.field || { main: [], side: [] });
-  const canActBottom = computeSoloActionableUids(phase as any, activeSide, 'bottom', players?.bottom.field || { main: [], side: [] });
-  const fieldSkills = computeSoloFieldSkills(phase as any, selectedMyFieldCard as any, true);
-
-  const showContextPanel = shouldShowSharedContextPanel({
+  const sharedActions = useSharedGameFlowActions({
+    my: activePlayer,
+    opponentField: opponentPlayer?.field,
     phase,
-    isMyTurn: !!gs?.is_my_turn,
-    mulliganVisible: phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone,
-    hasFieldSkills: fieldSkills.length > 0,
-    actionMode,
-    pendingSpell: pendingSpellCard?.hero_key || null,
-    selectedHandSpell: !!selectedHandCard?.is_spell,
-    hasColumnChoice: false,
-    hasPendingSpellChoice: false,
+    isMyTurn: true,
+    state: {
+      selectedHandIdx,
+      selectedFieldUid,
+      selectedMulligan,
+      actionMode,
+      pendingSpell: pendingSpell || pendingSpellCard?.hero_key || null,
+      pendingSpellName: pendingSpellName || pendingSpellCard?.name || null,
+      columnChoice,
+    },
+    setters: {
+      setSelectedHandIdx,
+      setSelectedFieldUid,
+      setSelectedMulligan,
+      setActionMode,
+      setPendingSpell,
+      setPendingSpellName,
+      setColumnChoice,
+      setDetailCard,
+      setLocalPendingSpellChoice,
+    },
+    selectedHandCard,
+    selectedMyFieldCard: selectedMyFieldCard as FieldCard | null,
+    allMyField: allMyField as FieldCard[],
+    pendingSpellChoice: localPendingSpellChoice,
+    sendAction: (action) => { void dispatchAction(action as UnifiedGameAction); },
+    showSystemNotice,
+    beginMulliganCinematic,
+    clearPendingSpellCard: () => setPendingSpellCard(null),
+    allowMulliganMultiSelect: true,
   });
 
+  const placeCard = sharedActions.handlePlace;
+  const endPlacement = () => { void dispatchAction({ action: 'end_placement' }); };
+  const endTurn = () => { void dispatchAction({ action: 'end_turn' }); };
   return {
     loading,
     error,
@@ -224,10 +304,10 @@ export function useSoloGameController() {
     activePlayer,
     selectedHandIdx,
     selectedMulligan,
-    mulliganAnimatingIndex: null,
-    mulliganCinematicCard: null,
-    mulliganReplacementCard: null,
-    isMulliganCinematicActive: false,
+    mulliganAnimatingIndex,
+    mulliganCinematicCard,
+    mulliganReplacementCard,
+    isMulliganCinematicActive,
     selectedFieldUid,
     selectedHandCard,
     selectedMyFieldCard,
@@ -239,28 +319,36 @@ export function useSoloGameController() {
     canActBottom,
     fieldSkills,
     actionMode,
+    actionModeLabel,
     pendingSpellCard,
+    columnChoice,
+    enemyColumns: availableColumns,
     showContextPanel,
-    confirmMulligan: runMulligan,
-    runMulligan,
-    skipMulligan,
-    completeMulliganCinematic: () => {},
+    confirmMulligan: sharedActions.runMulligan,
+    runMulligan: sharedActions.runMulligan,
+    skipMulligan: sharedActions.skipMulligan,
+    completeMulliganCinematic,
     placeCard,
     handlePlace: placeCard,
-    useSelectedSpell,
-    cancelSelectedHand: () => setSelectedHandIdx(null),
-    cancelPendingSpell: () => { setPendingSpellCard(null); setActionMode(null); },
+    useSelectedSpell: sharedActions.useSelectedSpell,
+    cancelSelectedHand: sharedActions.cancelSelectedHand,
+    cancelPendingSpell: sharedActions.cancelPendingSpell,
     endPlacement,
     executeSkill: (skillKey: string, targetUid?: string) => {
       if (!selectedMyFieldCard) return;
       act({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: skillKey, target_uid: targetUid });
     },
     endTurn,
-    handleEndMainButton,
-    prepareSkill,
+    handleEndMainButton: sharedActions.handleEndMainButton,
+    prepareSkill: sharedActions.prepareSkill,
     setActionMode,
-    handleHandClick,
-    handleFieldClick,
+    setColumnChoice,
+    selectColumn: sharedActions.selectColumn,
+    cancelColumnChoice: sharedActions.cancelColumnChoice,
+    canSelectEmptySlot: sharedActions.canSelectEmptySlot,
+    handleEmptySlotSelect: sharedActions.handleEmptySlotSelect,
+    handleHandClick: sharedActions.handleHandClick,
+    handleFieldClick: sharedActions.handleFieldClick,
     refreshBySide,
   };
 }

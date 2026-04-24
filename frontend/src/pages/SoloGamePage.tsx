@@ -40,6 +40,8 @@ const SoloGamePage: React.FC = () => {
         onCardLongPress: (card) => vm.setDetailCard(card),
         placingCard: vm.phase === 'placement' && vm.activeSide === 'top' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
+        canSelectEmptySlot: vm.canSelectEmptySlot,
+        onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
       bottomField={{
         field: vm.players.bottom.field,
@@ -52,6 +54,8 @@ const SoloGamePage: React.FC = () => {
         onCardLongPress: (card) => vm.setDetailCard(card),
         placingCard: vm.phase === 'placement' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
+        canSelectEmptySlot: vm.canSelectEmptySlot,
+        onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
       midlineDotActive={false}
       contextPanel={
@@ -68,12 +72,13 @@ const SoloGamePage: React.FC = () => {
               selectedChargeLevel={vm.selectedChargeLevel}
               fieldSkills={vm.fieldSkills}
               actionMode={vm.actionMode}
+              actionModeLabel={vm.actionModeLabel}
               onPrepareSkill={vm.prepareSkill}
               onCancelSkillSelection={() => vm.setActionMode(null)}
-              columnChoice={null}
-              enemyColumns={[]}
-              onSelectColumn={() => {}}
-              onCancelColumnChoice={() => {}}
+              columnChoice={vm.columnChoice}
+              enemyColumns={vm.enemyColumns}
+              onSelectColumn={vm.selectColumn}
+              onCancelColumnChoice={vm.cancelColumnChoice}
               pendingSpell={vm.pendingSpellCard?.hero_key || null}
               pendingSpellName={vm.pendingSpellCard?.name || null}
               duplicateTargetName={null}
