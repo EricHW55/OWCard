@@ -6,6 +6,7 @@ import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../
 import { formatSkillValue } from '../utils/skillValue';
 import { createOnlineAdapter } from './adapters/onlineAdapter';
 import type { UnifiedGameAction } from './gameModeAdapter';
+import { buildHeadshotCoinFaces, pushSkillActionLogs as pushSharedSkillActionLogs, useAnnouncerHelpers } from './shared/gamePresentation';
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -44,16 +45,6 @@ export type HeadshotCoinTossEvent = {
   faces: [CoinFace, CoinFace];
   isMine: boolean;
 };
-
-function buildHeadshotCoinFaces(headshot: boolean): [CoinFace, CoinFace] {
-  if (headshot) return ['front', 'front'];
-  const misses: Array<[CoinFace, CoinFace]> = [
-    ['back', 'back'],
-    ['back', 'front'],
-    ['front', 'back'],
-  ];
-  return misses[Math.floor(Math.random() * misses.length)] || ['back', 'back'];
-}
 
 function resolveHeadshotOutcome(result: any): boolean | null {
   if (typeof result?.headshot === 'boolean') return result.headshot;
@@ -356,47 +347,6 @@ const DESTROY_ANIMATION_MS = 500;
 const DAMAGE_FLOAT_MS = 800;
 const PLACEMENT_CINEMATIC_MS = 1220;
 
-function collectDamageMap(
-    node: any,
-    out: Record<string, number> = {},
-    priorityOut: Record<string, number> = {},
-): Record<string, number> {
-  if (!node || typeof node !== 'object') return out;
-
-  const pushDelta = (uidValue: unknown, delta: number, priority: number) => {
-    if (!uidValue || !Number.isFinite(delta) || delta === 0) return;
-    const uid = String(uidValue);
-    const rounded = Math.round(delta);
-    const prevPriority = priorityOut[uid] ?? -1;
-    if (prevPriority > priority) return;
-    if (prevPriority === priority) {
-      out[uid] = (out[uid] ?? 0) + rounded;
-      return;
-    }
-    out[uid] = rounded;
-    priorityOut[uid] = priority;
-  };
-
-  const uid = node?.target || node?.target_uid || node?.to_uid || node?.uid || node?.source_uid;
-  const damageCandidates: Array<[number, number]> = [
-    [Number(node?.final_damage), 4],
-    [Number(node?.raw_damage), 3],
-    [Number(node?.damage), 2],
-    [Number(node?.amount), 1],
-  ];
-  damageCandidates.forEach(([damage, priority]) => {
-    if (uid && Number.isFinite(damage) && damage > 0) pushDelta(uid, damage, priority);
-  });
-
-  const healed = Number(node?.healed ?? node?.heal ?? node?.final_heal ?? node?.amount_healed);
-  if (uid && Number.isFinite(healed) && healed > 0) pushDelta(uid, -healed, 10);
-
-  Object.values(node).forEach((value) => {
-    if (value && typeof value === 'object') collectDamageMap(value, out, priorityOut);
-  });
-  return out;
-}
-
 function mapSpectatorStateToGameState(spectatorState: any): GameState | null {
   if (!spectatorState || typeof spectatorState !== 'object') return null;
   const playersObj = spectatorState.players || {};
@@ -510,89 +460,20 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     result: any;
     targetPool: any[];
   }) => {
-    const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
-    const resultHeroKey = String(params?.result?.hero_key || params?.result?.card?.hero_key || '').toLowerCase();
-    if (params?.result?.hidden || hiddenInstallSpellKeys.has(resultHeroKey)) return;
-
-    const actor = toActor(params.actorCard, params.actorName || (params.team === 'my' ? '아군' : '상대'));
-    const skillName = String(params.skillName || '스킬');
-    const damageMap = collectDamageMap(params.result || {});
-    const targets = new Map(params.targetPool.map((card: any) => [String(card?.uid), card]));
-    const entries = Object.entries(damageMap).filter(([, dmg]) => Number.isFinite(dmg) && dmg !== 0);
-    if (entries.length > 0) {
-      entries.forEach(([uid, dmg]) => {
-        const target = targets.get(String(uid));
-        pushBattleLog({
-          type: dmg > 0 ? 'damage' : 'heal',
-          team: params.team,
-          turn: gsRef.current?.turn,
-          actor,
-          skillName,
-          target: toActor(target, target?.name || '대상'),
-          damage: Math.abs(Math.round(dmg)),
-        });
-      });
-      return;
-    }
-    pushBattleLog({
-      type: 'skill',
-      team: params.team,
-      turn: gsRef.current?.turn,
-      actor,
-      skillName,
+    pushSharedSkillActionLogs({
+      ...params,
+      getTurn: () => gsRef.current?.turn,
+      pushBattleLog,
+      toActor,
     });
   }, [pushBattleLog, toActor]);
 
-  const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
-    enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
-  }, [enqueueAnnouncer]);
-
-  const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 1300) => {
-    if (!title) return;
-    enqueueAnnouncer({ type: 'phase', title, subtitle, duration });
-  }, [enqueueAnnouncer]);
-
-  const showSkillUse = useCallback((props: {
-    skillName: string;
-    description?: string;
-    heroKey?: string;
-    imageName?: string;
-    subtitle?: string;
-    isSpell?: boolean;
-    duration?: number;
-    nonBlocking?: boolean;
-    onDone?: () => void;
-  }) => {
-    if (!props.skillName) return;
-    const rawHeroKey = String(props.heroKey || '').toLowerCase();
-    const inferredSpell = rawHeroKey.startsWith('spell_');
-    if (!props.nonBlocking) {
-      announcerDataRef.current = {
-        type: 'skill',
-        title: props.skillName,
-        nonBlocking: false,
-      } as any;
-    }
-    enqueueAnnouncer({
-      type: 'skill',
-      title: props.skillName,
-      description: props.description || '',
-      heroKey: props.heroKey || '',
-      imageName: props.imageName,
-      subtitle: props.subtitle,
-      isSpell: props.isSpell ?? inferredSpell,
-      duration: props.duration || 3200,
-      nonBlocking: !!props.nonBlocking,
-      onDone: props.onDone,
-    });
-  }, [enqueueAnnouncer]);
-
-  const showSkillUseAfterPlacement = useCallback((props: Parameters<typeof showSkillUse>[0], delay = PLACEMENT_CINEMATIC_MS) => {
-    const timerId = window.setTimeout(() => {
-      showSkillUse(props);
-    }, delay);
-    uiTimersRef.current.push(timerId);
-  }, [showSkillUse]);
+  const { showPhaseChange, showSystemNotice, showSkillUse, showSkillUseAfterPlacement } = useAnnouncerHelpers({
+    enqueueAnnouncer,
+    uiTimersRef,
+    announcerDataRef,
+    placementDelayMs: PLACEMENT_CINEMATIC_MS,
+  });
 
   const queueHeadshotCoinToss = useCallback((payload: {
     actorName: string;

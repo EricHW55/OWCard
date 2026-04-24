@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldCard, GameState, HandCard } from '../types/game';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { computeSoloActionableUids, computeSoloFieldSkills, mapSoloStateFromOnline, Side } from './soloOnlineBridge';
 import { createSoloAdapter } from './adapters/soloAdapter';
 import type { UnifiedGameAction } from './gameModeAdapter';
+import { useAnnouncerHelpers } from './shared/gamePresentation';
 
 type SoloState = {
   top: { hand: HandCard[]; field: any; drawPile: HandCard[]; mulliganDone: boolean; placementUsed: number };
@@ -22,6 +23,12 @@ async function readError(res: Response): Promise<string> {
 export function useSoloGameController() {
   const apiBase = getApiBase();
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
+  const uiTimersRef = useRef<number[]>([]);
+  const { showPhaseChange, showSystemNotice } = useAnnouncerHelpers({
+    enqueueAnnouncer,
+    uiTimersRef,
+    placementDelayMs: 1220,
+  });
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +78,7 @@ export function useSoloGameController() {
       body: JSON.stringify({ side: activeSide, payload }),
     });
     if (!res.ok) {
-      enqueueAnnouncer({ type: 'phase', title: '실행 실패', subtitle: await readError(res), duration: 1200 });
+      showSystemNotice('실행 실패', await readError(res), 1200);
       return;
     }
     const body = await res.json();
@@ -81,7 +88,7 @@ export function useSoloGameController() {
     setSelectedFieldUid(null);
     setActionMode(null);
     setPendingSpellCard(null);
-  }, [apiBase, soloGameId, activeSide, enqueueAnnouncer]);
+  }, [apiBase, soloGameId, activeSide, showSystemNotice]);
 
   const soloAdapter = useMemo(() => createSoloAdapter({
     getViewModel: () => ({ mode: 'solo', gameState: gs, phase: gs?.phase || 'waiting', isMyTurn: gs?.is_my_turn }),
@@ -120,8 +127,8 @@ export function useSoloGameController() {
   }, [apiBase]);
 
   useEffect(() => {
-    enqueueAnnouncer({ type: 'phase', title: phase, subtitle: activeSide === 'bottom' ? '아래쪽 턴' : '위쪽 턴', duration: 900 });
-  }, [phase, activeSide, enqueueAnnouncer]);
+    showPhaseChange(phase, activeSide === 'bottom' ? '아래쪽 턴' : '위쪽 턴', 900);
+  }, [phase, activeSide, showPhaseChange]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (phase === 'mulligan') {
