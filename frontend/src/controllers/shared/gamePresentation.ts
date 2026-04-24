@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
 import type { BattleLogActor, BattleLogEntry, GameState } from '../../types/game';
+import { ONLINE_GAME_UI_PRESET } from './gameUiPreset';
 
 type EnqueueAnnouncer = (payload: {
     type: 'phase' | 'skill';
@@ -41,12 +42,15 @@ export function useAnnouncerHelpers(params: {
     uiTimersRef: MutableRefObject<number[]>;
     announcerDataRef?: MutableRefObject<any>;
     placementDelayMs: number;
+    phaseDurationMs?: number;
+    systemNoticeDurationMs?: number;
+    skillUseDurationMs?: number;
 }) {
-    const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = 1800) => {
+    const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = params.phaseDurationMs ?? ONLINE_GAME_UI_PRESET.timings.phaseChangeMs) => {
         params.enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
     }, [params]);
 
-    const showSystemNotice = useCallback((title: string, subtitle?: string, duration = 1300) => {
+    const showSystemNotice = useCallback((title: string, subtitle?: string, duration = params.systemNoticeDurationMs ?? ONLINE_GAME_UI_PRESET.timings.systemNoticeMs) => {
         if (!title) return;
         params.enqueueAnnouncer({ type: 'phase', title, subtitle, duration });
     }, [params]);
@@ -70,7 +74,7 @@ export function useAnnouncerHelpers(params: {
             imageName: props.imageName,
             subtitle: props.subtitle,
             isSpell: props.isSpell ?? inferredSpell,
-            duration: props.duration || 3200,
+            duration: props.duration || params.skillUseDurationMs || ONLINE_GAME_UI_PRESET.timings.skillUseMs,
             nonBlocking: !!props.nonBlocking,
             onDone: props.onDone,
         });

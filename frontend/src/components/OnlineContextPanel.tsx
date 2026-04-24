@@ -1,5 +1,6 @@
 import React from 'react';
 import { BTN_SM, roleClass, roleLabel } from '../utils/ui';
+import { ONLINE_GAME_UI_PRESET } from '../controllers/shared/gameUiPreset';
 
 export type FieldSkill = {
   key: string;
@@ -115,7 +116,7 @@ const OnlineContextPanel: React.FC<OnlineContextPanelProps> = ({
       return;
     }
     setSkillButtonsVisible(false);
-    const timerId = window.setTimeout(() => setSkillButtonsVisible(true), 620);
+    const timerId = window.setTimeout(() => setSkillButtonsVisible(true), ONLINE_GAME_UI_PRESET.skillOverlay.revealDelayMs);
     return () => window.clearTimeout(timerId);
   }, [showSkillOverlay, fieldSkills.length]);
 

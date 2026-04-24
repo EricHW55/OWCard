@@ -32,6 +32,7 @@ import {
   handleSpellPlayedPlacementUi,
   pushPlacementActionLogs,
 } from './shared/onlineActionPresentation';
+import { ONLINE_GAME_UI_PRESET, shouldShowSharedContextPanel } from './shared/gameUiPreset';
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -65,7 +66,6 @@ function getSession() {
 const HP_ANIMATION_MS = 500;
 const DESTROY_ANIMATION_MS = 500;
 const DAMAGE_FLOAT_MS = 800;
-const PLACEMENT_CINEMATIC_MS = 1220;
 
 function mapSpectatorStateToGameState(spectatorState: any): GameState | null {
   if (!spectatorState || typeof spectatorState !== 'object') return null;
@@ -192,7 +192,10 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     enqueueAnnouncer,
     uiTimersRef,
     announcerDataRef,
-    placementDelayMs: PLACEMENT_CINEMATIC_MS,
+    placementDelayMs: ONLINE_GAME_UI_PRESET.timings.placementCinematicMs,
+    phaseDurationMs: ONLINE_GAME_UI_PRESET.timings.phaseChangeMs,
+    systemNoticeDurationMs: ONLINE_GAME_UI_PRESET.timings.systemNoticeMs,
+    skillUseDurationMs: ONLINE_GAME_UI_PRESET.timings.skillUseMs,
   });
 
   const queueHeadshotCoinToss = useCallback((payload: {
@@ -689,6 +692,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             },
             showSkillUse,
             myHand,
+            uiPreset: ONLINE_GAME_UI_PRESET,
           });
 
           handlePassiveTriggeredUi({
@@ -700,6 +704,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             showSystemNotice,
             showSkillUseAfterPlacement,
             setLocalPendingPassive,
+            uiPreset: ONLINE_GAME_UI_PRESET,
           });
           if (msg.action === 'resolve_passive_choice') {
             setLocalPendingPassive(null);
@@ -1032,16 +1037,18 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     fieldSkills.sort((a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }));
   }
 
-  const showContextPanel = (!!my && phase === 'mulligan' && !my.mulligan_done)
-      || fieldSkills.length > 0
-      || (!!actionMode && actionMode !== 'spell' && actionMode !== 'duplicate_place')
-      || (actionMode === 'spell' && !!pendingSpell)
-      || (actionMode === 'duplicate_place' && pendingSpell === 'spell_duplicate')
-      || (phase === 'placement' && isMyTurn && !!selectedHandCard?.is_spell && !pendingSpell)
-      || !!columnChoice
-      || pendingPassive?.type === 'mercy_resurrect'
-      || pendingPassive?.type === 'jetpack_cat_extra_place'
-      || !!pendingSpellChoice;
+  const showContextPanel = shouldShowSharedContextPanel({
+    phase,
+    isMyTurn,
+    mulliganVisible: !!my && phase === 'mulligan' && !my.mulligan_done,
+    hasFieldSkills: fieldSkills.length > 0,
+    actionMode,
+    pendingSpell,
+    selectedHandSpell: !!selectedHandCard?.is_spell,
+    hasColumnChoice: !!columnChoice,
+    pendingPassiveType: pendingPassive?.type,
+    hasPendingSpellChoice: !!pendingSpellChoice,
+  });
 
   const mulliganBaselineHandRef = useRef<any[]>([]);
   const pendingMulliganReplacementRef = useRef(false);

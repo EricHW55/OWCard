@@ -6,6 +6,7 @@ import { computeSoloActionableUids, computeSoloFieldSkills, mapSoloStateFromOnli
 import { createSoloAdapter } from './adapters/soloAdapter';
 import type { UnifiedGameAction } from './gameModeAdapter';
 import { useAnnouncerHelpers } from './shared/gamePresentation';
+import { ONLINE_GAME_UI_PRESET, shouldShowSharedContextPanel } from './shared/gameUiPreset';
 
 type SoloState = {
   top: { hand: HandCard[]; field: any; drawPile: HandCard[]; mulliganDone: boolean; placementUsed: number };
@@ -27,7 +28,10 @@ export function useSoloGameController() {
   const { showPhaseChange, showSystemNotice } = useAnnouncerHelpers({
     enqueueAnnouncer,
     uiTimersRef,
-    placementDelayMs: 1220,
+    placementDelayMs: ONLINE_GAME_UI_PRESET.timings.placementCinematicMs,
+    phaseDurationMs: ONLINE_GAME_UI_PRESET.timings.phaseChangeMs,
+    systemNoticeDurationMs: ONLINE_GAME_UI_PRESET.timings.systemNoticeMs,
+    skillUseDurationMs: ONLINE_GAME_UI_PRESET.timings.skillUseMs,
   });
 
   const [loading, setLoading] = useState(true);
@@ -127,7 +131,7 @@ export function useSoloGameController() {
   }, [apiBase]);
 
   useEffect(() => {
-    showPhaseChange(phase, activeSide === 'bottom' ? '아래쪽 턴' : '위쪽 턴', 900);
+    showPhaseChange(phase, activeSide === 'bottom' ? '아래쪽 턴' : '위쪽 턴');
   }, [phase, activeSide, showPhaseChange]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
@@ -197,9 +201,17 @@ export function useSoloGameController() {
   const canActBottom = computeSoloActionableUids(phase as any, activeSide, 'bottom', players?.bottom.field || { main: [], side: [] });
   const fieldSkills = computeSoloFieldSkills(phase as any, selectedMyFieldCard as any, true);
 
-  const showContextPanel = (phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone)
-      || fieldSkills.length > 0
-      || phase === 'placement';
+  const showContextPanel = shouldShowSharedContextPanel({
+    phase,
+    isMyTurn: !!gs?.is_my_turn,
+    mulliganVisible: phase === 'mulligan' && !!activePlayer && !activePlayer.mulliganDone,
+    hasFieldSkills: fieldSkills.length > 0,
+    actionMode,
+    pendingSpell: pendingSpellCard?.hero_key || null,
+    selectedHandSpell: !!selectedHandCard?.is_spell,
+    hasColumnChoice: false,
+    hasPendingSpellChoice: false,
+  });
 
   return {
     loading,

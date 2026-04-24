@@ -1,5 +1,7 @@
 import type { BattleLogActor, BattleLogEntry } from '../../types/game';
 import { getColumnTargetSideForSpell, getHeroKey, getSkillDescriptionFromCard, isColumnTargetSpell } from './gamePresentation';
+import type { GameUiPreset } from './gameUiPreset';
+import { ONLINE_GAME_UI_PRESET } from './gameUiPreset';
 
 type Team = 'my' | 'opponent';
 
@@ -72,6 +74,7 @@ export function handleSpellPlayedPlacementUi(params: {
         duration?: number;
     }) => void;
     myHand: any[];
+    uiPreset?: GameUiPreset;
 }) {
     const {
         action,
@@ -88,6 +91,7 @@ export function handleSpellPlayedPlacementUi(params: {
         resetDuplicateTarget,
         showSkillUse,
         myHand,
+        uiPreset = ONLINE_GAME_UI_PRESET,
     } = params;
 
     if (action !== 'place_card' || result?.type !== 'spell_played') return;
@@ -108,11 +112,11 @@ export function handleSpellPlayedPlacementUi(params: {
                 skillName: spellName,
                 targetSide: getColumnTargetSideForSpell(result?.hero_key),
             });
-            showSystemNotice(spellName, '열을 선택하세요', 1200);
+            showSystemNotice(spellName, '열을 선택하세요', uiPreset.timings.spellTargetNoticeMs);
         } else {
             setActionMode('spell');
             setColumnChoice(null);
-            showSystemNotice(spellName, '대상을 선택하세요', 1200);
+            showSystemNotice(spellName, '대상을 선택하세요', uiPreset.timings.spellTargetNoticeMs);
         }
         return;
     }
@@ -124,7 +128,7 @@ export function handleSpellPlayedPlacementUi(params: {
         setActionMode(null);
         setLocalPendingSpellChoice(result?.choice || null);
         addLog('스킬 카드 추가 선택 필요');
-        showSystemNotice(spellName, '카드를 선택하세요', 1300);
+        showSystemNotice(spellName, '카드를 선택하세요', uiPreset.timings.spellChoiceNoticeMs);
         return;
     }
 
@@ -136,7 +140,7 @@ export function handleSpellPlayedPlacementUi(params: {
             heroKey: result?.hero_key || spellCard?.hero_key || '',
             imageName: spellCard?.name || spellName,
             isSpell: true,
-            duration: 3200,
+            duration: uiPreset.timings.skillUseMs,
         });
         setLocalPendingSpellChoice(null);
     }
@@ -159,6 +163,7 @@ export function handlePassiveTriggeredUi(params: {
         duration?: number;
     }) => void;
     setLocalPendingPassive: (value: any | null) => void;
+    uiPreset?: GameUiPreset;
 }) {
     const {
         result,
@@ -169,11 +174,12 @@ export function handlePassiveTriggeredUi(params: {
         showSystemNotice,
         showSkillUseAfterPlacement,
         setLocalPendingPassive,
+        uiPreset = ONLINE_GAME_UI_PRESET,
     } = params;
 
     if (result?.passive_triggered?.summoned) {
         addLog(`설치물 소환: ${result.passive_triggered.summoned.name}`);
-        showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', 1300);
+        showSystemNotice(result.passive_triggered.summoned.name, '설치물 소환', uiPreset.timings.passiveNoticeMs);
     }
     if (result?.passive_triggered?.passive) {
         showSkillUseAfterPlacement({
@@ -189,6 +195,6 @@ export function handlePassiveTriggeredUi(params: {
     if (result?.passive_triggered?.needs_choice) {
         setLocalPendingPassive(result.passive_triggered.needs_choice);
         addLog('패시브 추가 선택 필요');
-        if (result.passive_triggered.passive) showSystemNotice(result.passive_triggered.passive, '선택이 필요합니다', 1300);
+        if (result.passive_triggered.passive) showSystemNotice(result.passive_triggered.passive, '선택이 필요합니다', uiPreset.timings.passiveNoticeMs);
     }
 }
