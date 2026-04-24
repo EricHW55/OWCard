@@ -444,8 +444,9 @@ class Field:
         return None
 
     def place_card(self, card: FieldCard, zone: Zone, preferred_slot: int | None = None) -> bool:
+        is_token = bool(card.extra.get("is_token"))
         if zone == Zone.MAIN:
-            if not self.can_place_main(card.role):
+            if (not is_token) and (not self.can_place_main(card.role)):
                 return False
             slot_index = self._next_main_slot(card.role, preferred_slot=preferred_slot)
             if slot_index is None:
@@ -453,7 +454,7 @@ class Field:
             card.extra["slot_index"] = slot_index
             self.main_cards.append(card)
         else:
-            if not self.can_place_side(card.role):
+            if (not is_token) and (not self.can_place_side(card.role)):
                 return False
             card.extra["slot_index"] = 0
             self.side_cards.append(card)

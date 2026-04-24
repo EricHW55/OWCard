@@ -1115,7 +1115,8 @@ class GameEngine:
     def _get_skill_range_override(self, caster: FieldCard, skill_key: str) -> int | None:
         hero_key = str(caster.extra.get("_hero_key", "")).lower()
         if hero_key == "dva" and skill_key == "skill_1":
-            return 2
+            knockback = sum(int(getattr(s, "value", 0) or 0) for s in caster.statuses if s.name == "knockback")
+            return max(1, 2 - knockback)
         if hero_key == "junkerqueen" and skill_key == "skill_1":
             return 3
         if hero_key == "roadhog" and skill_key == "skill_1": 

@@ -508,6 +508,10 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     result: any;
     targetPool: any[];
   }) => {
+    const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
+    const resultHeroKey = String(params?.result?.hero_key || params?.result?.card?.hero_key || '').toLowerCase();
+    if (params?.result?.hidden || hiddenInstallSpellKeys.has(resultHeroKey)) return;
+
     const actor = toActor(params.actorCard, params.actorName || (params.team === 'my' ? '아군' : '상대'));
     const skillName = String(params.skillName || '스킬');
     const damageMap = collectDamageMap(params.result || {});
@@ -1203,7 +1207,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           }
           if (msg.action === 'execute_spell') {
             setLocalPendingSpellChoice(null);
-            if (resolvedSkillName) {
+            if (resolvedSkillName && !result?.hidden) {
               const spellCard = myHand.find((c: any) => c.hero_key === result?.hero_key)
                   || result?.card
                   || pendingSpellCardRef.current;
@@ -1211,8 +1215,8 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             }
             pendingSpellCardRef.current = null;
           }
-          if (msg.action === 'execute_spell' && result?.rescued) showSystemNotice(result.rescued, 'TRASH → 패', 1400);
-          if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice(result.drawn_card, '덱 → 패', 1400);
+          if (msg.action === 'execute_spell' && typeof result?.rescued === 'string') showSystemNotice(result.rescued, 'TRASH → 패', 1400);
+          if (msg.action === 'execute_spell' && typeof result?.drawn_card === 'string') showSystemNotice(result.drawn_card, '덱 → 패', 1400);
         }),
         ws.on('opponent_action', (msg: any) => {
           const result = msg?.result || {};

@@ -406,8 +406,9 @@ def spell_rescue(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     return {
         "success": True,
         "skill": "구원의 손길",
-        "rescued": rescued.get("name", "unknown"),
-        "card": rescued,
+        # "rescued": rescued.get("name", "unknown"),
+        # "card": rescued,
+        "rescued": True,
     }
 
 
@@ -984,8 +985,9 @@ def spell_maximilian(caster: FieldCard, target: FieldCard, game: GameState) -> d
     return {
         "success": True,
         "skill": "막시밀리앙",
-        "drawn_card": drawn.get("name", "unknown"),
-        "card": drawn,
+        # "drawn_card": drawn.get("name", "unknown"),
+        # "card": drawn,
+        "drawn_card": True,
     }
 
     drawn = my_player.draw_pile.pop(0)
