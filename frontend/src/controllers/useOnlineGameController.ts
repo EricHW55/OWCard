@@ -4,6 +4,8 @@ import { GameSocket, buildWsUrl } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { decodeJwt, normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../utils/ui';
 import { formatSkillValue } from '../utils/skillValue';
+import { createOnlineAdapter } from './adapters/onlineAdapter';
+import type { UnifiedGameAction } from './gameModeAdapter';
 
 type ColumnChoice = {
   source: 'skill' | 'spell';
@@ -1404,19 +1406,37 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     addLog('전송 실패(미연결)');
   }, [addLog, isSpectator]);
 
+  const onlineAdapter = useMemo(() => createOnlineAdapter({
+    getViewModel: () => ({
+      mode: 'online',
+      gameState: gs,
+      phase: gs?.phase || 'loading',
+      isMyTurn: gs?.is_my_turn,
+      logs,
+      killFeed,
+    }),
+    sendAction: async (action: UnifiedGameAction) => {
+      send(action as Record<string, unknown>);
+    },
+  }), [gs, logs, killFeed, send]);
+
+  const dispatchAction = useCallback((action: UnifiedGameAction) => {
+    void onlineAdapter.dispatch(action);
+  }, [onlineAdapter]);
+
   const leaveGame = useCallback(() => {
     manualCloseRef.current = true;
     if (!gs) return;
     if (gs.phase === 'game_over') {
-      send({ action: 'cleanup_game' });
+      dispatchAction({ action: 'cleanup_game' });
       return;
     }
-    send({ action: 'leave_game' });
-  }, [gs, send]);
+    dispatchAction({ action: 'leave_game' });
+  }, [gs, dispatchAction]);
 
   const surrenderGame = useCallback(() => {
-    if (gs && gs.phase !== 'game_over') send({ action: 'surrender' });
-  }, [gs, send]);
+    if (gs && gs.phase !== 'game_over') dispatchAction({ action: 'surrender' });
+  }, [gs, dispatchAction]);
   const submitBo3Deck = useCallback((deckCardIds: number[]) => {
     send({ action: 'submit_bo3_deck', deck_card_ids: deckCardIds });
   }, [send]);

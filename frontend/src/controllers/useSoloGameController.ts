@@ -3,6 +3,8 @@ import type { FieldCard, GameState, HandCard } from '../types/game';
 import { getApiBase } from '../api/ws';
 import useAnnouncerQueue from '../hooks/useAnnouncerQueue';
 import { computeSoloActionableUids, computeSoloFieldSkills, mapSoloStateFromOnline, Side } from './soloOnlineBridge';
+import { createSoloAdapter } from './adapters/soloAdapter';
+import type { UnifiedGameAction } from './gameModeAdapter';
 
 type SoloState = {
   top: { hand: HandCard[]; field: any; drawPile: HandCard[]; mulliganDone: boolean; placementUsed: number };
@@ -81,6 +83,17 @@ export function useSoloGameController() {
     setPendingSpellCard(null);
   }, [apiBase, soloGameId, activeSide, enqueueAnnouncer]);
 
+  const soloAdapter = useMemo(() => createSoloAdapter({
+    getViewModel: () => ({ mode: 'solo', gameState: gs, phase: gs?.phase || 'waiting', isMyTurn: gs?.is_my_turn }),
+    sendAction: async (action: UnifiedGameAction) => {
+      await act(action as Record<string, any>);
+    },
+  }), [act, gs]);
+
+  const dispatchAction = useCallback(async (action: UnifiedGameAction) => {
+    await soloAdapter.dispatch(action);
+  }, [soloAdapter]);
+
   useEffect(() => {
     const run = async () => {
       try {
@@ -126,22 +139,22 @@ export function useSoloGameController() {
 
   const runMulligan = useCallback(() => {
     if (!selectedMulligan.length) return;
-    act({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
+    void dispatchAction({ action: 'mulligan', card_indices: selectedMulligan.slice(0, 1) });
     setSelectedMulligan([]);
-  }, [selectedMulligan, act]);
+  }, [selectedMulligan, dispatchAction]);
 
   const skipMulligan = useCallback(() => {
-    act({ action: 'skip_mulligan' });
+    void dispatchAction({ action: 'skip_mulligan' });
     setSelectedMulligan([]);
-  }, [act]);
+  }, [dispatchAction]);
 
   const placeCard = useCallback((zone: 'main' | 'side', slotIndex?: 0 | 1) => {
     if (selectedHandIdx === null) return;
-    act({ action: 'place_card', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
-  }, [selectedHandIdx, act]);
+    void dispatchAction({ action: 'place_card', hand_index: selectedHandIdx, zone, slot_index: zone === 'main' ? slotIndex : undefined });
+  }, [selectedHandIdx, dispatchAction]);
 
-  const endPlacement = useCallback(() => { act({ action: 'end_placement' }); }, [act]);
-  const endTurn = useCallback(() => { act({ action: 'end_turn' }); }, [act]);
+  const endPlacement = useCallback(() => { void dispatchAction({ action: 'end_placement' }); }, [dispatchAction]);
+  const endTurn = useCallback(() => { void dispatchAction({ action: 'end_turn' }); }, [dispatchAction]);
 
   const handleEndMainButton = useCallback(() => {
     if (phase === 'placement') endPlacement();
