@@ -29,8 +29,10 @@ class SocketClient {
       this.emit({ event: '_disconnected' } as WSMessage);
     };
 
-    this.ws.onerror = (err) => {
-      console.error('[WS] Error', err);
+    this.ws.onerror = () => {
+      const state = this.ws?.readyState;
+      if (state === WebSocket.CLOSING || state === WebSocket.CLOSED) return;
+      console.warn('[WS] Transport error (waiting for close/reconnect)');
       this.emit({ event: '_error', message: 'socket error' } as WSMessage);
     };
   }

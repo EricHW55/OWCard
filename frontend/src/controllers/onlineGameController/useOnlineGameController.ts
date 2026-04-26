@@ -58,6 +58,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const addLog = useCallback((msg: string) => {
     pushBattleLog({ type: 'system', team: 'neutral', text: msg, turn: gsRef.current?.turn });
   }, [pushBattleLog]);
+  const addLogRef = useRef(addLog);
 
   const toActor = useCallback((card: any, fallbackName?: string): BattleLogActor => ({
     name: String(card?.name || fallbackName || '?????놁쓬'),
@@ -74,6 +75,8 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     systemNoticeDurationMs: ONLINE_GAME_UI_PRESET.timings.systemNoticeMs,
     skillUseDurationMs: ONLINE_GAME_UI_PRESET.timings.skillUseMs,
   });
+  const showPhaseChangeRef = useRef(showPhaseChange);
+  const showSystemNoticeRef = useRef(showSystemNotice);
 
   const gameEvents = useServerGameEventPresentation({
     gameState: gs,
@@ -125,12 +128,18 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     handleGameActionMessageRef.current = handleGameActionMessage;
     handleActionResultMessageRef.current = handleActionResultMessage;
     handleOpponentActionMessageRef.current = handleOpponentActionMessage;
+    addLogRef.current = addLog;
+    showPhaseChangeRef.current = showPhaseChange;
+    showSystemNoticeRef.current = showSystemNotice;
   }, [
     handleGameStateMessage,
     handleSpectatorStateMessage,
     handleGameActionMessage,
     handleActionResultMessage,
     handleOpponentActionMessage,
+    addLog,
+    showPhaseChange,
+    showSystemNotice,
   ]);
 
   useEffect(() => {
@@ -187,7 +196,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           setReconnecting(false);
           clearReconnectTimer();
           reconnectAttemptRef.current = 0;
-          addLog(wasReconnecting ? '재연결 성공' : '소켓 연결됨');
+          addLogRef.current(wasReconnecting ? '재연결 성공' : '소켓 연결됨');
           if (!isSpectator) ws.send({ action: 'get_state' });
           startHeartbeat();
         }),
@@ -200,7 +209,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
             const attempt = reconnectAttemptRef.current + 1;
             const delay = Math.min(1000 * (2 ** (attempt - 1)), 5000);
             reconnectAttemptRef.current = attempt;
-            addLog('소켓 끊김 - ' + Math.round(delay / 1000) + '초 후 재연결 시도');
+            addLogRef.current('소켓 끊김 - ' + Math.round(delay / 1000) + '초 후 재연결 시도');
             reconnectTimerRef.current = window.setTimeout(() => {
               reconnectTimerRef.current = null;
               connectWs();
@@ -213,12 +222,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         ws.on('game_action', (msg: any) => handleGameActionMessageRef.current(msg, { isSpectator })),
         ws.on('action_result', (msg: any) => handleActionResultMessageRef.current(msg)),
         ws.on('opponent_action', (msg: any) => handleOpponentActionMessageRef.current(msg)),
-        ws.on('phase_change', (msg: any) => addLog(msg.message || ('phase ' + msg.phase))),
+        ws.on('phase_change', (msg: any) => addLogRef.current(msg.message || ('phase ' + msg.phase))),
         ws.on('game_over', (msg: any) => {
           const isWinner = !isSpectator && Number(msg?.winner) === Number(session?.player_id);
-          addLog('게임 종료: ' + (msg.winner_name ?? msg.winner));
+          addLogRef.current('게임 종료: ' + (msg.winner_name ?? msg.winner));
           setReconnecting(false);
-          showPhaseChange(
+          showPhaseChangeRef.current(
               isSpectator ? '게임 종료' : (isWinner ? '승리' : '패배'),
               String(msg.winner_name ?? msg.winner ?? '승자 미정'),
               isSpectator ? 2000 : 2800,
@@ -228,20 +237,20 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           const round = Number(msg?.round || 0);
           const winnerName = msg?.winner_name || ('P' + msg?.winner);
           const nextRound = Number(msg?.next_round || round + 1);
-          addLog('BO3 ' + round + '라운드 종료 - ' + winnerName + ' 승리. ' + nextRound + '라운드 준비');
-          showPhaseChange('라운드 종료', winnerName + ' 승리 - 다음 라운드 준비', 2200);
+          addLogRef.current('BO3 ' + round + '라운드 종료 - ' + winnerName + ' 승리. ' + nextRound + '라운드 준비');
+          showPhaseChangeRef.current('라운드 종료', winnerName + ' 승리 - 다음 라운드 준비', 2200);
         }),
         ws.on('bo3_round_started', (msg: any) => {
           const round = Number(msg?.round || 0);
-          addLog('BO3 ' + round + '라운드 시작');
-          showPhaseChange(round + '라운드', '전투 시작', 1600);
+          addLogRef.current('BO3 ' + round + '라운드 시작');
+          showPhaseChangeRef.current(round + '라운드', '전투 시작', 1600);
         }),
-        ws.on('opponent_disconnected', () => addLog('상대 연결 끊김')),
-        ws.on('player_reconnected', () => addLog('상대가 재연결했습니다')),
+        ws.on('opponent_disconnected', () => addLogRef.current('상대 연결 끊김')),
+        ws.on('player_reconnected', () => addLogRef.current('상대가 재연결했습니다')),
         ws.on('error', (msg: any) => {
           const shortMessage = normalizeErrorMessage(msg?.message);
-          addLog('오류: ' + shortMessage);
-          showSystemNotice('행동 불가', shortMessage, 2600);
+          addLogRef.current('오류: ' + shortMessage);
+          showSystemNoticeRef.current('행동 불가', shortMessage, 2600);
         }),
       ];
     };
@@ -276,16 +285,13 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     session,
     gameId,
     isSpectator,
-    addLog,
-    showPhaseChange,
-    showSystemNotice,
   ]);
 
   const send = useCallback((data: Record<string, unknown>) => {
     if (isSpectator) return;
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
-    addLog('?꾩넚 ?ㅽ뙣(誘몄뿰寃?');
-  }, [addLog, isSpectator]);
+    addLogRef.current('?꾩넚 ?ㅽ뙣(誘몄뿰寃?');
+  }, [isSpectator]);
 
   const onlineAdapter = useMemo(() => createOnlineAdapter({
     getViewModel: () => ({
