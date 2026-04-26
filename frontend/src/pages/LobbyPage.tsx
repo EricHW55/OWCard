@@ -52,7 +52,7 @@ type PlayMode = 'none' | 'quick' | 'private';
 type MatchFormat = 'bo1' | 'bo3';
 type PlayEntryType = 'solo' | 'quick' | 'competitive' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
-const CRITICAL_LOBBY_ICON_SOURCES = ['/UI/quick.svg', '/UI/rank.svg', '/UI/private.svg'] as const;
+const CRITICAL_LOBBY_ICON_SOURCES = ['/UI/quick.svg', '/UI/rank.svg', '/UI/private.svg', '/UI/solo.svg'] as const;
 
 function getMatchFormatLabel(format?: MatchFormat | null): string {
     return format === 'bo3' ? '3판 2선승제' : '단판전';
@@ -142,8 +142,11 @@ const LobbyPage: React.FC = () => {
     const [playMode, setPlayMode] = useState<PlayMode>('none');
     const [showPlayModal, setShowPlayModal] = useState(false);
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
+    const [showSoloDeckModal, setShowSoloDeckModal] = useState(false);
     const [isLobbyReady, setIsLobbyReady] = useState(false);
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
+    const [soloBottomDeckId, setSoloBottomDeckId] = useState<number>(1);
+    const [soloTopDeckId, setSoloTopDeckId] = useState<number>(1);
     const [quickMatchFormat, setQuickMatchFormat] = useState<MatchFormat>('bo1');
     const [privateRoomFormat, setPrivateRoomFormat] = useState<MatchFormat>('bo1');
     const [pendingJoinRoom, setPendingJoinRoom] = useState<RoomInfo | null>(null);
@@ -356,12 +359,20 @@ const LobbyPage: React.FC = () => {
     useEffect(() => {
         if (!decks.length) {
             setQuickMatchDeckId(1);
+            setSoloBottomDeckId(1);
+            setSoloTopDeckId(1);
             return;
         }
         if (!decks.some((deck) => deck.id === quickMatchDeckId)) {
             setQuickMatchDeckId(decks[0].id);
         }
-    }, [decks, quickMatchDeckId]);
+        if (!decks.some((deck) => deck.id === soloBottomDeckId)) {
+            setSoloBottomDeckId(decks[0].id);
+        }
+        if (!decks.some((deck) => deck.id === soloTopDeckId)) {
+            setSoloTopDeckId(decks[0].id);
+        }
+    }, [decks, quickMatchDeckId, soloBottomDeckId, soloTopDeckId]);
 
     useEffect(() => {
         if (!queueing || !queueStartedAt) return;
@@ -740,12 +751,26 @@ const LobbyPage: React.FC = () => {
         setShowPlayModal(false);
     };
 
+    const startSoloGame = () => {
+        if (!decks.length) {
+            addLog('덱이 없어 솔로 모드를 시작할 수 없습니다. 덱 빌더에서 덱을 먼저 만들어주세요.');
+            return;
+        }
+        setShowSoloDeckModal(false);
+        setShowPlayModal(false);
+        const query = new URLSearchParams({
+            bottomDeckId: String(soloBottomDeckId),
+            topDeckId: String(soloTopDeckId),
+        });
+        void ensureGameImageWarmup().then(() => {
+            navigate(`/solo-game?${query.toString()}`);
+        });
+    };
+
     const handlePlayEntrySelect = (entryType: PlayEntryType) => {
         if (entryType === 'solo') {
             setShowPlayModal(false);
-            void ensureGameImageWarmup().then(() => {
-                navigate('/solo-game');
-            });
+            setShowSoloDeckModal(true);
             return;
         }
         if (entryType === 'quick') {
@@ -1063,15 +1088,6 @@ const LobbyPage: React.FC = () => {
                         <p>플레이 타입을 선택하세요.</p>
                         <div className={`play-entry-grid ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
                             <button
-                                className="play-entry-card solo"
-                                onClick={() => handlePlayEntrySelect('solo')}
-                                type="button"
-                            >
-                                <div className="play-entry-icon play-entry-icon-solo" aria-hidden="true" />
-                                <div className="play-entry-title">솔로 모드</div>
-                                <div className="play-entry-desc">혼자서 양쪽 진영을 조작하며 카드 배치와 스킬 흐름을 연습합니다.</div>
-                            </button>
-                            <button
                                 className="play-entry-card quick"
                                 onClick={() => handlePlayEntrySelect('quick')}
                                 type="button"
@@ -1097,6 +1113,15 @@ const LobbyPage: React.FC = () => {
                                 <div className="play-entry-icon play-entry-icon-private" aria-hidden="true" />
                                 <div className="play-entry-title">사설방</div>
                                 <div className="play-entry-desc">방 생성 시 단판전/3판 2선승제를 선택하고 원하는 룰로 플레이합니다.</div>
+                            </button>
+                            <button
+                                className="play-entry-card solo"
+                                onClick={() => handlePlayEntrySelect('solo')}
+                                type="button"
+                            >
+                                <div className="play-entry-icon play-entry-icon-solo" aria-hidden="true" />
+                                <div className="play-entry-title">솔로 모드</div>
+                                <div className="play-entry-desc">혼자서 양쪽 진영을 조작하며 카드 배치와 스킬 흐름을 연습합니다.</div>
                             </button>
                         </div>
                     </div>
@@ -1153,6 +1178,49 @@ const LobbyPage: React.FC = () => {
                                 매칭 시작
                             </button>
                             <button className="lobby-ghost-btn" onClick={() => setShowQuickDeckModal(false)}>닫기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showSoloDeckModal && (
+                <div className="play-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="play-modal">
+                        <button className="play-modal-close" onClick={() => setShowSoloDeckModal(false)}>×</button>
+                        <h3>솔로 모드 덱 선택</h3>
+                        <p>아래쪽과 위쪽 플레이어가 사용할 덱을 고르세요.</p>
+                        <div className="deck-row quick-match-deck-row">
+                            <label>아래쪽 플레이어 덱</label>
+                            <select
+                                className="lobby-input"
+                                value={soloBottomDeckId}
+                                onChange={(e) => setSoloBottomDeckId(Number(e.target.value))}
+                            >
+                                {decks.length === 0 ? (
+                                    <option value={1}>덱 없음</option>
+                                ) : (
+                                    decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)
+                                )}
+                            </select>
+                        </div>
+                        <div className="deck-row quick-match-deck-row">
+                            <label>위쪽 플레이어 덱</label>
+                            <select
+                                className="lobby-input"
+                                value={soloTopDeckId}
+                                onChange={(e) => setSoloTopDeckId(Number(e.target.value))}
+                            >
+                                {decks.length === 0 ? (
+                                    <option value={1}>덱 없음</option>
+                                ) : (
+                                    decks.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)
+                                )}
+                            </select>
+                        </div>
+                        <div className="play-modal-actions">
+                            <button className="lobby-ghost-btn" disabled={!decks.length} onClick={startSoloGame}>
+                                솔로 모드 시작
+                            </button>
+                            <button className="lobby-ghost-btn" onClick={() => setShowSoloDeckModal(false)}>닫기</button>
                         </div>
                     </div>
                 </div>

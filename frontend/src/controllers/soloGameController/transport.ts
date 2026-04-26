@@ -32,11 +32,15 @@ async function fetchWithSameOriginFallback(input: string, init?: RequestInit): P
 
 export function createSoloHttpTransport(apiBase = getApiBase()): SoloTransport {
   return {
-    async start(playerId: number) {
+    async start(playerId: number, options?: { bottomDeckId?: number | null; topDeckId?: number | null }) {
       const res = await fetchWithSameOriginFallback(`${apiBase}/solo/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: playerId }),
+        body: JSON.stringify({
+          player_id: playerId,
+          deck_id: options?.bottomDeckId ?? undefined,
+          top_deck_id: options?.topDeckId ?? undefined,
+        }),
       });
       if (!res.ok) throw new Error(await readGameError(res, '솔로 모드 시작 실패'));
       const body = await res.json();

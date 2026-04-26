@@ -52,6 +52,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   bottomMeta,
   bottomActions,
   compactBottomPanel = false,
+  handOwnerKey,
   logs = [],
   killFeed = [],
   onDismissKillFeedItem,
@@ -248,7 +249,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         </div>
 
         {!compactBottomPanel && (
-            <div className="game-hand-row">
+            <div key={handOwnerKey} className={`game-hand-row ${handOwnerKey ? 'game-hand-row--switching' : ''}`}>
               {handCards.map((card, index) => (
                   <HandCardComp
                       key={`${card.id}-${index}`}

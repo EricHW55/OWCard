@@ -17,7 +17,7 @@ import type { SoloSide, SoloTransport } from './types';
 import { useSoloActionRunner } from './useSoloActionRunner';
 import { phaseLabel } from '../../utils/ui';
 
-export function useSoloGameController(options?: { transport?: SoloTransport }) {
+export function useSoloGameController(options?: { transport?: SoloTransport; bottomDeckId?: number | null; topDeckId?: number | null }) {
   const transport = useMemo(() => options?.transport || createSoloHttpTransport(), [options?.transport]);
   const { announcerData, enqueueAnnouncer, closeAnnouncer } = useAnnouncerQueue();
 
@@ -215,7 +215,10 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
         setError(null);
         const pid = Number(sessionStorage.getItem('player_id') || 0);
         if (!pid) throw new Error('로그인이 필요합니다');
-        const start = await transport.start(pid);
+        const start = await transport.start(pid, {
+          bottomDeckId: options?.bottomDeckId,
+          topDeckId: options?.topDeckId,
+        });
         if (disposed) return;
         setSoloGameId(start.soloGameId);
         soloEventHandlersRef.current.handleGameStateMessage({ state: start.state });
@@ -232,7 +235,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
       uiTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
       uiTimersRef.current = [];
     };
-  }, [transport]);
+  }, [options?.bottomDeckId, options?.topDeckId, transport]);
 
   useEffect(() => {
     if (!gs) return;

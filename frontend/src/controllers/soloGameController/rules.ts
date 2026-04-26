@@ -19,6 +19,7 @@ export function buildSoloPlayersView(state: GameState, activeSide: SoloSide): So
     drawPile: new Array(my.draw_pile_count || 0).fill(null) as HandCard[],
     mulliganDone: !!my.mulligan_done,
     placementUsed: my.placement_cost_used || 0,
+    placementLimit: Number(my.placement_limit ?? 2),
   };
   const opponentView = {
     hand: [],
@@ -26,6 +27,7 @@ export function buildSoloPlayersView(state: GameState, activeSide: SoloSide): So
     drawPile: new Array(opponent.draw_pile_count || 0).fill(null) as HandCard[],
     mulliganDone: !!opponent.mulligan_done,
     placementUsed: opponent.placement_cost_used || 0,
+    placementLimit: Number(opponent.placement_limit ?? 2),
   };
   return activeSide === 'bottom'
       ? { bottom: ownView, top: opponentView }

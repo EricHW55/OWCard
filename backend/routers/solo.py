@@ -28,6 +28,7 @@ class SoloSession:
 class SoloStartRequest(BaseModel):
     player_id: int
     deck_id: int | None = None
+    top_deck_id: int | None = None
 
 
 class SoloActionRequest(BaseModel):
@@ -104,16 +105,17 @@ async def start_solo(req: SoloStartRequest):
                 raise HTTPException(status_code=404, detail='Deck not found for player')
             deck_id = deck.id
 
-    deck_cards = await _load_deck_cards(deck_id)
+    bottom_deck_cards = await _load_deck_cards(deck_id)
+    top_deck_cards = await _load_deck_cards(req.top_deck_id) if req.top_deck_id is not None else list(bottom_deck_cards)
 
     game_id = f'solo_{uuid.uuid4().hex[:10]}'
     engine = GameEngine(game_id)
     bottom_id = req.player_id
     top_id = -abs(req.player_id) - 100000
 
-    if not engine.add_player(bottom_id, 'Bottom Player', list(deck_cards)):
+    if not engine.add_player(bottom_id, 'Bottom Player', list(bottom_deck_cards)):
         raise HTTPException(status_code=400, detail='Failed to add bottom player')
-    if not engine.add_player(top_id, 'Top Player', list(deck_cards)):
+    if not engine.add_player(top_id, 'Top Player', list(top_deck_cards)):
         raise HTTPException(status_code=400, detail='Failed to add top player')
 
     engine.start_game()

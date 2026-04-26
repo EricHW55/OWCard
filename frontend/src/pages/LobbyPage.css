@@ -720,12 +720,12 @@
 }
 
 .play-entry-icon-solo {
-    --entry-icon-color: #52d68d;
-    --entry-glow-soft: rgba(138, 255, 190, 0.58);
-    --entry-glow-hard: rgba(226, 255, 238, 0.95);
-    --entry-ray-color: rgba(190, 255, 220, 0.96);
-    -webkit-mask-image: url('../../public/UI/quick.svg');
-    mask-image: url('../../public/UI/quick.svg');
+    --entry-icon-color: #ffd23f;
+    --entry-glow-soft: rgba(255, 215, 79, 0.62);
+    --entry-glow-hard: rgba(255, 247, 196, 0.98);
+    --entry-ray-color: rgba(255, 231, 122, 0.98);
+    -webkit-mask-image: url('../../public/UI/solo.svg');
+    mask-image: url('../../public/UI/solo.svg');
 }
 
 .play-entry-icon-private::before {
@@ -822,10 +822,10 @@
 }
 
 .play-entry-card.solo:hover {
-    background: linear-gradient(160deg, rgba(42, 156, 105, 0.94), rgba(21, 98, 82, 0.94));
+    background: linear-gradient(160deg, rgba(223, 160, 34, 0.94), rgba(139, 91, 19, 0.94));
     border-color: rgba(255, 255, 255, 0.92);
     transform: translateY(-5px) scale(1.03);
-    box-shadow: 0 18px 40px rgba(44, 180, 117, 0.42);
+    box-shadow: 0 18px 40px rgba(255, 198, 62, 0.42);
 }
 
 .play-modal-close {

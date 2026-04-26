@@ -1,15 +1,23 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import GameScreen from '../components/GameScreen';
 import OnlineContextPanel from '../components/OnlineContextPanel';
 import useSoloGameController from '../controllers/useSoloGameController';
 import { BTN_SM, phaseLabel } from '../utils/ui';
+import { getCardArtCandidates, getCardImageSrc } from '../utils/heroImage';
 import './GamePage.css';
 import './SoloGamePage.css';
 
 const SoloGamePage: React.FC = () => {
   const navigate = useNavigate();
-  const vm = useSoloGameController();
+  const location = useLocation();
+  const soloDeckParams = React.useMemo(() => {
+    const query = new URLSearchParams(location.search);
+    const bottomDeckId = Number(query.get('bottomDeckId') || 0) || null;
+    const topDeckId = Number(query.get('topDeckId') || 0) || null;
+    return { bottomDeckId, topDeckId };
+  }, [location.search]);
+  const vm = useSoloGameController(soloDeckParams);
 
   if (vm.loading) return <div className="solo-page solo-center">솔로 모드 준비 중...</div>;
   if (vm.error || !vm.players || !vm.activePlayer) {
@@ -71,6 +79,7 @@ const SoloGamePage: React.FC = () => {
           onSkipMulligan={vm.skipMulligan}
           selectedFieldName={vm.selectedMyFieldCard?.name}
           selectedHeroKey={vm.selectedHeroKey}
+          selectedFieldImageCandidates={vm.selectedMyFieldCard ? [...getCardArtCandidates(vm.selectedMyFieldCard), getCardImageSrc(vm.selectedMyFieldCard)] : []}
           selectedChargeLevel={vm.selectedChargeLevel}
           fieldSkills={vm.fieldSkills}
           actionMode={vm.actionMode}
@@ -97,6 +106,7 @@ const SoloGamePage: React.FC = () => {
         />
       }
       handCards={vm.activePlayer.hand}
+      handOwnerKey={`solo-${vm.activeSide}`}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
       mulliganCinematicCard={vm.mulliganCinematicCard}
       mulliganReplacementCard={vm.mulliganReplacementCard}
@@ -104,9 +114,14 @@ const SoloGamePage: React.FC = () => {
       onMulliganCinematicComplete={vm.completeMulliganCinematic}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}
-      bottomMeta={<>손패 {vm.activePlayer.hand.length}장 · 덱 {vm.activePlayer.drawPile.length}장 · 배치 {vm.activePlayer.placementUsed}/2</>}
+      bottomMeta={<>손패 {vm.activePlayer.hand.length}장 · 덱 {vm.activePlayer.drawPile.length}장</>}
       bottomActions={
         <>
+          {vm.phase === 'placement' && (
+            <span className="game-placement-meta">
+              배치 {vm.activePlayer.placementUsed}/{vm.activePlayer.placementLimit}
+            </span>
+          )}
           {vm.phase !== 'mulligan' && (
             <button className="game-endturn" onClick={vm.handleEndMainButton}>
               {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}
