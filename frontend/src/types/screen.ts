@@ -8,6 +8,7 @@ export type PlaceSlotIndex = 0 | 1;
 export interface FieldPaneConfig {
   field: FieldState;
   isOpponent: boolean;
+  actionIsOpponent?: boolean;
   isMyTurn: boolean;
   phase: string;
   selectedUid: string | null;

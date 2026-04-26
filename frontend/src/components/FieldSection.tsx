@@ -9,6 +9,7 @@ import { soundManager } from '../utils/soundManager';
 interface Props {
     field: FieldState;
     isOpponent: boolean;
+    actionIsOpponent?: boolean;
     isMyTurn: boolean;
     phase: string;
     selectedUid: string | null;
@@ -58,18 +59,19 @@ const EmptySlot: React.FC<{ highlight?: boolean; onClick?: () => void }> = ({ hi
 );
 
 const FieldSection: React.FC<Props> = ({
-                                           field, isOpponent, isMyTurn, phase,
+                                           field, isOpponent, actionIsOpponent, isMyTurn, phase,
                                            selectedUid, canActUids, onCardClick, onCardLongPress, cardEffects,
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
                                            canSelectEmptySlot, onEmptySlotSelect,
                                        }) => {
+    const targetIsOpponent = actionIsOpponent ?? isOpponent;
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
     const dealers = (field?.main || []).filter(c => c.role === 'dealer');
     const healers = (field?.main || []).filter(c => c.role === 'healer');
     const sideCards = field?.side || [];
 
     // 배치 조건: 내 턴 + 배치 페이즈 + 카드 선택됨
-    const canPlace = !!placingCard && isMyTurn && phase === 'placement' && (!isOpponent || allowOpponentPlacement);
+    const canPlace = !!placingCard && isMyTurn && phase === 'placement' && (!targetIsOpponent || allowOpponentPlacement);
     const placingRole = placingCard?.role;
 
     const cardRefMap = useRef<Record<string, HTMLDivElement | null>>({});
@@ -193,7 +195,7 @@ const FieldSection: React.FC<Props> = ({
         >
             <FieldCardComp
                 card={card}
-                isOpponent={isOpponent}
+                isOpponent={targetIsOpponent}
                 selected={!hidden && selectedUid === card.uid}
                 glowing={!hidden && canActUids.includes(card.uid)}
                 effect={cardEffects?.[card.uid]}
@@ -224,7 +226,7 @@ const FieldSection: React.FC<Props> = ({
             const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
             const roleTyped = role as 'tank' | 'dealer' | 'healer';
             const selectableBySkill = mainSlotIndex !== undefined
-                && !!canSelectEmptySlot?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent });
+                && !!canSelectEmptySlot?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent: targetIsOpponent });
             if (slottedCard) {
                 slots.push(renderCard(slottedCard, hiddenFieldCardUids.has(slottedCard.uid)));
             } else if (canPlace && placingRole === role) {
@@ -234,7 +236,7 @@ const FieldSection: React.FC<Props> = ({
                     <EmptySlot
                         key={`target-${role}-${i}`}
                         highlight
-                        onClick={() => onEmptySlotSelect?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent })}
+                        onClick={() => onEmptySlotSelect?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent: targetIsOpponent })}
                     />
                 );
             } else {
@@ -282,7 +284,7 @@ const FieldSection: React.FC<Props> = ({
                 {mainRows.map(({ role, cards, max }, idx) => {
                     const sideDef = sideRowDefs[idx];
                     const canPlaceSide = canPlace && placingRole === sideDef.role;
-                    const canSelectSide = !!canSelectEmptySlot?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent });
+                    const canSelectSide = !!canSelectEmptySlot?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent: targetIsOpponent });
                     return (
                         <div key={role} className="field-lane-row">
                             <div className="field-lane-track">
@@ -299,7 +301,7 @@ const FieldSection: React.FC<Props> = ({
                                                 canPlaceSide
                                                     ? () => onPlaceClick('side')
                                                     : canSelectSide
-                                                        ? () => onEmptySlotSelect?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent })
+                                                        ? () => onEmptySlotSelect?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent: targetIsOpponent })
                                                         : undefined
                                             }
                                         />

@@ -11,7 +11,7 @@ import { useServerGameEventPresentation } from '../shared/useServerGameEventPres
 import { useSharedGameFlowActions } from '../shared/useSharedGameFlowActions';
 import { normalizeGameError } from '../shared/gameErrorPolicy';
 import { createSoloHttpTransport } from './transport';
-import { getSoloActionableUids, getSoloPhaseSubtitle, buildSoloPlayersView, resolveActiveSideFromState } from './rules';
+import { getSoloActionableUids, buildSoloPlayersView, resolveActiveSideFromState } from './rules';
 import { SOLO_UI } from './constants';
 import type { SoloSide, SoloTransport } from './types';
 import { useSoloActionRunner } from './useSoloActionRunner';
@@ -120,9 +120,10 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     soloEventHandlersRef.current = soloEventHandlers;
   }, [soloEventHandlers]);
 
+  const displayState = gameEvents.renderGameState || gs;
   const players = useMemo(
-      () => (gs ? buildSoloPlayersView(gs, activeSide) : null),
-      [activeSide, gs],
+      () => (displayState ? buildSoloPlayersView(displayState, activeSide) : null),
+      [activeSide, displayState],
   );
   const phase = gs?.phase || 'waiting';
   const activePlayer = players?.[activeSide] || null;
@@ -236,11 +237,6 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
       uiTimersRef.current = [];
     };
   }, [options?.bottomDeckId, options?.topDeckId, transport]);
-
-  useEffect(() => {
-    if (!gs) return;
-    showPhaseChange(phaseLabel(phase), getSoloPhaseSubtitle(activeSide), SOLO_UI.phaseNoticeMs);
-  }, [activeSide, gs, phase, showPhaseChange]);
 
   const canActTop = getSoloActionableUids({ phase, activeSide, side: 'top', field: players?.top.field });
   const canActBottom = getSoloActionableUids({ phase, activeSide, side: 'bottom', field: players?.bottom.field });
