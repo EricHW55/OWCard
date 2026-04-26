@@ -48,7 +48,11 @@ export function getSoloActionableUids(params: {
 }
 
 export function shouldClearSoloSpellAfterAction(action: string, result: any): boolean {
-  return action !== 'place_card' || !result?.needs_target;
+  return action !== 'place_card' || !(result?.needs_target || result?.needs_choice);
+}
+
+export function shouldKeepSoloTargetingAfterAction(action: string, result: any): boolean {
+  return action === 'place_card' && !!(result?.needs_target || result?.needs_choice);
 }
 
 export function getSoloPhaseSubtitle(activeSide: SoloSide): string {

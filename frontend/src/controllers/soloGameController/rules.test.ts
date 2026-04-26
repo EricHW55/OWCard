@@ -7,6 +7,7 @@ import {
   oppositeSide,
   resolveActiveSideFromState,
   shouldClearSoloSpellAfterAction,
+  shouldKeepSoloTargetingAfterAction,
 } from './rules';
 
 const fieldCard = (overrides: Partial<FieldCard> = {}): FieldCard => ({
@@ -109,7 +110,11 @@ describe('solo game rules', () => {
 
   test('abnormal spell result only keeps pending spell when target selection is required', () => {
     expect(shouldClearSoloSpellAfterAction('place_card', { needs_target: true })).toBe(false);
+    expect(shouldClearSoloSpellAfterAction('place_card', { needs_choice: true })).toBe(false);
     expect(shouldClearSoloSpellAfterAction('place_card', { needs_target: false })).toBe(true);
     expect(shouldClearSoloSpellAfterAction('use_skill', {})).toBe(true);
+    expect(shouldKeepSoloTargetingAfterAction('place_card', { needs_target: true })).toBe(true);
+    expect(shouldKeepSoloTargetingAfterAction('place_card', { needs_choice: true })).toBe(true);
+    expect(shouldKeepSoloTargetingAfterAction('execute_spell', { needs_target: true })).toBe(false);
   });
 });

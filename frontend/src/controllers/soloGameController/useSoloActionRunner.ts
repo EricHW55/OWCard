@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { GameState } from '../../types/game';
 import type { UnifiedGameAction } from '../gameModeAdapter';
 import { normalizeGameError } from '../shared/gameErrorPolicy';
-import { shouldClearSoloSpellAfterAction } from './rules';
+import { shouldClearSoloSpellAfterAction, shouldKeepSoloTargetingAfterAction } from './rules';
 import { SOLO_UI } from './constants';
 import type { SoloSide, SoloTransport } from './types';
 
@@ -74,8 +74,10 @@ export function useSoloActionRunner(params: {
 
       setSelectedHandIdx(null);
       setSelectedFieldUid(null);
-      setActionMode(null);
-      setColumnChoice(null);
+      if (!shouldKeepSoloTargetingAfterAction(actionName, response.result)) {
+        setActionMode(null);
+        setColumnChoice(null);
+      }
 
       if (shouldClearSoloSpellAfterAction(actionName, response.result)) {
         setPendingSpell(null);

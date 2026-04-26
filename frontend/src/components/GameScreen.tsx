@@ -125,7 +125,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
       mulliganTimerRef.current.forEach((timerId) => window.clearTimeout(timerId));
       mulliganTimerRef.current = [];
     };
-  }, [isMulliganCinematicActive, mulliganCinematicCard?.id, mulliganCinematicCard?.hero_key, mulliganCinematicCard?.name]);
+  }, [isMulliganCinematicActive, mulliganCinematicCard]);
 
   const canCloseMulliganCinematic = isMulliganCinematicActive && mulliganStage === 'reveal' && !!mulliganReplacementCard;
 
@@ -291,7 +291,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
         </div>
 
         {!compactBottomPanel && (
-            <div className={`game-hand-row ${handOwnerKey ? 'game-hand-row--switching' : ''}`}>
+            <div className="game-hand-row">
               {leavingHandCards && (
                   <div className="game-hand-transition-layer exit" aria-hidden>
                     {renderHandCards(leavingHandCards, 'exit', false)}
