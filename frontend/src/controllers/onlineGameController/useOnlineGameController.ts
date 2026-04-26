@@ -113,6 +113,25 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     handleActionResultMessage,
     handleOpponentActionMessage,
   } = gameEvents;
+  const handleGameStateMessageRef = useRef(handleGameStateMessage);
+  const handleSpectatorStateMessageRef = useRef(handleSpectatorStateMessage);
+  const handleGameActionMessageRef = useRef(handleGameActionMessage);
+  const handleActionResultMessageRef = useRef(handleActionResultMessage);
+  const handleOpponentActionMessageRef = useRef(handleOpponentActionMessage);
+
+  useEffect(() => {
+    handleGameStateMessageRef.current = handleGameStateMessage;
+    handleSpectatorStateMessageRef.current = handleSpectatorStateMessage;
+    handleGameActionMessageRef.current = handleGameActionMessage;
+    handleActionResultMessageRef.current = handleActionResultMessage;
+    handleOpponentActionMessageRef.current = handleOpponentActionMessage;
+  }, [
+    handleGameStateMessage,
+    handleSpectatorStateMessage,
+    handleGameActionMessage,
+    handleActionResultMessage,
+    handleOpponentActionMessage,
+  ]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -189,11 +208,11 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           }
         }),
         ws.on('pong', () => {}),
-        ws.on('game_state', handleGameStateMessage),
-        ws.on('spectator_state', handleSpectatorStateMessage),
-        ws.on('game_action', (msg: any) => handleGameActionMessage(msg, { isSpectator })),
-        ws.on('action_result', handleActionResultMessage),
-        ws.on('opponent_action', handleOpponentActionMessage),
+        ws.on('game_state', (msg: any) => handleGameStateMessageRef.current(msg)),
+        ws.on('spectator_state', (msg: any) => handleSpectatorStateMessageRef.current(msg)),
+        ws.on('game_action', (msg: any) => handleGameActionMessageRef.current(msg, { isSpectator })),
+        ws.on('action_result', (msg: any) => handleActionResultMessageRef.current(msg)),
+        ws.on('opponent_action', (msg: any) => handleOpponentActionMessageRef.current(msg)),
         ws.on('phase_change', (msg: any) => addLog(msg.message || ('phase ' + msg.phase))),
         ws.on('game_over', (msg: any) => {
           const isWinner = !isSpectator && Number(msg?.winner) === Number(session?.player_id);
@@ -260,11 +279,6 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     addLog,
     showPhaseChange,
     showSystemNotice,
-    handleGameStateMessage,
-    handleSpectatorStateMessage,
-    handleGameActionMessage,
-    handleActionResultMessage,
-    handleOpponentActionMessage,
   ]);
 
   const send = useCallback((data: Record<string, unknown>) => {
