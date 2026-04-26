@@ -7,10 +7,11 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from database import async_session
 from game_engine.engine import GameEngine
-from models.deck import Deck
+from models.deck import Deck, DeckCard
 from models.card import CardTemplate
 
 router = APIRouter(prefix='/solo', tags=['solo'])
@@ -38,19 +39,28 @@ solo_sessions: dict[str, SoloSession] = {}
 
 async def _load_deck_cards(deck_id: int) -> list[dict[str, Any]]:
     async with async_session() as db:
-        result = await db.execute(select(Deck).where(Deck.id == deck_id))
+        result = await db.execute(
+            select(Deck)
+            .options(selectinload(Deck.cards))
+            .where(Deck.id == deck_id)
+        )
         deck = result.scalars().first()
         if not deck:
             raise HTTPException(status_code=404, detail='Deck not found')
+        
+        deck_card_rows = await db.execute(
+            select(DeckCard, CardTemplate)
+            .join(CardTemplate, CardTemplate.id == DeckCard.card_template_id)
+            .where(DeckCard.deck_id == deck_id)
+        )
 
         cards: list[dict[str, Any]] = []
-        for dc in deck.cards:
-            tmpl_result = await db.execute(select(CardTemplate).where(CardTemplate.id == dc.card_template_id))
-            tmpl = tmpl_result.scalars().first()
-            if not tmpl:
-                continue
-            for _ in range(dc.quantity):
-                cards.append(tmpl.to_dict())
+        for deck_card, template in deck_card_rows.all():
+            for _ in range(max(0, int(deck_card.quantity or 0))):
+                cards.append(template.to_dict())
+
+        if not cards:
+            raise HTTPException(status_code=400, detail='Deck has no playable cards')
         return cards
 
 
