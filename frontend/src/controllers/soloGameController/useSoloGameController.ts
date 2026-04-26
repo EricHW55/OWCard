@@ -47,6 +47,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
   const announcerDataRef = useRef(announcerData);
   const gsRef = useRef<GameState | null>(null);
   const battleLogSeqRef = useRef(0);
+  const startedRef = useRef(false);
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
 
   const pushBattleLog = useCallback((entry: Omit<BattleLogEntry, 'id'>) => {
@@ -73,6 +74,8 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
     systemNoticeDurationMs: ONLINE_GAME_UI_PRESET.timings.systemNoticeMs,
     skillUseDurationMs: ONLINE_GAME_UI_PRESET.timings.skillUseMs,
   });
+  const soloPhaseLabel = useCallback((value: any) => String(value), []);
+  const soloPhaseSubtitle = useCallback((_phase: any, isMyTurn?: boolean) => (isMyTurn ? '내 턴' : '상대 턴'), []);
 
   const gameEvents = useServerGameEventPresentation({
     gameState: gs,
@@ -97,8 +100,8 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
     setPendingSpellName,
     setLocalPendingPassive,
     setLocalPendingSpellChoice,
-    phaseLabel: String,
-    phaseSubtitle: (_phase, isMyTurn) => (isMyTurn ? '내 턴' : '상대 턴'),
+    phaseLabel: soloPhaseLabel,
+    phaseSubtitle: soloPhaseSubtitle,
     uiPreset: ONLINE_GAME_UI_PRESET,
   });
   const soloEventHandlers = useMemo(() => ({
@@ -110,6 +113,11 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
     gameEvents.handleActionResultMessage,
     gameEvents.handleGameStateMessage,
   ]);
+  const soloEventHandlersRef = useRef(soloEventHandlers);
+
+  useEffect(() => {
+    soloEventHandlersRef.current = soloEventHandlers;
+  }, [soloEventHandlers]);
 
   const players = useMemo(
       () => (gs ? buildSoloPlayersView(gs, activeSide) : null),
@@ -197,6 +205,8 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
   }, [showSystemNotice, soloEventHandlers, transport]);
 
   useEffect(() => {
+    if (startedRef.current) return undefined;
+    startedRef.current = true;
     let disposed = false;
     const run = async () => {
       try {
@@ -207,7 +217,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
         const start = await transport.start(pid);
         if (disposed) return;
         setSoloGameId(start.soloGameId);
-        soloEventHandlers.handleGameStateMessage({ state: start.state });
+        soloEventHandlersRef.current.handleGameStateMessage({ state: start.state });
         setActiveSide('bottom');
       } catch (err) {
         if (!disposed) setError(normalizeGameError((err as Error)?.message, '솔로 모드 초기화 실패'));
@@ -221,7 +231,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
       uiTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
       uiTimersRef.current = [];
     };
-  }, [soloEventHandlers, transport]);
+  }, [transport]);
 
   useEffect(() => {
     if (!gs) return;

@@ -46,27 +46,37 @@ export function useAnnouncerHelpers(params: {
     systemNoticeDurationMs?: number;
     skillUseDurationMs?: number;
 }) {
-    const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = params.phaseDurationMs ?? ONLINE_GAME_UI_PRESET.timings.phaseChangeMs) => {
-        params.enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
-    }, [params]);
+    const {
+        enqueueAnnouncer,
+        uiTimersRef,
+        announcerDataRef,
+        placementDelayMs,
+        phaseDurationMs,
+        systemNoticeDurationMs,
+        skillUseDurationMs,
+    } = params;
 
-    const showSystemNotice = useCallback((title: string, subtitle?: string, duration = params.systemNoticeDurationMs ?? ONLINE_GAME_UI_PRESET.timings.systemNoticeMs) => {
+    const showPhaseChange = useCallback((phaseName: string, phaseSub: string, duration = phaseDurationMs ?? ONLINE_GAME_UI_PRESET.timings.phaseChangeMs) => {
+        enqueueAnnouncer({ type: 'phase', title: phaseName, subtitle: phaseSub, duration });
+    }, [enqueueAnnouncer, phaseDurationMs]);
+
+    const showSystemNotice = useCallback((title: string, subtitle?: string, duration = systemNoticeDurationMs ?? ONLINE_GAME_UI_PRESET.timings.systemNoticeMs) => {
         if (!title) return;
-        params.enqueueAnnouncer({ type: 'phase', title, subtitle, duration });
-    }, [params]);
+        enqueueAnnouncer({ type: 'phase', title, subtitle, duration });
+    }, [enqueueAnnouncer, systemNoticeDurationMs]);
 
     const showSkillUse = useCallback((props: SkillUsePayload) => {
         if (!props.skillName) return;
         const rawHeroKey = String(props.heroKey || '').toLowerCase();
         const inferredSpell = rawHeroKey.startsWith('spell_');
-        if (!props.nonBlocking && params.announcerDataRef) {
-            params.announcerDataRef.current = {
+        if (!props.nonBlocking && announcerDataRef) {
+            announcerDataRef.current = {
                 type: 'skill',
                 title: props.skillName,
                 nonBlocking: false,
             };
         }
-        params.enqueueAnnouncer({
+        enqueueAnnouncer({
             type: 'skill',
             title: props.skillName,
             description: props.description || '',
@@ -74,18 +84,18 @@ export function useAnnouncerHelpers(params: {
             imageName: props.imageName,
             subtitle: props.subtitle,
             isSpell: props.isSpell ?? inferredSpell,
-            duration: props.duration || params.skillUseDurationMs || ONLINE_GAME_UI_PRESET.timings.skillUseMs,
+            duration: props.duration || skillUseDurationMs || ONLINE_GAME_UI_PRESET.timings.skillUseMs,
             nonBlocking: !!props.nonBlocking,
             onDone: props.onDone,
         });
-    }, [params]);
+    }, [announcerDataRef, enqueueAnnouncer, skillUseDurationMs]);
 
-    const showSkillUseAfterPlacement = useCallback((props: SkillUsePayload, delay = params.placementDelayMs) => {
+    const showSkillUseAfterPlacement = useCallback((props: SkillUsePayload, delay = placementDelayMs) => {
         const timerId = window.setTimeout(() => {
             showSkillUse(props);
         }, delay);
-        params.uiTimersRef.current.push(timerId);
-    }, [params, showSkillUse]);
+        uiTimersRef.current.push(timerId);
+    }, [placementDelayMs, showSkillUse, uiTimersRef]);
 
     return { showPhaseChange, showSystemNotice, showSkillUse, showSkillUseAfterPlacement };
 }
