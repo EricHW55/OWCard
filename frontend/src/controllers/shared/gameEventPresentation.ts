@@ -1,4 +1,4 @@
-import type { GameState } from '../../types/game';
+import type { BattleLogActor, BattleLogEntry, GameState } from '../../types/game';
 import {
   collectAllFieldCards,
   getHeroKey,
@@ -57,11 +57,17 @@ export function showDeathPassiveNotice(params: {
   gameState: GameState | null;
   showSkillUse: ShowSkillUse;
   showSystemNotice: ShowSystemNotice;
+  pushBattleLog?: (entry: Omit<BattleLogEntry, 'id'>) => void;
+  toActor?: (card: any, fallbackName?: string) => BattleLogActor;
 }) {
-  const { result, gameState, showSkillUse, showSystemNotice } = params;
+  const { result, gameState, showSkillUse, showSystemNotice, pushBattleLog, toActor } = params;
   if (!gameState || !result) return;
 
   const allCards = collectAllFieldCards(gameState);
+  const myUids = new Set([
+    ...(gameState?.my_state?.field?.main || []),
+    ...(gameState?.my_state?.field?.side || []),
+  ].map((card: any) => card.uid));
   const seen = new Set<string>();
   const queue: any[] = [result];
 
@@ -77,15 +83,30 @@ export function showDeathPassiveNotice(params: {
         const sourceCard = allCards.find((card: any) => card.uid === sourceUid);
         const sourceName = sourceCard?.name || '영웅';
 
+        const team = sourceCard && myUids.has(sourceCard.uid) ? 'my' : 'opponent';
+        const pushActivationLog = (skillName: string, heroKey: string) => {
+          pushBattleLog?.({
+            type: 'skill',
+            team,
+            turn: gameState?.turn,
+            actor: toActor ? toActor({ hero_key: heroKey, name: skillName, is_spell: true }, skillName) : { name: skillName, heroKey, isSpell: true },
+            skillName,
+            target: toActor ? toActor(sourceCard, sourceName) : { name: sourceName, heroKey: getHeroKey(sourceCard) },
+          });
+        };
+
         if (node?.by === 'mech_destruction' || node?.transform === 'hana_song' || node?.summon === 'hana_song') {
           showSkillUse({ skillName: '긴급 탈출', subtitle: `${sourceName} 패시브`, description: '메카 파괴 시 송하나 카드를 소환합니다.', heroKey: getHeroKey(sourceCard) || 'dva', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
         } else if (node?.by === 'frozen_revive' || node?.enter_frozen) {
           showSkillUse({ skillName: '급속 빙결', subtitle: `${sourceName} 패시브`, description: '치명 피해 시 빙결 상태가 되고 다음 턴 시작에 회복합니다.', heroKey: getHeroKey(sourceCard) || 'mei', imageName: sourceCard?.name || sourceName, isSpell: false, duration: 2600 });
         } else if (node?.by === 'immortality') {
+          pushActivationLog('불사장치', 'spell_immortality_field');
           showSkillUse({ skillName: '불사장치', subtitle: `${sourceName} 발동`, description: '치명 피해를 무효화하고 체력을 1 남깁니다.', heroKey: 'spell_immortality_field', imageName: '불사장치', isSpell: true, duration: 2600 });
         } else if (node?.by === 'phoenix_rebirth_seed') {
+          pushActivationLog('불사조 부활', 'spell_phoenix_rebirth');
           showSkillUse({ skillName: '불사조 부활', subtitle: `${sourceName} 발동`, description: '치명 피해 시 부활 대기 상태가 되고, 턴 경과 후 최대 체력으로 부활합니다.', heroKey: 'spell_phoenix_rebirth', imageName: '불사조 부활', isSpell: true, duration: 2600 });
         } else if (node?.reflect_by === 'reflect') {
+          pushActivationLog('튕겨내기', 'spell_deflect');
           showSkillUse({ skillName: '튕겨내기', subtitle: `${sourceName} 발동`, description: '치명 피해를 반사하여 공격자를 저지합니다.', heroKey: 'spell_deflect', imageName: '튕겨내기', isSpell: true, duration: 2600 });
         } else {
           showSystemNotice(sourceName, '사망 패시브 발동', 1200);

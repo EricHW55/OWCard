@@ -119,6 +119,13 @@ export type OpponentSkillCue = {
     description: string;
 };
 
+export const ACTIVATION_LOG_ONLY_SPELL_KEYS = new Set([
+    'spell_immortality_field',
+    'spell_deflect',
+    'spell_phoenix_rebirth',
+    'spell_steel_trap',
+]);
+
 export type ColumnPreview = {
     key: string;
     label: string;
@@ -191,9 +198,8 @@ export function getSkillDescriptionFromCard(card: any, skillRef?: string | null)
 export function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHeroKey?: string): OpponentSkillCue | null {
     const result = msg?.result || {};
     const action = msg?.action;
-    const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
     const resultHeroKey = String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').toLowerCase();
-    const isHiddenInstallSpell = hiddenInstallSpellKeys.has(resultHeroKey);
+    const isHiddenInstallSpell = ACTIVATION_LOG_ONLY_SPELL_KEYS.has(resultHeroKey);
 
     if (isHiddenInstallSpell && (result?.type === 'spell_played' || action === 'execute_spell' || action === 'place_card')) return null;
     if (action === 'place_card' && result?.type === 'spell_played' && (result?.needs_target || result?.needs_choice)) return null;
@@ -223,9 +229,8 @@ export function buildOpponentSkillCue(msg: any, opponentState?: any, fallbackHer
 export function buildSpectatorSkillCue(msg: any, currentState?: GameState | null): OpponentSkillCue | null {
     const result = msg?.result || {};
     const action = msg?.action;
-    const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
     const resultHeroKey = String(result?.hero_key || msg?.hero_key || result?.card?.hero_key || '').toLowerCase();
-    const isHiddenInstallSpell = hiddenInstallSpellKeys.has(resultHeroKey);
+    const isHiddenInstallSpell = ACTIVATION_LOG_ONLY_SPELL_KEYS.has(resultHeroKey);
 
     if (isHiddenInstallSpell && (result?.type === 'spell_played' || action === 'execute_spell' || action === 'place_card')) return null;
     if (action === 'place_card' && result?.type === 'spell_played' && (result?.needs_target || result?.needs_choice)) return null;
@@ -448,9 +453,8 @@ export function pushSkillActionLogs(params: PushSkillActionLogParams & {
     pushBattleLog: (entry: Omit<BattleLogEntry, 'id'>) => void;
     toActor: (card: any, fallbackName?: string) => BattleLogActor;
 }) {
-    const hiddenInstallSpellKeys = new Set(['spell_immortality_field', 'spell_deflect', 'spell_phoenix_rebirth']);
     const resultHeroKey = String(params?.result?.hero_key || params?.result?.card?.hero_key || '').toLowerCase();
-    if (params?.result?.hidden || hiddenInstallSpellKeys.has(resultHeroKey)) return;
+    if (params?.result?.hidden || ACTIVATION_LOG_ONLY_SPELL_KEYS.has(resultHeroKey)) return;
 
     const actor = params.toActor(params.actorCard, params.actorName || (params.team === 'my' ? '아군' : '상대'));
     const skillName = String(params.skillName || '스킬');

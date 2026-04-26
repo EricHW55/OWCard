@@ -1,5 +1,5 @@
 import type { BattleLogActor, BattleLogEntry } from '../../types/game';
-import { getColumnTargetSideForSpell, getHeroKey, getSkillDescriptionFromCard, isColumnTargetSpell } from './gamePresentation';
+import { ACTIVATION_LOG_ONLY_SPELL_KEYS, getColumnTargetSideForSpell, getHeroKey, getSkillDescriptionFromCard, isColumnTargetSpell } from './gamePresentation';
 import type { GameUiPreset } from './gameUiPreset';
 import { ONLINE_GAME_UI_PRESET } from './gameUiPreset';
 
@@ -33,10 +33,25 @@ export function pushPlacementActionLogs(params: {
         });
     }
 
+    if (result?.trap_triggered?.type === 'steel_trap') {
+        const damage = Number(result.trap_triggered.damage || 0);
+        pushBattleLog({
+            type: damage > 0 ? 'damage' : 'skill',
+            team: team === 'my' ? 'opponent' : 'my',
+            turn,
+            actor: toActor(null, '강철 덫'),
+            skillName: '강철 덫',
+            target: placedCard ? toActor(placedCard, placedCard?.name || '대상') : undefined,
+            damage: damage > 0 ? damage : undefined,
+        });
+    }
+
     if ((placedCard && placedCard?.is_spell) || result?.type === 'spell_played') {
         const fallbackSpellCard = myHand.find((c: any) => c.hero_key === result?.hero_key);
         const spellCard = placedCard || result?.card || fallbackSpellCard || null;
         if (!spellCard) return;
+        const heroKey = String(result?.hero_key || spellCard?.hero_key || '').toLowerCase();
+        if (result?.hidden || ACTIVATION_LOG_ONLY_SPELL_KEYS.has(heroKey)) return;
         pushBattleLog({
             type: 'skill',
             team,

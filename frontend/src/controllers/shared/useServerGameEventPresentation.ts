@@ -275,8 +275,10 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
       gameState: gameStateRef.current,
       showSkillUse,
       showSystemNotice,
+      pushBattleLog,
+      toActor,
     });
-  }, [gameStateRef, showSkillUse, showSystemNotice]);
+  }, [gameStateRef, pushBattleLog, showSkillUse, showSystemNotice, toActor]);
 
   const showReactivePassiveFromStateDiff = useCallback((prevState: any, nextState: any) => {
     showSharedReactivePassiveFromStateDiff({
@@ -583,8 +585,8 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
       }
       pendingSpellCardRef.current = null;
     }
-    if (msg.action === 'execute_spell' && typeof result?.rescued === 'string') showSystemNotice(result.rescued, 'TRASH 복귀', 1400);
-    if (msg.action === 'execute_spell' && typeof result?.drawn_card === 'string') showSystemNotice(result.drawn_card, '새 카드 획득', 1400);
+    if (msg.action === 'execute_spell' && result?.rescued) showSystemNotice('카드 회수', 'TRASH 복귀', 1400);
+    if (msg.action === 'execute_spell' && result?.drawn_card) showSystemNotice('카드 획득', '새 카드 획득', 1400);
   }, [
     addLog,
     gameStateRef,
