@@ -13,6 +13,7 @@ from database import async_session
 from game_engine.engine import GameEngine
 from models.deck import Deck, DeckCard
 from models.card import CardTemplate
+from models.player import Player
 
 router = APIRouter(prefix='/solo', tags=['solo'])
 
@@ -69,10 +70,26 @@ async def start_solo(req: SoloStartRequest):
     deck_id = req.deck_id
     if deck_id is None:
         async with async_session() as db:
-            deck_result = await db.execute(select(Deck).where(Deck.player_id == req.player_id, Deck.is_default.is_(True)))
-            deck = deck_result.scalars().first()
+            player_result = await db.execute(select(Player).where(Player.id == req.player_id))
+            player = player_result.scalars().first()
+            if not player:
+                raise HTTPException(status_code=404, detail='Player not found')
+
+            if player.selected_deck_id is not None:
+                deck_result = await db.execute(
+                    select(Deck).where(Deck.id == player.selected_deck_id, Deck.player_id == req.player_id)
+                )
+                deck = deck_result.scalars().first()
+            else:
+                deck = None
+
+            if deck is None:
+                fallback_result = await db.execute(
+                    select(Deck).where(Deck.player_id == req.player_id).order_by(Deck.id.asc())
+                )
+                deck = fallback_result.scalars().first()
             if not deck:
-                raise HTTPException(status_code=404, detail='Default deck not found')
+                raise HTTPException(status_code=404, detail='Deck not found for player')
             deck_id = deck.id
 
     deck_cards = await _load_deck_cards(deck_id)
