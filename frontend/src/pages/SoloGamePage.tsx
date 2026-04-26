@@ -26,7 +26,7 @@ const SoloGamePage: React.FC = () => {
       announcerData={vm.announcerData}
       onCloseAnnouncer={vm.closeAnnouncer}
       topbarLeft={<><span className="game-round-pill">Solo</span><span className="game-phase-pill">{phaseLabel(vm.phase)}</span></>}
-      topbarCenter={<>현재 턴: {vm.activeSide === 'top' ? '위쪽 플레이어' : '아래쪽 플레이어'}</>}
+      topbarCenter={<>현재 턴 {vm.activeSide === 'top' ? '위쪽 플레이어' : '아래쪽 플레이어'}</>}
       topbarRight={<><button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button></>}
       topField={{
         field: vm.players.top.field,
@@ -38,6 +38,7 @@ const SoloGamePage: React.FC = () => {
         canActUids: vm.canActTop,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide !== 'top'),
         onCardLongPress: (card) => vm.setDetailCard(card),
+        cardEffects: vm.cardEffects,
         placingCard: vm.phase === 'placement' && vm.activeSide === 'top' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
         canSelectEmptySlot: vm.canSelectEmptySlot,
@@ -52,6 +53,7 @@ const SoloGamePage: React.FC = () => {
         canActUids: vm.canActBottom,
         onCardClick: (card) => vm.handleFieldClick(card, vm.activeSide === 'top'),
         onCardLongPress: (card) => vm.setDetailCard(card),
+        cardEffects: vm.cardEffects,
         placingCard: vm.phase === 'placement' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.placeCard,
         canSelectEmptySlot: vm.canSelectEmptySlot,
@@ -59,40 +61,40 @@ const SoloGamePage: React.FC = () => {
       }}
       midlineDotActive={false}
       contextPanel={
-          <OnlineContextPanel
-              show={vm.showContextPanel}
-              phase={vm.phase}
-              mulliganDone={!!vm.activePlayer?.mulliganDone}
-              selectedMulligan={vm.selectedMulligan}
-              isMulliganAnimating={vm.isMulliganCinematicActive}
-              onRunMulligan={vm.runMulligan}
-              onSkipMulligan={vm.skipMulligan}
-              selectedFieldName={vm.selectedMyFieldCard?.name}
-              selectedHeroKey={vm.selectedHeroKey}
-              selectedChargeLevel={vm.selectedChargeLevel}
-              fieldSkills={vm.fieldSkills}
-              actionMode={vm.actionMode}
-              actionModeLabel={vm.actionModeLabel}
-              onPrepareSkill={vm.prepareSkill}
-              onCancelSkillSelection={() => vm.setActionMode(null)}
-              columnChoice={vm.columnChoice}
-              enemyColumns={vm.enemyColumns}
-              onSelectColumn={vm.selectColumn}
-              onCancelColumnChoice={vm.cancelColumnChoice}
-              pendingSpell={vm.pendingSpellCard?.hero_key || null}
-              pendingSpellName={vm.pendingSpellCard?.name || null}
-              duplicateTargetName={null}
-              onCancelPendingSpell={vm.cancelPendingSpell}
-              selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
-              onUseSelectedSpell={vm.useSelectedSpell}
-              onCancelSelectedHand={vm.cancelSelectedHand}
-              pendingPassive={null}
-              onResolveMercy={() => {}}
-              onSkipMercy={() => {}}
-              onSkipJetpackCat={() => {}}
-              pendingSpellChoice={null}
-              onResolveSpellChoice={() => {}}
-          />
+        <OnlineContextPanel
+          show={vm.showContextPanel}
+          phase={vm.phase}
+          mulliganDone={!!vm.activePlayer?.mulliganDone}
+          selectedMulligan={vm.selectedMulligan}
+          isMulliganAnimating={vm.isMulliganCinematicActive}
+          onRunMulligan={vm.runMulligan}
+          onSkipMulligan={vm.skipMulligan}
+          selectedFieldName={vm.selectedMyFieldCard?.name}
+          selectedHeroKey={vm.selectedHeroKey}
+          selectedChargeLevel={vm.selectedChargeLevel}
+          fieldSkills={vm.fieldSkills}
+          actionMode={vm.actionMode}
+          actionModeLabel={vm.actionModeLabel}
+          onPrepareSkill={vm.prepareSkill}
+          onCancelSkillSelection={() => vm.setActionMode(null)}
+          columnChoice={vm.columnChoice}
+          enemyColumns={vm.enemyColumns}
+          onSelectColumn={vm.selectColumn}
+          onCancelColumnChoice={vm.cancelColumnChoice}
+          pendingSpell={vm.pendingSpell || vm.pendingSpellCard?.hero_key || null}
+          pendingSpellName={vm.pendingSpellName || vm.pendingSpellCard?.name || null}
+          duplicateTargetName={vm.duplicateTargetName}
+          onCancelPendingSpell={vm.cancelPendingSpell}
+          selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
+          onUseSelectedSpell={vm.useSelectedSpell}
+          onCancelSelectedHand={vm.cancelSelectedHand}
+          pendingPassive={vm.pendingPassive}
+          onResolveMercy={vm.resolveMercy}
+          onSkipMercy={vm.skipMercy}
+          onSkipJetpackCat={vm.skipJetpackCat}
+          pendingSpellChoice={vm.pendingSpellChoice}
+          onResolveSpellChoice={vm.resolveSpellChoice}
+        />
       }
       handCards={vm.activePlayer.hand}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
@@ -102,16 +104,19 @@ const SoloGamePage: React.FC = () => {
       onMulliganCinematicComplete={vm.completeMulliganCinematic}
       isHandSelected={(index) => vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index}
       onHandClick={vm.handleHandClick}
-      bottomMeta={<>패: {vm.activePlayer.hand.length}장 · 덱: {vm.activePlayer.drawPile.length}장 · 배치 {vm.activePlayer.placementUsed}/2</>}
+      bottomMeta={<>손패 {vm.activePlayer.hand.length}장 · 덱 {vm.activePlayer.drawPile.length}장 · 배치 {vm.activePlayer.placementUsed}/2</>}
       bottomActions={
-          <>
-              {vm.phase !== 'mulligan' && (
-                  <button className="game-endturn" onClick={vm.handleEndMainButton}>
-                      {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}
-                  </button>
-              )}
-          </>
+        <>
+          {vm.phase !== 'mulligan' && (
+            <button className="game-endturn" onClick={vm.handleEndMainButton}>
+              {vm.phase === 'placement' ? '배치 완료' : vm.phase === 'action' ? '턴 종료' : '대기'}
+            </button>
+          )}
+        </>
       }
+      logs={vm.logs}
+      killFeed={vm.killFeed}
+      onDismissKillFeedItem={vm.dismissKillFeedItem}
       detailCard={vm.detailCard}
       onCloseDetail={() => vm.setDetailCard(null)}
     />

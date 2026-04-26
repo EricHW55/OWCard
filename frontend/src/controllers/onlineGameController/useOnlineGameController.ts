@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BattleLogActor, BattleLogEntry, FieldCard, GameState, HandCard } from '../../types/game';
 import { GameSocket, buildWsUrl } from '../../api/ws';
 import useAnnouncerQueue from '../../hooks/useAnnouncerQueue';
-import { normalizeErrorMessage, phaseLabel, phaseSubtitle } from '../../utils/ui';
+import { phaseLabel, phaseSubtitle } from '../../utils/ui';
 import { createOnlineAdapter } from '../adapters/onlineAdapter';
 import type { UnifiedGameAction } from '../gameModeAdapter';
 import {
@@ -14,6 +14,7 @@ import { useGameFlowState } from '../shared/gameFlowState';
 import { useMulliganCinematic } from '../shared/useMulliganCinematic';
 import { useSharedGameFlowActions } from '../shared/useSharedGameFlowActions';
 import { useServerGameEventPresentation } from '../shared/useServerGameEventPresentation';
+import { normalizeGameError } from '../shared/gameErrorPolicy';
 import { DAMAGE_FLOAT_MS, DESTROY_ANIMATION_MS, HP_ANIMATION_MS } from './constants';
 import { getSession } from './session';
 import { mapSpectatorStateToGameState } from './spectatorState';
@@ -248,7 +249,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         ws.on('opponent_disconnected', () => addLogRef.current('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLogRef.current('상대가 재연결했습니다')),
         ws.on('error', (msg: any) => {
-          const shortMessage = normalizeErrorMessage(msg?.message);
+          const shortMessage = normalizeGameError(msg?.message);
           addLogRef.current('오류: ' + shortMessage);
           showSystemNoticeRef.current('행동 불가', shortMessage, 2600);
         }),
