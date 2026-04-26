@@ -50,7 +50,7 @@ interface CardTemplateLite {
 type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects' | 'admin';
 type PlayMode = 'none' | 'quick' | 'private';
 type MatchFormat = 'bo1' | 'bo3';
-type PlayEntryType = 'quick' | 'competitive' | 'private';
+type PlayEntryType = 'solo' | 'quick' | 'competitive' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 const CRITICAL_LOBBY_ICON_SOURCES = ['/UI/quick.svg', '/UI/rank.svg', '/UI/private.svg'] as const;
 
@@ -741,6 +741,13 @@ const LobbyPage: React.FC = () => {
     };
 
     const handlePlayEntrySelect = (entryType: PlayEntryType) => {
+        if (entryType === 'solo') {
+            setShowPlayModal(false);
+            void ensureGameImageWarmup().then(() => {
+                navigate('/solo-game');
+            });
+            return;
+        }
         if (entryType === 'quick') {
             startQuickMatch('bo1');
             return;
@@ -1055,6 +1062,15 @@ const LobbyPage: React.FC = () => {
                         <h3>게임 플레이</h3>
                         <p>플레이 타입을 선택하세요.</p>
                         <div className={`play-entry-grid ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
+                            <button
+                                className="play-entry-card solo"
+                                onClick={() => handlePlayEntrySelect('solo')}
+                                type="button"
+                            >
+                                <div className="play-entry-icon play-entry-icon-solo" aria-hidden="true" />
+                                <div className="play-entry-title">솔로 모드</div>
+                                <div className="play-entry-desc">혼자서 양쪽 진영을 조작하며 카드 배치와 스킬 흐름을 연습합니다.</div>
+                            </button>
                             <button
                                 className="play-entry-card quick"
                                 onClick={() => handlePlayEntrySelect('quick')}
