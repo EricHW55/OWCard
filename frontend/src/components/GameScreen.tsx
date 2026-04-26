@@ -170,7 +170,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
     const timerId = window.setTimeout(() => {
       setLeavingHandCards(null);
       setHandEntering(false);
-    }, 760);
+    }, 900);
     return () => window.clearTimeout(timerId);
   }, [handCards, handOwnerKey]);
 

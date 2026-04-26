@@ -34,6 +34,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
     const frameColor = selected ? '#ff9b30' : color;
 
     const cardTransform = `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`;
+    const centerIndex = total <= 1 ? 0 : (total - 1) / 2;
 
     return (
         <div
@@ -43,6 +44,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
                 ['--hand-card-transform' as string]: cardTransform,
                 ['--hand-card-index' as string]: String(index),
                 ['--hand-card-total' as string]: String(Math.max(1, total)),
+                ['--hand-card-center-index' as string]: String(centerIndex),
                 width: 'clamp(60px, min(10.4vw, 9.4vh), 82px)',
                 aspectRatio: '5 / 7',
                 borderRadius: 6,
