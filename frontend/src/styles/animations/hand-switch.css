@@ -1,0 +1,52 @@
+.hand-card-3d--exit {
+    --hand-card-step: clamp(32px, min(5.4vw, 4.9vh), 54px);
+    --hand-card-collapse-x: calc((var(--hand-card-center-index) - var(--hand-card-index)) * var(--hand-card-step));
+    animation: handFanFoldOut 760ms cubic-bezier(0.2, 0.82, 0.24, 1) forwards;
+}
+
+.hand-card-3d--enter {
+    --hand-card-step: clamp(32px, min(5.4vw, 4.9vh), 54px);
+    --hand-card-collapse-x: calc((var(--hand-card-center-index) - var(--hand-card-index)) * var(--hand-card-step));
+    animation: handFanRiseIn 840ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+
+@keyframes handFanFoldOut {
+    0% {
+        opacity: 1;
+        transform: var(--hand-card-transform);
+        filter: blur(0);
+    }
+    46% {
+        opacity: 1;
+        transform: translateX(var(--hand-card-collapse-x)) translateY(6px) rotate(0deg) scale(0.98);
+        filter: blur(0);
+    }
+    68% {
+        opacity: 1;
+        transform: translateX(var(--hand-card-collapse-x)) translateY(6px) rotate(0deg) scale(0.98);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(var(--hand-card-collapse-x)) translateY(116px) rotate(0deg) scale(0.72);
+        filter: blur(1px);
+    }
+}
+
+@keyframes handFanRiseIn {
+    0% {
+        opacity: 0;
+        transform: translateX(var(--hand-card-collapse-x)) translateY(116px) rotate(0deg) scale(0.72);
+        filter: blur(1px);
+    }
+    36% {
+        opacity: 1;
+        transform: translateX(var(--hand-card-collapse-x)) translateY(6px) rotate(0deg) scale(0.98);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: var(--hand-card-transform);
+        filter: blur(0);
+    }
+}
