@@ -281,7 +281,6 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     showSystemNotice,
     beginMulliganCinematic,
     clearPendingSpellCard: gameEvents.clearPendingSpellCard,
-    allowMulliganMultiSelect: true,
   });
 
   const placeCard = sharedActions.handlePlace;
@@ -351,6 +350,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     endTurn,
     handleEndMainButton: sharedActions.handleEndMainButton,
     prepareSkill: sharedActions.prepareSkill,
+    setSelectedFieldUid,
     setActionMode,
     setColumnChoice,
     selectColumn: sharedActions.selectColumn,

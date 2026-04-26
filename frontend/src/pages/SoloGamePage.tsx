@@ -38,8 +38,8 @@ const SoloGamePage: React.FC = () => {
       topbarRight={<><button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button></>}
       topField={{
         field: vm.players.top.field,
-        isOpponent: true,
-        allowOpponentPlacement: vm.activeSide === 'top',
+        isOpponent: vm.activeSide !== 'top',
+        allowOpponentPlacement: false,
         isMyTurn: vm.activeSide === 'top',
         phase: vm.phase,
         selectedUid: vm.activeSide === 'top' ? vm.selectedFieldUid : null,
@@ -54,7 +54,7 @@ const SoloGamePage: React.FC = () => {
       }}
       bottomField={{
         field: vm.players.bottom.field,
-        isOpponent: false,
+        isOpponent: vm.activeSide !== 'bottom',
         isMyTurn: vm.activeSide === 'bottom',
         phase: vm.phase,
         selectedUid: vm.activeSide === 'bottom' ? vm.selectedFieldUid : null,
@@ -85,7 +85,7 @@ const SoloGamePage: React.FC = () => {
           actionMode={vm.actionMode}
           actionModeLabel={vm.actionModeLabel}
           onPrepareSkill={vm.prepareSkill}
-          onCancelSkillSelection={() => vm.setActionMode(null)}
+          onCancelSkillSelection={() => { vm.setSelectedFieldUid(null); vm.setActionMode(null); vm.setColumnChoice(null); }}
           columnChoice={vm.columnChoice}
           enemyColumns={vm.enemyColumns}
           onSelectColumn={vm.selectColumn}
