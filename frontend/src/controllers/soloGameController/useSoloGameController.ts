@@ -50,11 +50,19 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
   const battleLogSeqRef = useRef(0);
   const startedRef = useRef(false);
   const deferredMulliganResponseRef = useRef<any | null>(null);
+  const activeSideRef = useRef<SoloSide>(activeSide);
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
+
+  useEffect(() => {
+    activeSideRef.current = activeSide;
+  }, [activeSide]);
 
   const pushBattleLog = useCallback((entry: Omit<BattleLogEntry, 'id'>) => {
     const id = `solo-log-${Date.now()}-${battleLogSeqRef.current++}`;
-    setLogs((prev) => [...prev.slice(-199), { ...entry, id }]);
+    const team = entry.team === 'neutral' || activeSideRef.current === 'bottom'
+        ? entry.team
+        : (entry.team === 'my' ? 'opponent' : 'my');
+    setLogs((prev) => [...prev.slice(-199), { ...entry, team, id }]);
   }, []);
 
   const addLog = useCallback((msg: string) => {
