@@ -80,10 +80,15 @@ const REACT_APP_WS_BASE =
     (process.env.REACT_APP_WS_BASE || '').trim().replace(/\/+$/, '');
 
 export function getApiBase(): string {
-  // console.log('[DEBUG] REACT_APP_API_BASE =', REACT_APP_API_BASE);
+  const normalizedApiBase =
+      REACT_APP_API_BASE.startsWith('wss://')
+          ? REACT_APP_API_BASE.replace('wss://', 'https://')
+          : REACT_APP_API_BASE.startsWith('ws://')
+              ? REACT_APP_API_BASE.replace('ws://', 'http://')
+              : REACT_APP_API_BASE;
 
-  if (REACT_APP_API_BASE) {
-    return REACT_APP_API_BASE;
+  if (normalizedApiBase) {
+    return normalizedApiBase;
   }
 
   if (typeof window !== 'undefined') {
