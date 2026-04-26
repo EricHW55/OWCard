@@ -290,7 +290,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const send = useCallback((data: Record<string, unknown>) => {
     if (isSpectator) return;
     if (wsRef.current?.connected) { wsRef.current.send(data); return; }
-    addLogRef.current('?꾩넚 ?ㅽ뙣(誘몄뿰寃?');
+    addLogRef.current('전송 실패(미연결)');
   }, [isSpectator]);
 
   const onlineAdapter = useMemo(() => createOnlineAdapter({
