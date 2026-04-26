@@ -227,8 +227,8 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
         type: 'destroy',
         team: context.victimTeam === 'my' ? 'my' : 'opponent',
         turn: gameStateRef.current?.turn,
-        actor: toActor(victim, victim?.name || '?怨몄뜏'),
-        text: `${victim?.name || '?怨몄뜏'} ???댘`,
+        actor: toActor(victim, victim?.name || '알 수 없음'),
+        text: `${victim?.name || '알 수 없음'} 파괴됨`,
       });
     });
 
@@ -243,7 +243,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
           team: context.killerTeam,
         },
         victim: {
-          name: victim.name || '?怨몄뜏',
+          name: victim.name || '알 수 없음',
           hero_key: getHeroKey(victim),
           is_spell: !!victim?.is_spell,
           team: context.victimTeam,
@@ -295,7 +295,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
         type: 'turn',
         team: 'neutral',
         turn: nextTurn,
-        text: nextTurn + '??',
+        text: nextTurn + '턴',
       });
     }
     if (pendingKillContextRef.current?.createdAt) {
@@ -441,8 +441,8 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
     const latestMyState = gameStateRef.current?.my_state as any;
     const myHand = latestMyState?.hand || [];
     const myCasterCard = findFieldCardByUid(latestMyState, msg?.caster_uid) || result?.caster || null;
-    const spellName = result?.card?.name || result?.skill_name || result?.skill || myHand.find((card: any) => card.hero_key === result?.hero_key)?.name || pendingSpellNameRef.current || '??쎄텢 燁삳?諭?';
-    const actorName = myCasterCard?.name || result?.caster_name || result?.caster?.name || result?.card?.name || '?怨몄뜏';
+    const spellName = result?.card?.name || result?.skill_name || result?.skill || myHand.find((card: any) => card.hero_key === result?.hero_key)?.name || pendingSpellNameRef.current || '스킬 이름 미상';
+    const actorName = myCasterCard?.name || result?.caster_name || result?.caster?.name || result?.card?.name || '알 수 없음';
     const resolvedSkillName = result?.skill_name || result?.skill || null;
     const fatalUids = Array.from(collectFatalUids(result));
     const isSpellKill = msg.action === 'execute_spell' || !!result?.card?.is_spell || String(result?.hero_key || '').startsWith('spell_');
@@ -475,7 +475,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
       fatalUids,
     };
     if (msg.action === 'end_turn') {
-      pushBattleLog({ type: 'turn_end', team: 'my', turn: gameStateRef.current?.turn, text: '?????ル굝利?' });
+      pushBattleLog({ type: 'turn_end', team: 'my', turn: gameStateRef.current?.turn, text: '턴 종료' });
     }
     pushPlacementActionLogs({
       action: msg.action,
@@ -522,8 +522,8 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
     if (msg.action === 'resolve_passive_choice') {
       setLocalPendingPassive(null);
       if (result?.card?.name) {
-        addLog('?⑥떆釉?泥섎━: ' + result.card.name);
-        showSystemNotice(result.card.name, '?⑥떆釉?泥섎━', 1300);
+        addLog('패시브 처리: ' + result.card.name);
+        showSystemNotice(result.card.name, '패시브 처리', 1300);
       }
     }
 
@@ -583,8 +583,8 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
       }
       pendingSpellCardRef.current = null;
     }
-    if (msg.action === 'execute_spell' && typeof result?.rescued === 'string') showSystemNotice(result.rescued, 'TRASH 蹂듦?', 1400);
-    if (msg.action === 'execute_spell' && typeof result?.drawn_card === 'string') showSystemNotice(result.drawn_card, '?쒕줈??', 1400);
+    if (msg.action === 'execute_spell' && typeof result?.rescued === 'string') showSystemNotice(result.rescued, 'TRASH 복귀', 1400);
+    if (msg.action === 'execute_spell' && typeof result?.drawn_card === 'string') showSystemNotice(result.drawn_card, '새 카드 획득', 1400);
   }, [
     addLog,
     gameStateRef,
@@ -615,7 +615,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
     const opponentCasterCard = findFieldCardByUid(oppState, msg?.caster_uid) || result?.caster || null;
     const opponentCasterHeroKey = getHeroKey(opponentCasterCard);
     const cue = buildOpponentSkillCue(msg, gameStateRef.current?.opponent_state, opponentCasterHeroKey);
-    const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(' ????', '') || '?怨?';
+    const opponentName = opponentCasterCard?.name || result?.caster_name || cue?.subtitle?.replace(' 사용', '') || '상대';
     const opponentHeroKey = getHeroKey(opponentCasterCard) || String(result?.caster_hero_key || result?.caster?.hero_key || msg?.hero_key || '').toLowerCase();
     const headshotOutcome = resolveHeadshotOutcome(result);
     const shouldShowOpponentHeadshotCoinToss =
@@ -633,7 +633,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
         team: 'opponent',
         actorCard: opponentCasterCard || result?.card,
         actorName: opponentName,
-        skillName: result?.skill_name || result?.skill || cue?.title || '??쎄텢',
+        skillName: result?.skill_name || result?.skill || cue?.title || '스킬',
         result,
         targetPool,
       });
@@ -650,7 +650,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
           ? () => {
             queueHeadshotCoinToss({
               actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
-              skillName: result?.skill_name || result?.skill || cue.title || '??쎄텢',
+              skillName: result?.skill_name || result?.skill || cue.title || '스킬',
               heroKey: opponentHeroKey,
               headshot: !!headshotOutcome,
               isMine: false,
@@ -661,7 +661,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
     if (shouldShowOpponentHeadshotCoinToss && !cue) {
       queueHeadshotCoinToss({
         actorName: result?.caster_name || opponentCasterCard?.name || opponentName,
-        skillName: result?.skill_name || result?.skill || '??쎄텢',
+        skillName: result?.skill_name || result?.skill || '스킬',
         heroKey: opponentHeroKey,
         headshot: !!headshotOutcome,
         isMine: false,
@@ -682,7 +682,7 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
       fatalUids,
     };
     if (msg.action === 'end_turn') {
-      pushBattleLog({ type: 'turn_end', team: 'opponent', turn: gameStateRef.current?.turn, text: '?怨? ???ル굝利?' });
+      pushBattleLog({ type: 'turn_end', team: 'opponent', turn: gameStateRef.current?.turn, text: '상대 턴 종료' });
     }
     pushPlacementActionLogs({
       action: msg.action,
@@ -700,10 +700,10 @@ export function useServerGameEventPresentation(params: ServerGameEventPresentati
           || null;
       showSkillUseAfterPlacement({
         skillName: result.passive_triggered.passive,
-        subtitle: '?곷? ?⑥떆釉?',
+        subtitle: '상대 패시브',
         description: result?.passive_triggered?.message || '',
         heroKey: getHeroKey(passiveSource) || opponentCasterHeroKey || result?.card?.hero_key || result?.hero_key || '',
-        imageName: passiveSource?.name || result?.caster_name || opponentCasterCard?.name || '?怨?',
+        imageName: passiveSource?.name || result?.caster_name || opponentCasterCard?.name || '상대',
         isSpell: false,
         duration: 3000,
       });

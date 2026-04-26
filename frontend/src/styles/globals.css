@@ -13,7 +13,7 @@ html, body, #root {
   min-height: var(--app-visible-height, 100dvh);
   background: #0a0e1a;
   color: #e8ecf8;
-  font-family: 'Noto Sans KR', sans-serif;
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
   overflow: hidden;
 }
 
@@ -44,5 +44,5 @@ option,
 ::-webkit-scrollbar-track { background: #111832; }
 ::-webkit-scrollbar-thumb { background: #3a4a78; border-radius: 2px; }
 
-button { font-family: 'Noto Sans KR', sans-serif; }
+button { font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif; }
 button:active { transform: scale(0.97); }

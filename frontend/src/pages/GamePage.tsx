@@ -297,7 +297,7 @@ const GamePage: React.FC = () => {
   const handleSurrender = () => {
     if (isSpectator) return;
     if (isFinalGameOver) return;
-    const confirmed = window.confirm('정말로 항복하시겠습니까? (BO3에서는 현재 세트만 패배 처리됩니다)');
+    const confirmed = window.confirm('정말로 항복하시겠습니까? (3판 2선승제에서는 현재 세트만 패배 처리됩니다)');
     if (!confirmed) return;
     vm.surrenderGame();
     // navigate('/');
@@ -430,7 +430,7 @@ const GamePage: React.FC = () => {
       setBo3EditorSpellCardMaxCopies(Number(cfg?.spell_card_max_copies) > 0 ? Number(cfg.spell_card_max_copies) : 1);
       setBo3EditorCards(Array.isArray(cardList) ? [...cardList].sort((a, b) => Number(a.id) - Number(b.id)) : []);
     } catch {
-      window.alert('BO3 덱 편집 데이터를 불러오지 못했습니다.');
+      window.alert('3판 2선승제 덱 편집 데이터를 불러오지 못했습니다.');
       setShowBo3DeckEditor(false);
     } finally {
       setBo3EditorLoading(false);
@@ -832,7 +832,7 @@ const GamePage: React.FC = () => {
       {showBo3DeckEditor && bo3 && !isSpectator && (
           <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
             <div className="game-result-modal game-bo3-editor-modal">
-              <h2>BO3 덱 수정</h2>
+              <h2>3판 2선승제 덱 수정</h2>
               <p className="game-bo3-editor-desc">
                 이번 휴식 구간 변경 가능 수: 최대 {bo3.deck_edit_limit_per_break ?? 5}장
               </p>

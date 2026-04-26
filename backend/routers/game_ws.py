@@ -395,7 +395,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         return
     elif action == "submit_bo3_deck":
         if not bo3_session or not bo3_session.pending_round_result:
-            await manager.send_game(game_id, player_id, {"event": "error", "message": "BO3 덱 제출 가능 상태가 아닙니다."})
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "3판 2선승제 덱 제출 가능 상태가 아닙니다."})
             return
         raw_ids = data.get("deck_card_ids", [])
         if not isinstance(raw_ids, list):

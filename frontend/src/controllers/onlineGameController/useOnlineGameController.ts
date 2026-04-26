@@ -61,7 +61,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const addLogRef = useRef(addLog);
 
   const toActor = useCallback((card: any, fallbackName?: string): BattleLogActor => ({
-    name: String(card?.name || fallbackName || '?????놁쓬'),
+    name: String(card?.name || fallbackName || '이름 없음'),
     heroKey: getHeroKey(card),
     isSpell: !!card?.is_spell,
   }), []);
@@ -237,12 +237,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           const round = Number(msg?.round || 0);
           const winnerName = msg?.winner_name || ('P' + msg?.winner);
           const nextRound = Number(msg?.next_round || round + 1);
-          addLogRef.current('BO3 ' + round + '라운드 종료 - ' + winnerName + ' 승리. ' + nextRound + '라운드 준비');
+          addLogRef.current('3판 2선승제 ' + round + '세트 종료 - ' + winnerName + ' 승리. ' + nextRound + '세트 준비');
           showPhaseChangeRef.current('라운드 종료', winnerName + ' 승리 - 다음 라운드 준비', 2200);
         }),
         ws.on('bo3_round_started', (msg: any) => {
           const round = Number(msg?.round || 0);
-          addLogRef.current('BO3 ' + round + '라운드 시작');
+          addLogRef.current('3판 2선승제 ' + round + '세트 시작');
           showPhaseChangeRef.current(round + '라운드', '전투 시작', 1600);
         }),
         ws.on('opponent_disconnected', () => addLogRef.current('상대 연결 끊김')),
