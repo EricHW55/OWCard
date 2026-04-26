@@ -47,7 +47,8 @@ export function createSoloHttpTransport(apiBase = getApiBase()): SoloTransport {
     },
 
     async refresh(gameId: string, side: SoloSide) {
-      const res = await fetchWithSameOriginFallback(`${apiBase}/solo/${gameId}/state?side=${side}`);      if (!res.ok) throw new Error(await readGameError(res, '상태 갱신 실패'));
+      const res = await fetchWithSameOriginFallback(`${apiBase}/solo/${gameId}/state?side=${side}`);
+      if (!res.ok) throw new Error(await readGameError(res, '상태 갱신 실패'));
       const body = await res.json();
       return body.state as GameState;
     },
