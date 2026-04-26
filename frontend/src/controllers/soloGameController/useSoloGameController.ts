@@ -15,6 +15,7 @@ import { getSoloActionableUids, getSoloPhaseSubtitle, buildSoloPlayersView, reso
 import { SOLO_UI } from './constants';
 import type { SoloSide, SoloTransport } from './types';
 import { useSoloActionRunner } from './useSoloActionRunner';
+import { phaseLabel } from '../../utils/ui';
 
 export function useSoloGameController(options?: { transport?: SoloTransport }) {
   const transport = useMemo(() => options?.transport || createSoloHttpTransport(), [options?.transport]);
@@ -74,7 +75,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
     systemNoticeDurationMs: ONLINE_GAME_UI_PRESET.timings.systemNoticeMs,
     skillUseDurationMs: ONLINE_GAME_UI_PRESET.timings.skillUseMs,
   });
-  const soloPhaseLabel = useCallback((value: any) => String(value), []);
+  const soloPhaseLabel = useCallback((value: any) => phaseLabel(String(value)), []);
   const soloPhaseSubtitle = useCallback((_phase: any, isMyTurn?: boolean) => (isMyTurn ? '내 턴' : '상대 턴'), []);
 
   const gameEvents = useServerGameEventPresentation({
@@ -235,7 +236,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport }) {
 
   useEffect(() => {
     if (!gs) return;
-    showPhaseChange(String(phase), getSoloPhaseSubtitle(activeSide), SOLO_UI.phaseNoticeMs);
+    showPhaseChange(phaseLabel(phase), getSoloPhaseSubtitle(activeSide), SOLO_UI.phaseNoticeMs);
   }, [activeSide, gs, phase, showPhaseChange]);
 
   const canActTop = getSoloActionableUids({ phase, activeSide, side: 'top', field: players?.top.field });

@@ -38,6 +38,18 @@ class SoloActionRequest(BaseModel):
 solo_sessions: dict[str, SoloSession] = {}
 
 
+def _active_side_for_session(session: SoloSession) -> str:
+    engine = session.engine
+    if getattr(engine.phase, 'value', engine.phase) == 'mulligan':
+        bottom = engine.players.get(session.bottom_player_id)
+        top = engine.players.get(session.top_player_id)
+        if bottom and not bottom.mulligan_done:
+            return 'bottom'
+        if top and not top.mulligan_done:
+            return 'top'
+    return 'bottom' if engine.current_player_id == session.bottom_player_id else 'top'
+
+
 async def _load_deck_cards(deck_id: int) -> list[dict[str, Any]]:
     async with async_session() as db:
         result = await db.execute(
@@ -185,7 +197,7 @@ async def act_solo(solo_game_id: str, req: SoloActionRequest):
     if isinstance(result, dict) and result.get('error'):
         raise HTTPException(status_code=400, detail=result['error'])
 
-    active_side = 'bottom' if engine.current_player_id == session.bottom_player_id else 'top'
+    active_side = _active_side_for_session(session)
     active_id = session.bottom_player_id if active_side == 'bottom' else session.top_player_id
 
     return {
