@@ -62,10 +62,13 @@ const GameScreen: React.FC<GameScreenProps> = ({
   const [showLogModal, setShowLogModal] = React.useState(false);
   const logBodyRef = React.useRef<HTMLDivElement | null>(null);
   const [mulliganStage, setMulliganStage] = React.useState<'idle' | 'return' | 'draw' | 'reveal'>('idle');
+  const [leavingHandCards, setLeavingHandCards] = React.useState<typeof handCards | null>(null);
+  const [handEntering, setHandEntering] = React.useState(false);
   const killTimerRef = React.useRef<Record<string, number>>({});
   const mulliganTimerRef = React.useRef<number[]>([]);
   const mulliganAutoCloseTimerRef = React.useRef<number | null>(null);
-  const focusedHandIndex = handCards.findIndex((_, index) => isHandSelected(index));
+  const previousHandOwnerRef = React.useRef<string | undefined>(handOwnerKey);
+  const previousHandCardsRef = React.useRef(handCards);
   const {
     currentImageSrc: mulliganFrontImageSrc,
     imgError: mulliganFrontImageError,
@@ -153,10 +156,49 @@ const GameScreen: React.FC<GameScreenProps> = ({
     });
   }, [showLogModal, logs.length]);
 
+  React.useEffect(() => {
+    const previousOwner = previousHandOwnerRef.current;
+    if (!handOwnerKey || !previousOwner || previousOwner === handOwnerKey) {
+      previousHandOwnerRef.current = handOwnerKey;
+      previousHandCardsRef.current = handCards;
+      return;
+    }
+    setLeavingHandCards(previousHandCardsRef.current);
+    setHandEntering(true);
+    previousHandOwnerRef.current = handOwnerKey;
+    previousHandCardsRef.current = handCards;
+    const timerId = window.setTimeout(() => {
+      setLeavingHandCards(null);
+      setHandEntering(false);
+    }, 760);
+    return () => window.clearTimeout(timerId);
+  }, [handCards, handOwnerKey]);
+
   const importantLogs = React.useMemo(
       () => logs.filter((entry) => ['placement', 'skill', 'damage', 'heal', 'destroy', 'turn_end'].includes(entry.type)),
       [logs],
   );
+
+  const renderHandCards = React.useCallback((
+      cards: typeof handCards,
+      transition?: 'enter' | 'exit',
+      clickEnabled = true,
+  ) => {
+    const focused = cards.findIndex((_, index) => isHandSelected(index));
+    return cards.map((card, index) => (
+        <HandCardComp
+            key={`${transition || 'hand'}-${card.id}-${index}`}
+            card={card}
+            selected={transition ? false : isHandSelected(index)}
+            hidden={!transition && mulliganAnimatingIndex === index}
+            index={index}
+            total={cards.length}
+            focusedIndex={focused}
+            handTransition={transition}
+            onClick={clickEnabled ? () => onHandClick(card, index) : undefined}
+        />
+    ));
+  }, [isHandSelected, mulliganAnimatingIndex, onHandClick]);
 
   const renderBattleLog = React.useCallback((entry: BattleLogEntry) => {
     if (entry.type === 'turn_end') return <div className="game-log-neutral">{entry.text || '턴 종료'}</div>;
@@ -249,19 +291,15 @@ const GameScreen: React.FC<GameScreenProps> = ({
         </div>
 
         {!compactBottomPanel && (
-            <div key={handOwnerKey} className={`game-hand-row ${handOwnerKey ? 'game-hand-row--switching' : ''}`}>
-              {handCards.map((card, index) => (
-                  <HandCardComp
-                      key={`${card.id}-${index}`}
-                      card={card}
-                      selected={isHandSelected(index)}
-                      hidden={mulliganAnimatingIndex === index}
-                      index={index}
-                      total={handCards.length}
-                      focusedIndex={focusedHandIndex}
-                      onClick={() => onHandClick(card, index)}
-                  />
-              ))}
+            <div className={`game-hand-row ${handOwnerKey ? 'game-hand-row--switching' : ''}`}>
+              {leavingHandCards && (
+                  <div className="game-hand-transition-layer exit" aria-hidden>
+                    {renderHandCards(leavingHandCards, 'exit', false)}
+                  </div>
+              )}
+              <div className={`game-hand-transition-layer current ${handEntering ? 'enter' : ''}`}>
+                {renderHandCards(handCards, handEntering ? 'enter' : undefined, !handEntering)}
+              </div>
             </div>
         )}
 

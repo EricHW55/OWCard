@@ -790,6 +790,29 @@
     isolation: isolate;
 }
 
+.game-hand-transition-layer {
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.game-hand-transition-layer.exit {
+    position: absolute;
+    inset: 6px 20px 2px;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.game-hand-transition-layer.current {
+    position: relative;
+    z-index: 2;
+}
+
+.game-hand-transition-layer.current.enter {
+    pointer-events: none;
+}
+
 .game-hand-row::before {
     content: none;
 }
@@ -807,6 +830,57 @@
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+.hand-card-3d--exit {
+    animation: handFanFoldOut 680ms cubic-bezier(0.2, 0.82, 0.24, 1) forwards;
+    animation-delay: calc((var(--hand-card-total) - var(--hand-card-index) - 1) * 18ms);
+}
+
+.hand-card-3d--enter {
+    animation: handFanRiseIn 720ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+    animation-delay: calc(var(--hand-card-index) * 22ms + 130ms);
+}
+
+@keyframes handFanFoldOut {
+    0% {
+        opacity: 1;
+        transform: var(--hand-card-transform);
+        filter: blur(0);
+    }
+    46% {
+        opacity: 1;
+        transform: translateX(0) translateY(12px) rotate(0deg) scale(0.96);
+        filter: blur(0);
+    }
+    68% {
+        opacity: 1;
+        transform: translateX(0) translateY(12px) rotate(0deg) scale(0.96);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(0) translateY(108px) rotate(0deg) scale(0.72);
+        filter: blur(1px);
+    }
+}
+
+@keyframes handFanRiseIn {
+    0% {
+        opacity: 0;
+        transform: translateX(0) translateY(108px) rotate(0deg) scale(0.72);
+        filter: blur(1px);
+    }
+    36% {
+        opacity: 1;
+        transform: translateX(0) translateY(12px) rotate(0deg) scale(0.96);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: var(--hand-card-transform);
         filter: blur(0);
     }
 }

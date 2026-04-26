@@ -24,6 +24,8 @@ export function useSoloActionRunner(params: {
   setPendingSpellName: (value: string | null) => void;
   showSystemNotice: (title: string, subtitle?: string, duration?: number) => void;
   resolveActiveSide?: (state: GameState, currentSide: SoloSide) => SoloSide;
+  shouldDeferResponse?: (params: { actionName: string; response: any; activeSide: SoloSide }) => boolean;
+  onDeferredResponse?: (params: { actionName: string; response: any; activeSide: SoloSide }) => void;
 }) {
   const {
     soloGameId,
@@ -39,6 +41,8 @@ export function useSoloActionRunner(params: {
     setPendingSpellName,
     showSystemNotice,
     resolveActiveSide,
+    shouldDeferResponse,
+    onDeferredResponse,
   } = params;
 
   return useCallback(async (action: UnifiedGameAction) => {
@@ -46,6 +50,21 @@ export function useSoloActionRunner(params: {
     try {
       const response = await transport.act(soloGameId, activeSide, action as Record<string, unknown>);
       const actionName = String(action?.action || '');
+      if (shouldDeferResponse?.({ actionName, response, activeSide })) {
+        gameEvents.handleActionResultMessage({
+          ...action,
+          result: response.result,
+        });
+        if (response.actingState) {
+          gameEvents.handleGameStateMessage({ state: response.actingState });
+        }
+        onDeferredResponse?.({ actionName, response, activeSide });
+        setSelectedHandIdx(null);
+        setSelectedFieldUid(null);
+        setActionMode(null);
+        setColumnChoice(null);
+        return;
+      }
       gameEvents.handleActionResultMessage({
         ...action,
         result: response.result,
@@ -77,8 +96,10 @@ export function useSoloActionRunner(params: {
     setSelectedFieldUid,
     setSelectedHandIdx,
     showSystemNotice,
+    shouldDeferResponse,
     soloGameId,
     transport,
+    onDeferredResponse,
     resolveActiveSide,
   ]);
 }

@@ -205,5 +205,6 @@ async def act_solo(solo_game_id: str, req: SoloActionRequest):
     return {
         'result': result,
         'active_side': active_side,
+        'acting_state': engine.get_state(player_id),
         'state': engine.get_state(active_id),
     }

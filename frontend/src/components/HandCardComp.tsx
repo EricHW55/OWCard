@@ -12,9 +12,10 @@ interface Props {
     index: number;
     total: number;
     focusedIndex: number;
+    handTransition?: 'enter' | 'exit';
 }
 
-const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index, total, focusedIndex }) => {
+const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index, total, focusedIndex, handTransition }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
@@ -32,11 +33,16 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
     const baseZIndex = 100 + index;
     const frameColor = selected ? '#ff9b30' : color;
 
+    const cardTransform = `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`;
+
     return (
         <div
             onClick={onClick}
-            className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''}`}
+            className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''} ${handTransition ? `hand-card-3d--${handTransition}` : ''}`}
             style={{
+                ['--hand-card-transform' as string]: cardTransform,
+                ['--hand-card-index' as string]: String(index),
+                ['--hand-card-total' as string]: String(Math.max(1, total)),
                 width: 'clamp(60px, min(10.4vw, 9.4vh), 82px)',
                 aspectRatio: '5 / 7',
                 borderRadius: 6,
@@ -56,7 +62,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
                     : (usingFullCardArt ? '0 6px 12px rgba(0,0,0,0.3)' : 'none'),
                 marginInline: '-14px',
                 zIndex: selected ? 320 : baseZIndex,
-                transform: `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`,
+                transform: 'var(--hand-card-transform)',
                 transformOrigin: 'center 130%',
                 transition: 'transform 0.22s ease, box-shadow 0.22s ease, opacity 0.16s ease',
                 opacity: hidden ? 0 : 1,

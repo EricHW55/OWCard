@@ -49,6 +49,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
   const gsRef = useRef<GameState | null>(null);
   const battleLogSeqRef = useRef(0);
   const startedRef = useRef(false);
+  const deferredMulliganResponseRef = useRef<any | null>(null);
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
 
   const pushBattleLog = useCallback((entry: Omit<BattleLogEntry, 'id'>) => {
@@ -178,6 +179,14 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     setPendingSpellName,
     showSystemNotice,
     resolveActiveSide: resolveActiveSideFromState,
+    shouldDeferResponse: ({ actionName, response, activeSide: currentActiveSide }) => (
+      actionName === 'mulligan'
+      && !!response?.activeSide
+      && response.activeSide !== currentActiveSide
+    ),
+    onDeferredResponse: ({ actionName, response, activeSide: currentActiveSide }) => {
+      deferredMulliganResponseRef.current = { actionName, response, activeSide: currentActiveSide };
+    },
   });
 
   const soloAdapter = useMemo(() => createSoloAdapter({
@@ -282,6 +291,15 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
   const placeCard = sharedActions.handlePlace;
   const endPlacement = () => { void dispatchAction({ action: 'end_placement' }); };
   const endTurn = () => { void dispatchAction({ action: 'end_turn' }); };
+  const completeSoloMulliganCinematic = useCallback(() => {
+    completeMulliganCinematic();
+    const deferred = deferredMulliganResponseRef.current;
+    if (!deferred) return;
+    deferredMulliganResponseRef.current = null;
+    const { response, activeSide: previousActiveSide } = deferred;
+    soloEventHandlersRef.current.handleGameStateMessage({ state: response.state });
+    setActiveSide(response.activeSide || resolveActiveSideFromState(response.state, previousActiveSide) || previousActiveSide);
+  }, [completeMulliganCinematic]);
 
   return {
     loading,
@@ -328,7 +346,7 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     confirmMulligan: sharedActions.runMulligan,
     runMulligan: sharedActions.runMulligan,
     skipMulligan: sharedActions.skipMulligan,
-    completeMulliganCinematic,
+    completeMulliganCinematic: completeSoloMulliganCinematic,
     placeCard,
     handlePlace: placeCard,
     useSelectedSpell: sharedActions.useSelectedSpell,

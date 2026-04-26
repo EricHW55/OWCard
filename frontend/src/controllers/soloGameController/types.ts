@@ -18,6 +18,7 @@ export type SoloTransport = {
   refresh(gameId: string, side: SoloSide): Promise<GameState>;
   act(gameId: string, side: SoloSide, payload: Record<string, unknown>): Promise<{
     state: GameState;
+    actingState?: GameState;
     result: any;
     activeSide?: SoloSide;
   }>;

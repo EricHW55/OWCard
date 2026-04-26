@@ -67,6 +67,7 @@ export function createSoloHttpTransport(apiBase = getApiBase()): SoloTransport {
       const body = await res.json();
       return {
         state: body.state as GameState,
+        actingState: body.acting_state as GameState | undefined,
         result: body?.result || {},
         activeSide: body.active_side as SoloSide | undefined,
       };
