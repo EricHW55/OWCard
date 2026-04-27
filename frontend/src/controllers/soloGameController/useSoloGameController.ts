@@ -48,7 +48,6 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
   const announcerDataRef = useRef(announcerData);
   const gsRef = useRef<GameState | null>(null);
   const battleLogSeqRef = useRef(0);
-  const startedRef = useRef(false);
   const deferredMulliganResponseRef = useRef<any | null>(null);
   const activeSideRef = useRef<SoloSide>(activeSide);
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
@@ -224,10 +223,14 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
   }, [showSystemNotice, soloEventHandlers, transport]);
 
   useEffect(() => {
-    if (startedRef.current) return undefined;
-    startedRef.current = true;
     let disposed = false;
     const run = async () => {
+      // React.StrictMode(dev)에서는 effect가 setup→cleanup→setup으로 한 번 더 실행된다.
+      // 첫 setup에서 즉시 cleanup된 경우 API start 호출을 건너뛰어
+      // 중복 솔로 게임 생성 없이 두 번째 setup만 유효하게 만든다.
+      await Promise.resolve();
+      if (disposed) return;
+
       try {
         setLoading(true);
         setError(null);
