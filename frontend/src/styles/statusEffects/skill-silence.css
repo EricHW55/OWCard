@@ -125,3 +125,49 @@
     line-height: 1;
     color: rgba(190, 200, 220, 0.9);
 }
+
+@media (max-width: 768px) {
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain {
+        background-size: 40px 22px;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.top {
+        left: -13px;
+        right: -10px;
+        height: 20px;
+        top: 17%;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.bottom {
+        left: -10px;
+        right: -13px;
+        height: 20px;
+        top: 57%;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.mid {
+        left: -8px;
+        right: -8px;
+        height: 19px;
+        top: 38%;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-edge {
+        width: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain {
+        background-size: 34px 18px;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.top,
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.bottom {
+        height: 17px;
+    }
+
+    .field-card-3d.status-skill-silence .field-status-layer-silence-chain.mid {
+        height: 16px;
+    }
+}

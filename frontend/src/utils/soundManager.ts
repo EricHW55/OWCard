@@ -7,6 +7,7 @@ const BGM_SOURCE: Record<BgmType, string[]> = {
 
 const DEFAULT_BGM_VOLUME = 0.4;
 const PLACE_VOLUME = 1;
+const UNLOCK_EVENT_OPTIONS: AddEventListenerOptions = { capture: true, passive: true };
 
 function fadeOutAudio(audio: HTMLAudioElement, durationMs = 450): Promise<void> {
     return new Promise((resolve) => {
@@ -172,19 +173,19 @@ class SoundManager {
 
     private attachUnlockListeners() {
         if (this.unlockListenersAttached || typeof window === 'undefined') return;
-        window.addEventListener('pointerdown', this.ensurePendingUnlock);
-        window.addEventListener('touchstart', this.ensurePendingUnlock);
-        window.addEventListener('click', this.ensurePendingUnlock);
-        window.addEventListener('keydown', this.ensurePendingUnlock);
+        window.addEventListener('pointerdown', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.addEventListener('touchstart', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.addEventListener('click', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.addEventListener('keydown', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
         this.unlockListenersAttached = true;
     }
 
     private detachUnlockListeners() {
         if (!this.unlockListenersAttached || typeof window === 'undefined') return;
-        window.removeEventListener('pointerdown', this.ensurePendingUnlock);
-        window.removeEventListener('touchstart', this.ensurePendingUnlock);
-        window.removeEventListener('click', this.ensurePendingUnlock);
-        window.removeEventListener('keydown', this.ensurePendingUnlock);
+        window.removeEventListener('pointerdown', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.removeEventListener('touchstart', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.removeEventListener('click', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
+        window.removeEventListener('keydown', this.ensurePendingUnlock, UNLOCK_EVENT_OPTIONS);
         this.unlockListenersAttached = false;
     }
 

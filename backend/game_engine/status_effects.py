@@ -126,13 +126,12 @@ class Barrier(StatusEffect):
         ignore_barrier = kwargs.get("ignore_barrier", False)
         if ignore_barrier:
             return {"damage": damage}
-        # 방벽을 먼저 소모하고, 초과 피해는 다음 보호 효과/체력으로 넘긴다.
-        absorbed = min(self.barrier_hp, max(0, damage))
+        # 방벽은 먼저 깨지고, 초과 피해까지 막는다.
+        absorbed = max(0, damage)
         self.barrier_hp = max(0, self.barrier_hp - absorbed)
-        remaining = max(0, damage - absorbed)
         if self.barrier_hp <= 0:
             card.remove_status(self.name)
-        return {"damage": remaining, "barrier_absorbed": absorbed, "barrier_hp": self.barrier_hp}
+        return {"damage": 0, "barrier_absorbed": absorbed, "barrier_hp": self.barrier_hp}
 
     def on_remove(self, card):
         if self.has_taunt:
