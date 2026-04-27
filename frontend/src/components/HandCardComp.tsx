@@ -12,7 +12,7 @@ interface Props {
     index: number;
     total: number;
     focusedIndex: number;
-    handTransition?: 'enter' | 'exit';
+    handTransition?: 'enter' | 'exit' | 'enter-immediate';
 }
 
 const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index, total, focusedIndex, handTransition }) => {

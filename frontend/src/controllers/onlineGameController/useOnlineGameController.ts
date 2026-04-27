@@ -39,6 +39,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const [localPendingPassive, setLocalPendingPassive] = useState<any | null>(null);
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
+  const [bo3OpeningHandAnimationKey, setBo3OpeningHandAnimationKey] = useState(0);
 
 
   const wsRef = useRef<GameSocket | null>(null);
@@ -245,6 +246,9 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           const round = Number(msg?.round || 0);
           addLogRef.current('3판 2선승제 ' + round + '세트 시작');
           showPhaseChangeRef.current(round + '라운드', '전투 시작', 1600);
+          if (round > 1 && !isSpectator) {
+            setBo3OpeningHandAnimationKey((prev) => prev + 1);
+          }
         }),
         ws.on('opponent_disconnected', () => addLogRef.current('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLogRef.current('상대가 재연결했습니다')),
@@ -440,6 +444,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     handleEndMainButton: sharedActions.handleEndMainButton,
     leaveGame, surrenderGame,
     submitBo3Deck, chooseBo3FirstPlayer,
+    bo3OpeningHandAnimationKey,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,
     duplicateTargetUid: sharedActions.duplicateTargetUid,
     duplicateTargetRole: sharedActions.duplicateTargetRole,

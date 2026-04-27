@@ -52,6 +52,7 @@ export interface GameScreenProps {
   bottomActions?: ReactNode;
   compactBottomPanel?: boolean;
   handOwnerKey?: string;
+  handInitialEnterKey?: string | number;
 
   logs?: BattleLogEntry[];
   killFeed?: KillFeedItem[];

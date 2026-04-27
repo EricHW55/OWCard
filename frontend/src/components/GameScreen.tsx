@@ -53,6 +53,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   bottomActions,
   compactBottomPanel = false,
   handOwnerKey,
+  handInitialEnterKey,
   logs = [],
   killFeed = [],
   onDismissKillFeedItem,
@@ -64,11 +65,13 @@ const GameScreen: React.FC<GameScreenProps> = ({
   const [mulliganStage, setMulliganStage] = React.useState<'idle' | 'return' | 'draw' | 'reveal'>('idle');
   const [leavingHandCards, setLeavingHandCards] = React.useState<typeof handCards | null>(null);
   const [handEntering, setHandEntering] = React.useState(false);
+  const [handEnterTransition, setHandEnterTransition] = React.useState<'enter' | 'enter-immediate'>('enter');
   const killTimerRef = React.useRef<Record<string, number>>({});
   const mulliganTimerRef = React.useRef<number[]>([]);
   const mulliganAutoCloseTimerRef = React.useRef<number | null>(null);
   const previousHandOwnerRef = React.useRef<string | undefined>(handOwnerKey);
   const previousHandCardsRef = React.useRef(handCards);
+  const previousInitialEnterKeyRef = React.useRef<string | number | undefined>(handInitialEnterKey);
   const {
     currentImageSrc: mulliganFrontImageSrc,
     imgError: mulliganFrontImageError,
@@ -164,6 +167,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
       return;
     }
     setLeavingHandCards(previousHandCardsRef.current);
+    setHandEnterTransition('enter');
     setHandEntering(true);
     previousHandOwnerRef.current = handOwnerKey;
     previousHandCardsRef.current = handCards;
@@ -174,6 +178,19 @@ const GameScreen: React.FC<GameScreenProps> = ({
     return () => window.clearTimeout(timerId);
   }, [handCards, handOwnerKey]);
 
+  React.useEffect(() => {
+    const previousKey = previousInitialEnterKeyRef.current;
+    previousInitialEnterKeyRef.current = handInitialEnterKey;
+    if (handInitialEnterKey == null || previousKey === handInitialEnterKey || handCards.length === 0) return;
+    setLeavingHandCards(null);
+    setHandEnterTransition('enter-immediate');
+    setHandEntering(true);
+    const timerId = window.setTimeout(() => {
+      setHandEntering(false);
+    }, 880);
+    return () => window.clearTimeout(timerId);
+  }, [handCards.length, handInitialEnterKey]);
+
   const importantLogs = React.useMemo(
       () => logs.filter((entry) => ['placement', 'skill', 'damage', 'heal', 'destroy', 'turn_end'].includes(entry.type)),
       [logs],
@@ -181,7 +198,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
 
   const renderHandCards = React.useCallback((
       cards: typeof handCards,
-      transition?: 'enter' | 'exit',
+      transition?: 'enter' | 'exit' | 'enter-immediate',
       clickEnabled = true,
   ) => {
     const focused = cards.findIndex((_, index) => isHandSelected(index));
@@ -298,7 +315,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
                   </div>
               )}
               <div className={`game-hand-transition-layer current ${handEntering ? 'enter' : ''}`}>
-                {renderHandCards(handCards, handEntering ? 'enter' : undefined, !handEntering)}
+                {renderHandCards(handCards, handEntering ? handEnterTransition : undefined, !handEntering)}
               </div>
             </div>
         )}

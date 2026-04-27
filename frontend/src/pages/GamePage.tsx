@@ -83,6 +83,9 @@ const GamePage: React.FC = () => {
   const [bo3EditorSearch, setBo3EditorSearch] = React.useState('');
   const longPressTimerRef = React.useRef<number | null>(null);
   const longPressTriggeredRef = React.useRef(false);
+  const bo3HandIntroTimerRef = React.useRef<number | null>(null);
+  const lastBo3HandIntroKeyRef = React.useRef(0);
+  const [activeBo3HandIntroKey, setActiveBo3HandIntroKey] = React.useState<number | null>(null);
 
   const isFirstPlayer = React.useMemo(() => {
     if (isSpectator) return null;
@@ -193,8 +196,26 @@ const GamePage: React.FC = () => {
       if (headshotSpinTimerRef.current !== null) window.clearTimeout(headshotSpinTimerRef.current);
       if (headshotClearTimerRef.current !== null) window.clearTimeout(headshotClearTimerRef.current);
       if (headshotDoneTimerRef.current !== null) window.clearTimeout(headshotDoneTimerRef.current);
+      if (bo3HandIntroTimerRef.current !== null) window.clearTimeout(bo3HandIntroTimerRef.current);
     };
   }, []);
+
+  React.useEffect(() => {
+    if (isSpectator) return;
+    if (!vm.bo3OpeningHandAnimationKey) return;
+    if (lastBo3HandIntroKeyRef.current === vm.bo3OpeningHandAnimationKey) return;
+    if (vm.phase !== 'mulligan') return;
+    if (!vm.my || vm.my.hand.length === 0) return;
+    lastBo3HandIntroKeyRef.current = vm.bo3OpeningHandAnimationKey;
+    setActiveBo3HandIntroKey(vm.bo3OpeningHandAnimationKey);
+    if (bo3HandIntroTimerRef.current !== null) {
+      window.clearTimeout(bo3HandIntroTimerRef.current);
+    }
+    bo3HandIntroTimerRef.current = window.setTimeout(() => {
+      setActiveBo3HandIntroKey(null);
+      bo3HandIntroTimerRef.current = null;
+    }, 900);
+  }, [isSpectator, vm.bo3OpeningHandAnimationKey, vm.phase, vm.my]);
 
   React.useEffect(() => {
     const evt = vm.headshotCoinTossEvent;
@@ -534,6 +555,7 @@ const GamePage: React.FC = () => {
   ].filter(Boolean) as React.ReactNode[];
 
   const openingActive = openingStage !== 'done' && openingStage !== 'idle';
+  const bo3HandIntroActive = activeBo3HandIntroKey !== null;
   const showOpeningCinematic = !isSpectator && openingStage !== 'done' && openingStage !== 'idle';
   const visibleHandCards = openingActive
       ? vm.my.hand.slice(0, revealedCount)
@@ -732,7 +754,7 @@ const GamePage: React.FC = () => {
         canSelectEmptySlot: vm.canSelectEmptySlot,
         onEmptySlotSelect: vm.handleEmptySlotSelect,
       }}
-      contextPanel={openingActive || isSpectator ? null : (
+      contextPanel={openingActive || bo3HandIntroActive || isSpectator ? null : (
         <OnlineContextPanel
           show={vm.showContextPanel}
           phase={vm.phase}
@@ -770,13 +792,14 @@ const GamePage: React.FC = () => {
         />
       )}
       handCards={isSpectator ? [] : visibleHandCards}
+      handInitialEnterKey={activeBo3HandIntroKey ?? undefined}
       mulliganAnimatingIndex={vm.mulliganAnimatingIndex}
       mulliganCinematicCard={vm.mulliganCinematicCard}
       mulliganReplacementCard={vm.mulliganReplacementCard}
       isMulliganCinematicActive={vm.isMulliganCinematicActive}
       onMulliganCinematicComplete={vm.completeMulliganCinematic}
       isHandSelected={(index) => isSpectator ? false : (vm.phase === 'mulligan' ? vm.selectedMulligan.includes(index) : vm.selectedHandIdx === index)}
-      onHandClick={openingActive ? (() => {}) : vm.handleHandClick}
+      onHandClick={openingActive || bo3HandIntroActive ? (() => {}) : vm.handleHandClick}
       compactBottomPanel={isSpectator}
       bottomMeta={<>{isSpectator ? '관전 모드 · 손패 비공개' : `패:${vm.my.hand_count} · 덱:${vm.my.draw_pile_count} · 트래시:${vm.my.trash_count}`}</>}
       bottomActions={
