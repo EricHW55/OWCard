@@ -6,3 +6,118 @@ DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
+
+
+# PostgreSQL 운영 DB에서 카드(영웅+스펠) 재시드 절차
+
+목표:
+- 덱(`decks`)은 유지
+- 덱 내부 카드 구성은 백업 후 복원
+- 카드 템플릿(`card_templates`)은 전체 삭제 후 백엔드 재배포로 시드 재삽입
+- `card_templates.id`를 다시 1부터 시작
+
+---
+
+## 0) 사전 백업(권장)
+
+```bash
+pg_dump "$DATABASE_URL" -Fc -f backup_before_card_reseed.dump
+```
+
+---
+
+## 1) 덱 카드 구성 백업 (`deck_cards_backup` 생성)
+
+```sql
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS deck_cards_backup AS
+SELECT dc.deck_id, ct.hero_key, dc.quantity
+FROM deck_cards dc
+JOIN card_templates ct ON ct.id = dc.card_template_id;
+
+COMMIT;
+```
+
+확인:
+```sql
+SELECT COUNT(*) AS backup_rows FROM deck_cards_backup;
+```
+
+---
+
+## 2) 덱 카드 연결/카드 템플릿 삭제 + ID 시퀀스 리셋
+
+```sql
+BEGIN;
+
+-- FK 충돌 방지를 위해 deck_cards 먼저 삭제
+DELETE FROM deck_cards;
+
+-- 카드 템플릿(영웅+스펠) 전체 삭제
+DELETE FROM card_templates;
+
+-- card_templates.id를 1부터 다시 시작
+SELECT setval(
+  pg_get_serial_sequence('card_templates','id'),
+  1,
+  false
+);
+
+COMMIT;
+```
+
+확인:
+```sql
+SELECT COUNT(*) AS card_templates_count FROM card_templates;
+SELECT COUNT(*) AS deck_cards_count FROM deck_cards;
+```
+
+---
+
+## 3) 백엔드 재배포/재시작 (startup seed 실행)
+
+예시:
+```bash
+docker compose -f backend/docker-compose.yml up -d --build app
+```
+
+확인:
+```sql
+SELECT COUNT(*) AS card_templates_after_seed FROM card_templates;
+```
+
+---
+
+## 4) 덱 카드 연결 복원 (hero_key 기준 매핑)
+
+```sql
+BEGIN;
+
+INSERT INTO deck_cards (deck_id, card_template_id, quantity)
+SELECT b.deck_id, ct.id, b.quantity
+FROM deck_cards_backup b
+JOIN card_templates ct ON ct.hero_key = b.hero_key;
+
+COMMIT;
+```
+
+확인:
+```sql
+SELECT COUNT(*) AS deck_cards_restored FROM deck_cards;
+```
+
+---
+
+## 5) 복원 확인 후 백업 테이블 정리(선택)
+
+```sql
+DROP TABLE deck_cards_backup;
+```
+
+---
+
+## 참고
+- `DELETE FROM card_templates`만 실행하면 시퀀스는 보통 유지되어 다음 ID가 1부터 시작하지 않습니다.
+- 그래서 위 절차에 `setval(..., 1, false)`를 포함했습니다.
+- 덱이 "사라진 것처럼" 보이는 원인은 `decks` 삭제가 아니라 `deck_cards` 연결이 비어있기 때문입니다.
