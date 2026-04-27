@@ -53,10 +53,15 @@ class SoundManager {
                     await this.bgmAudio.play();
                     this.pendingBgmType = null;
                     this.detachUnlockListeners();
+                    if (this.bgmAudio.volume <= 0.01) {
+                        this.fadeIn(this.bgmAudio, DEFAULT_BGM_VOLUME, 500);
+                    }
                 } catch {
                     this.pendingBgmType = type;
                     this.attachUnlockListeners();
                 }
+            } else if (this.bgmAudio.volume <= 0.01) {
+                this.fadeIn(this.bgmAudio, DEFAULT_BGM_VOLUME, 500);
             }
             return;
         }

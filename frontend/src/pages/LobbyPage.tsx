@@ -9,6 +9,7 @@ import {
     getIllustrationCandidates,
     preloadImageAssets,
 } from '../utils/heroImage';
+import { soundManager } from '../utils/soundManager';
 import './LobbyPage.css';
 
 interface RoomInfo {
@@ -647,6 +648,8 @@ const LobbyPage: React.FC = () => {
             addLog('닉네임은 2글자 이상으로 해야합니다.');
             return;
         }
+
+        void soundManager.ensureBgm('lobby');
 
         try {
             setAuthLoading(true);
