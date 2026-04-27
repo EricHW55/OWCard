@@ -71,7 +71,8 @@
 
 .hero-change-button,
 .effects-list button,
-.status-effects-actions button {
+.status-effects-actions button,
+.status-effects-preview-actions button {
     border: 1px solid #44639b;
     background: #1a2a4d;
     color: #e7eeff;
@@ -104,6 +105,15 @@
 
 .status-effects-actions button {
     width: 100%;
+}
+
+.status-effects-preview-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.status-effects-preview-actions button {
+    min-width: 180px;
 }
 
 .status-effects-right {

@@ -287,6 +287,10 @@ const StatusEffectsPage: React.FC = () => {
                             <span>{selectedHero.name}</span>
                         </div>
                     </div>
+
+                    <div className="status-effects-preview-actions">
+                        <button type="button" onClick={() => navigate('/')}>로비로 돌아가기</button>
+                    </div>
                 </section>
             </div>
 
