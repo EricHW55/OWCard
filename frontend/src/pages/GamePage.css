@@ -53,8 +53,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.game-topbar-left {
+    justify-content: flex-start;
+    flex-shrink: 0;
+}
+
+.game-topbar-right {
     justify-content: flex-end;
+    flex: 1 1 auto;
 }
 
 .game-topbar-center {
@@ -1569,7 +1579,7 @@
         top: calc(6px + var(--app-safe-top));
         left: 6px;
         right: 6px;
-        align-items: flex-start;
+        align-items: center;
     }
 
     .game-topbar-chip {
@@ -1578,8 +1588,8 @@
     }
 
     .game-topbar-right {
-        max-width: min(70vw, 430px);
-        row-gap: 4px;
+        gap: 4px;
+        overflow: hidden;
     }
 
     .game-skill-cinematic-stage {
@@ -1595,9 +1605,8 @@
     }
 
     .game-opponent-meta-inline {
-        order: 10;
-        flex: 0 0 100%;
-        max-width: 100%;
+        flex: 0 1 auto;
+        max-width: min(24vw, 150px);
         font-size: 9px;
         text-align: right;
     }
@@ -1793,10 +1802,10 @@
 
     .game-opponent-meta-inline {
         display: block;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        line-height: 1.2;
+        max-width: min(22vw, 92px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .mercy-choice-grid {
