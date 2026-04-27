@@ -180,8 +180,14 @@ class FieldCard:
             name = status.name
             if name in ("discord", "vendetta_marked"):
                 return 10
-            if name in ("barrier", "particle_barrier", "extra_hp", "frozen_state"):
+            if name == "frozen_state":
                 return 20
+            if name == "barrier":
+                return 21
+            if name == "particle_barrier":
+                return 22
+            if name == "extra_hp":
+                return 23
             if name in ("damage_reduction", "next_turn_start_damage_reduction", "orisa_fortify_passive"):
                 return 30
             if name == "reflect":

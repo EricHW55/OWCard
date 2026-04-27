@@ -727,6 +727,7 @@ def spell_dragonblade(caster: FieldCard, target: FieldCard, game: GameState) -> 
             broken["particle_barrier_broken"] = True
             broken["trigger_zarya_buff"] = str(getattr(particle, "source_uid", "") or "")
             card.remove_status("particle_barrier")
+            card.extra["particle_barrier_break_seq"] = int(card.extra.get("particle_barrier_break_seq", 0) or 0) + 1
 
         extra_hp = card.get_status("extra_hp")
         if extra_hp:
@@ -800,9 +801,21 @@ def spell_emp(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
         if card.remove_status("barrier"):
             broken_barriers += 1
             logs.append({"target": card.uid, "removed": "barrier"})
-        if card.remove_status("particle_barrier"):
+        particle = card.get_status("particle_barrier")
+        if particle and card.remove_status("particle_barrier"):
             broken_barriers += 1
-            logs.append({"target": card.uid, "removed": "particle_barrier"})
+            trigger_uid = str(getattr(particle, "source_uid", "") or "")
+            card.extra["particle_barrier_break_seq"] = int(card.extra.get("particle_barrier_break_seq", 0) or 0) + 1
+            logs.append({
+                "target": card.uid,
+                "removed": "particle_barrier",
+                "damage_log": {
+                    "target": card.uid,
+                    "particle_barrier_broken": True,
+                    "trigger_zarya_buff": trigger_uid,
+                    "final_damage": 0,
+                },
+            })
 
         # 3) 설치물 토큰 파괴 (딜을 넣어 파괴)
         token_kind = card.extra.get("token_kind")
