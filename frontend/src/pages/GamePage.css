@@ -53,6 +53,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .game-topbar-center {
@@ -118,6 +120,13 @@
     max-width: min(34vw, 260px);
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.game-draw-request-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .game-reconnect-banner {
@@ -1568,6 +1577,11 @@
         gap: 4px;
     }
 
+    .game-topbar-right {
+        max-width: min(70vw, 430px);
+        row-gap: 4px;
+    }
+
     .game-skill-cinematic-stage {
         min-height: min(74vh, 620px);
     }
@@ -1581,8 +1595,11 @@
     }
 
     .game-opponent-meta-inline {
-        max-width: min(28vw, 170px);
+        order: 10;
+        flex: 0 0 100%;
+        max-width: 100%;
         font-size: 9px;
+        text-align: right;
     }
 
     .game-topbar-center {
@@ -1775,7 +1792,11 @@
     }
 
     .game-opponent-meta-inline {
-        display: none;
+        display: block;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.2;
     }
 
     .mercy-choice-grid {

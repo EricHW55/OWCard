@@ -54,6 +54,7 @@ bo3_sessions: dict[str, Bo3Session] = {}
 RECONNECT_GRACE = 30
 _disconnect_tasks: dict[tuple[str, int], asyncio.Task] = {}
 _timer_tasks: dict[str, asyncio.Task] = {}
+_pending_draw_requests: dict[str, int] = {}
 
 
 async def load_deck_cards(deck_id: int) -> list[dict]:
@@ -175,6 +176,35 @@ async def _start_next_bo3_round(game_id: str, old_engine: GameEngine):
     session.chosen_first_player_id = None
 
     await manager.broadcast_all(game_id, {"event": "bo3_round_started", "round": session.current_round})
+    for pid in engine.players:
+        await _send_state(game_id, pid, engine)
+
+
+async def _restart_bo3_draw_round(game_id: str, old_engine: GameEngine):
+    session = bo3_sessions.get(game_id)
+    if not session:
+        return
+
+    player_data: list[tuple[int, str, list[dict]]] = []
+    for pid in session.player_ids:
+        ps = old_engine.players.get(pid)
+        if not ps:
+            return
+        template_ids = session.deck_template_ids_by_player.get(pid, [])
+        cards = await load_cards_from_template_ids(template_ids)
+        player_data.append((pid, ps.username, cards))
+
+    engine = GameEngine(game_id)
+    for pid, username, cards in player_data:
+        if not engine.add_player(pid, username, cards):
+            return
+        engine.players[pid].connected = old_engine.players.get(pid).connected if old_engine.players.get(pid) else True
+
+    engine.start_game()
+    active_games[game_id] = engine
+
+    await manager.broadcast_all(game_id, {"event": "bo3_round_draw", "round": session.current_round})
+    await manager.broadcast_all(game_id, {"event": "bo3_round_started", "round": session.current_round, "reason": "draw"})
     for pid in engine.players:
         await _send_state(game_id, pid, engine)
 
@@ -312,7 +342,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
     result: dict = {}
 
     pending = getattr(engine.players.get(player_id), "pending_passive", None)
-    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game", "cleanup_game", "ping"}
+    allowed_when_pending = {"get_state", "resolve_passive_choice", "surrender", "leave_game", "cleanup_game", "ping", "request_draw", "respond_draw"}
     if pending and action not in allowed_when_pending:
         await manager.send_game(game_id, player_id, {"event": "error", "message": "패시브 선택을 먼저 완료하세요"})
         return
@@ -378,14 +408,62 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
         return
     elif action == "surrender":
         opp_id = [pid for pid in engine.players if pid != player_id][0]
+        _pending_draw_requests.pop(game_id, None)
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
         result = {"event": "surrender", "winner": opp_id}
     elif action == "leave_game":
         opp_id = [pid for pid in engine.players if pid != player_id][0]
+        _pending_draw_requests.pop(game_id, None)
         engine.winner = opp_id
         engine.phase = GamePhase.GAME_OVER
         result = {"event": "surrender", "winner": opp_id, "reason": "leave"}
+    elif action == "request_draw":
+        if engine.phase == GamePhase.GAME_OVER:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "이미 종료된 게임입니다."})
+            return
+        requester_id = _pending_draw_requests.get(game_id)
+        if requester_id == player_id:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "이미 무승부를 요청했습니다."})
+            return
+        if requester_id:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "상대의 무승부 요청에 먼저 응답하세요."})
+            return
+        opp_id = [pid for pid in engine.players if pid != player_id][0]
+        _pending_draw_requests[game_id] = player_id
+        await manager.send_game(game_id, player_id, {"event": "draw_offer_sent"})
+        await manager.send_game(
+            game_id,
+            opp_id,
+            {
+                "event": "draw_offer",
+                "requester": player_id,
+                "requester_name": engine.players[player_id].username,
+            },
+        )
+        return
+    elif action == "respond_draw":
+        requester_id = _pending_draw_requests.get(game_id)
+        if not requester_id or requester_id == player_id:
+            await manager.send_game(game_id, player_id, {"event": "error", "message": "응답할 무승부 요청이 없습니다."})
+            return
+        accepted = bool(data.get("accepted", False))
+        _pending_draw_requests.pop(game_id, None)
+        if not accepted:
+            await manager.send_game(game_id, requester_id, {"event": "draw_offer_declined"})
+            await manager.send_game(game_id, player_id, {"event": "draw_offer_cancelled"})
+            return
+        if bo3_session:
+            await manager.broadcast_all(game_id, {"event": "draw_accepted", "round": bo3_session.current_round, "format": "bo3"})
+            await _restart_bo3_draw_round(game_id, engine)
+            return
+        engine.winner = None
+        engine.phase = GamePhase.GAME_OVER
+        await manager.broadcast_all(game_id, {"event": "draw_accepted", "format": "bo1"})
+        for pid in engine.players:
+            await _send_state(game_id, pid, engine)
+        await _handle_game_over(game_id, engine)
+        return
     elif action == "cleanup_game":
         await matchmaking.consume_recent_match_if_in_game(player_id)
         room = room_manager.find_room_by_game_id(game_id)
@@ -516,6 +594,7 @@ async def _send_state(game_id: str, player_id: int, engine: GameEngine):
 
 
 async def _handle_game_over(game_id: str, engine: GameEngine):
+    _pending_draw_requests.pop(game_id, None)
     winner_id = engine.winner
     loser_id = [pid for pid in engine.players if pid != winner_id][0] if winner_id else None
     player_ids = list(engine.players)
@@ -569,6 +648,7 @@ async def _handle_game_over(game_id: str, engine: GameEngine):
         await manager.broadcast_lobby({"event": "room_closed", "room_code": room.room_code})
     active_games.pop(game_id, None)
     bo3_sessions.pop(game_id, None)
+    _pending_draw_requests.pop(game_id, None)
     timer_task = _timer_tasks.pop(game_id, None)
     if timer_task and not timer_task.done():
         timer_task.cancel()

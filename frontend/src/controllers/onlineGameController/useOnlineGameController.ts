@@ -40,6 +40,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const [localPendingSpellChoice, setLocalPendingSpellChoice] = useState<any | null>(null);
   const [columnChoice, setColumnChoice] = useState<ColumnChoice | null>(null);
   const [bo3OpeningHandAnimationKey, setBo3OpeningHandAnimationKey] = useState(0);
+  const [pendingDrawRequest, setPendingDrawRequest] = useState<{ requester: number; requesterName: string } | null>(null);
 
 
   const wsRef = useRef<GameSocket | null>(null);
@@ -227,11 +228,12 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
         ws.on('phase_change', (msg: any) => addLogRef.current(msg.message || ('phase ' + msg.phase))),
         ws.on('game_over', (msg: any) => {
           const isWinner = !isSpectator && Number(msg?.winner) === Number(session?.player_id);
-          addLogRef.current('게임 종료: ' + (msg.winner_name ?? msg.winner));
+          const isDraw = msg?.winner == null;
+          addLogRef.current(isDraw ? '게임 종료: 무승부' : '게임 종료: ' + (msg.winner_name ?? msg.winner));
           setReconnecting(false);
           showPhaseChangeRef.current(
-              isSpectator ? '게임 종료' : (isWinner ? '승리' : '패배'),
-              String(msg.winner_name ?? msg.winner ?? '승자 미정'),
+              isDraw ? '무승부' : (isSpectator ? '게임 종료' : (isWinner ? '승리' : '패배')),
+              isDraw ? '게임이 무승부로 종료되었습니다.' : String(msg.winner_name ?? msg.winner ?? '승자 미정'),
               isSpectator ? 2000 : 2800,
           );
         }),
@@ -249,6 +251,30 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
           if (round > 1 && !isSpectator) {
             setBo3OpeningHandAnimationKey((prev) => prev + 1);
           }
+        }),
+        ws.on('draw_offer', (msg: any) => {
+          setPendingDrawRequest({
+            requester: Number(msg?.requester || 0),
+            requesterName: String(msg?.requester_name || '상대방'),
+          });
+          addLogRef.current('상대가 무승부를 요청했습니다.');
+        }),
+        ws.on('draw_offer_sent', () => {
+          addLogRef.current('무승부를 요청했습니다.');
+          showSystemNoticeRef.current('무승부 요청', '상대의 응답을 기다리는 중입니다.', 1800);
+        }),
+        ws.on('draw_offer_declined', () => {
+          addLogRef.current('상대가 무승부 요청을 거절했습니다.');
+          showSystemNoticeRef.current('무승부 거절', '상대가 요청을 거절했습니다.', 1800);
+        }),
+        ws.on('draw_offer_cancelled', () => {
+          setPendingDrawRequest(null);
+        }),
+        ws.on('draw_accepted', (msg: any) => {
+          setPendingDrawRequest(null);
+          const round = Number(msg?.round || 0);
+          addLogRef.current(msg?.format === 'bo3' ? `${round}세트 무승부 - 같은 세트를 다시 진행합니다.` : '무승부가 성립되었습니다.');
+          showPhaseChangeRef.current('무승부', msg?.format === 'bo3' ? `${round}세트 재경기` : '게임 종료', 2200);
         }),
         ws.on('opponent_disconnected', () => addLogRef.current('상대 연결 끊김')),
         ws.on('player_reconnected', () => addLogRef.current('상대가 재연결했습니다')),
@@ -329,6 +355,13 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   const surrenderGame = useCallback(() => {
     if (gs && gs.phase !== 'game_over') dispatchAction({ action: 'surrender' });
   }, [gs, dispatchAction]);
+  const requestDraw = useCallback(() => {
+    if (gs && gs.phase !== 'game_over') dispatchAction({ action: 'request_draw' });
+  }, [gs, dispatchAction]);
+  const respondDraw = useCallback((accepted: boolean) => {
+    dispatchAction({ action: 'respond_draw', accepted });
+    setPendingDrawRequest(null);
+  }, [dispatchAction]);
   const submitBo3Deck = useCallback((deckCardIds: number[]) => {
     send({ action: 'submit_bo3_deck', deck_card_ids: deckCardIds });
   }, [send]);
@@ -418,7 +451,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
   });
 
   return {
-    session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn,
+    session, gs, announcerData, closeAnnouncer, connected, reconnecting, logs, my, opp, phase, isMyTurn, pendingDrawRequest,
     cardEffects: gameEvents.cardEffects,
     selectedHandIdx, selectedMulligan, selectedFieldUid, selectedHandCard, selectedMyFieldCard, detailCard,
     mulliganAnimatingIndex, mulliganCinematicCard, mulliganReplacementCard, isMulliganCinematicActive,
@@ -442,7 +475,7 @@ export function useOnlineGameController(gameId: string, options?: { spectate?: b
     skipJetpackCat: sharedActions.skipJetpackCat,
     resolveSpellChoice: sharedActions.resolveSpellChoice,
     handleEndMainButton: sharedActions.handleEndMainButton,
-    leaveGame, surrenderGame,
+    leaveGame, surrenderGame, requestDraw, respondDraw,
     submitBo3Deck, chooseBo3FirstPlayer,
     bo3OpeningHandAnimationKey,
     setDetailCard, setSelectedFieldUid, setActionMode, setColumnChoice, setPendingSpell, setPendingSpellName,

@@ -306,9 +306,12 @@ const GamePage: React.FC = () => {
   const isBetweenBo3Rounds = isGameOver && !!bo3?.pending_round_result;
   const isFinalGameOver = isGameOver && !isBetweenBo3Rounds;
   const isWinner = !isSpectator && isGameOver && vm.gs?.winner === session?.player_id;
-  const resultTitle = !isGameOver ? '' : isSpectator ? '게임 종료' : isWinner ? '승리!' : '패배';
+  const isDrawGame = isFinalGameOver && vm.gs?.winner == null;
+  const resultTitle = !isGameOver ? '' : isDrawGame ? '무승부' : isSpectator ? '게임 종료' : isWinner ? '승리!' : '패배';
   const resultSubtitle = !isGameOver
       ? ''
+      : isDrawGame
+          ? '무승부로 게임이 종료되었습니다.'
       : isSpectator
           ? '관전 중이던 경기가 종료되었습니다.'
       : isWinner
@@ -322,6 +325,12 @@ const GamePage: React.FC = () => {
     if (!confirmed) return;
     vm.surrenderGame();
     // navigate('/');
+  };
+
+  const handleDrawRequest = () => {
+    if (isSpectator) return;
+    if (isFinalGameOver) return;
+    vm.requestDraw();
   };
 
   const getBo3RemovalCount = React.useCallback((entries: Record<number, number>) => {
@@ -698,8 +707,8 @@ const GamePage: React.FC = () => {
             {isSpectator ? '양쪽 손패 비공개 관전' : `상대: ${vm.opp.username || '상대'} · 패:${vm.opp.hand_count} · 덱:${vm.opp.draw_pile_count}`}
           </div>
           <div className={`game-conn-badge ${vm.connected ? 'ok' : vm.reconnecting ? 'retry' : 'off'}`}>{vm.connected ? '연결됨' : vm.reconnecting ? '재연결 중…' : '오프라인'}</div>
-          {!isSpectator && <button onClick={handleSurrender} disabled={isFinalGameOver} style={{ ...BTN_SM, background: '#4b1f2d', opacity: isFinalGameOver ? 0.5 : 1 }}>항복</button>}
-          <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>
+          {!isSpectator && <button onClick={handleSurrender} disabled={isFinalGameOver} style={{ ...BTN_SM, background: '#8f1020', opacity: isFinalGameOver ? 0.5 : 1 }}>항복</button>}
+          {!isSpectator && <button onClick={handleDrawRequest} disabled={isFinalGameOver} style={{ ...BTN_SM, background: '#123e63', opacity: isFinalGameOver ? 0.5 : 1 }}>무승부</button>}
         </>
       }
       banners={banners}
@@ -1006,12 +1015,24 @@ const GamePage: React.FC = () => {
             </div>
           </div>
       )}
+      {vm.pendingDrawRequest && !isSpectator && !isFinalGameOver && (
+          <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="game-result-modal game-draw-request-modal">
+              <h2>무승부 요청</h2>
+              <p>{vm.pendingDrawRequest.requesterName || '상대방'}이 무승부를 요청했습니다.</p>
+              <div className="game-draw-request-actions">
+                <button onClick={() => vm.respondDraw(false)} style={{ ...BTN_SM, background: '#4a5268' }}>취소</button>
+                <button onClick={() => vm.respondDraw(true)} style={{ ...BTN_SM, background: '#123e63' }}>확인</button>
+              </div>
+            </div>
+          </div>
+      )}
       {isFinalGameOver && (
           <div className="game-result-modal-backdrop" role="dialog" aria-modal="true">
-            <div className={`game-result-modal ${isWinner ? 'win' : 'lose'}`}>
+            <div className={`game-result-modal ${isDrawGame ? '' : isWinner ? 'win' : 'lose'}`}>
               <h2>{resultTitle}</h2>
               <p>{resultSubtitle}</p>
-              <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: isWinner ? '#136b34' : '#6b1f2a' }}>
+              <button onClick={() => { vm.leaveGame(); navigate('/'); }} style={{ ...BTN_SM, background: isDrawGame ? '#123e63' : isWinner ? '#136b34' : '#6b1f2a' }}>
                 로비로 이동
               </button>
             </div>
