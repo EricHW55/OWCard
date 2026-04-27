@@ -32,14 +32,19 @@ def bastion_recon(caster: FieldCard, target: FieldCard, game: GameState) -> dict
 def freja_updraft(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     """
     상승기류
-    - 에어본 3턴 유지 (내턴 -> 상대턴 -> 다음 내턴)
+    - DB skill_meta.skill_1.duration 턴 유지 (기본 3: 내턴 -> 상대턴 -> 다음 내턴)
     - 재사용 시 지속시간 갱신
     """
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    duration = int(raw_meta.get("duration", raw_meta.get("airborne_duration", 3)) or 3)
     caster.remove_status("airborne")
-    caster.add_status(Airborne(duration=3, source_uid=caster.uid))
+    caster.add_status(Airborne(duration=duration, source_uid=caster.uid))
     return {
         "success": True,
         "skill": "상승기류",
+        "duration": duration,
         "message": "에어본 상태 돌입 (내턴-니턴-내턴 유지)",
     }
 
@@ -49,7 +54,6 @@ def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     정조준
     - 에어본 상태에서만 사용 가능
     - 8 데미지
-    - 사용 후 에어본 해제
     """
     if not caster.has_status("airborne"):
         return {"success": False, "message": "에어본 상태에서만 사용 가능"}
@@ -59,13 +63,12 @@ def freja_lockon(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 
     dmg = game.get_skill_damage(caster, "skill_2")
     result = target.take_damage(dmg)
-    caster.remove_status("airborne")
 
     return {
         "success": True,
         "skill": "정조준",
         "damage_log": result,
-        "message": "정조준 사용 후 착지",
+        "message": "정조준 사용",
     }
     
 # ── 파라 ──────────────────────────────────
@@ -127,7 +130,20 @@ def tracer_pulse(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
 def tracer_recall(caster: FieldCard, target: FieldCard, game: GameState) -> dict:
     last = caster.extra.get("last_hp", caster.current_hp)
     caster.current_hp = min(caster.max_hp, last)
-    return {"success": True, "skill": "역행", "hp_restored_to": caster.current_hp}
+    raw_meta = (caster.skill_meta or {}).get("skill_2", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    clear_statuses = raw_meta.get("clear_statuses")
+    if isinstance(clear_statuses, list):
+        removed = caster.clear_statuses_by_name([str(name) for name in clear_statuses])
+    else:
+        removed = []
+        for status in list(caster.statuses):
+            if "debuff" in (status.tags or []):
+                removed_status = caster.remove_status(status.name)
+                if removed_status:
+                    removed.append(removed_status)
+    return {"success": True, "skill": "역행", "hp_restored_to": caster.current_hp, "removed_statuses": removed}
 
 # ── 위도우메이커 ──────────────────────────
 @register_passive("widowmaker")

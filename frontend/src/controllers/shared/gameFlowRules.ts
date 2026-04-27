@@ -31,6 +31,7 @@ export function resolveSkillPreparation(caster: FieldCard, skillKey: string): Sk
 export function canSelectHazardWallEmptySlot(params: {
   caster: FieldCard | null;
   actionMode: string | null;
+  myField?: FieldState | null;
   opponentField?: FieldState | null;
   zone: 'main' | 'side';
   role: 'tank' | 'dealer' | 'healer';
@@ -39,7 +40,7 @@ export function canSelectHazardWallEmptySlot(params: {
 }) {
   if (params.actionMode !== 'skill_1') return false;
   if (!params.caster || getHeroKey(params.caster) !== 'hazard') return false;
-  if (!params.isOpponent) return false;
-  const cards = params.zone === 'main' ? (params.opponentField?.main || []) : (params.opponentField?.side || []);
+  const field = params.isOpponent ? params.opponentField : params.myField;
+  const cards = params.zone === 'main' ? (field?.main || []) : (field?.side || []);
   return !cards.some((card: any) => card.role === params.role && Number(card?.extra?.slot_index ?? 0) === params.slotIndex);
 }

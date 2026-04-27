@@ -144,9 +144,10 @@ export function useSharedGameFlowActions(params: {
   }) => canSelectHazardWallEmptySlot({
     caster: selectedMyFieldCard,
     actionMode: state.actionMode,
+    myField: my?.field,
     opponentField,
     ...slot,
-  }), [opponentField, selectedMyFieldCard, state.actionMode]);
+  }), [my?.field, opponentField, selectedMyFieldCard, state.actionMode]);
 
   const handleEmptySlotSelect = useCallback((slot: {
     zone: 'main' | 'side';
@@ -155,7 +156,7 @@ export function useSharedGameFlowActions(params: {
     isOpponent: boolean;
   }) => {
     if (!selectedMyFieldCard || !canSelectEmptySlot(slot)) return;
-    if (!canAct({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: 'skill_1', target_zone: slot.zone, target_role: slot.role, target_slot_index: slot.slotIndex })) return;
+    if (!canAct({ action: 'use_skill', caster_uid: selectedMyFieldCard.uid, skill_key: 'skill_1', target_zone: slot.zone, target_role: slot.role, target_slot_index: slot.slotIndex, target_side: slot.isOpponent ? 'opponent' : 'ally' })) return;
     sendAction({
       action: 'use_skill',
       caster_uid: selectedMyFieldCard.uid,
@@ -163,6 +164,7 @@ export function useSharedGameFlowActions(params: {
       target_zone: slot.zone,
       target_role: slot.role,
       target_slot_index: slot.slotIndex,
+      target_side: slot.isOpponent ? 'opponent' : 'ally',
     });
     const roleLabel = slot.role === 'tank' ? '탱커' : slot.role === 'dealer' ? '딜러' : '힐러';
     addLog(selectedMyFieldCard.name + ' - 가시벽 (' + roleLabel + ' ' + (slot.slotIndex + 1) + '번 칸)');
@@ -204,7 +206,7 @@ export function useSharedGameFlowActions(params: {
       const caster = allMyField.find((fieldCard) => fieldCard.uid === state.selectedFieldUid);
       if (caster) {
         if (state.actionMode === 'skill_1' && getHeroKey(caster) === 'hazard') {
-          showSystemNotice('가시벽', '상대 본대의 빈 공간을 클릭하세요', 1500);
+          showSystemNotice('가시벽', '빈 공간을 클릭하세요', 1500);
           return;
         }
         if (state.actionMode === 'skill_1' && !isOpponent && getHeroKey(caster) === 'symmetra') {
@@ -328,7 +330,7 @@ export function useSharedGameFlowActions(params: {
     setters.setColumnChoice(null);
     setters.setActionMode(skillKey);
     addLog(selectedMyFieldCard.name + ' - ' + preparation.skillName + ' 준비');
-    if (preparation.kind === 'hazard_wall') showSystemNotice(preparation.skillName, '상대 본대의 빈 공간을 클릭하세요', 1400);
+    if (preparation.kind === 'hazard_wall') showSystemNotice(preparation.skillName, '아군 또는 상대의 빈 공간을 클릭하세요', 1400);
     else showSystemNotice(preparation.skillName, selectedMyFieldCard.name + ' 준비', 900);
   }, [addLog, canAct, clearDuplicateTarget, clearSpellSelection, selectedMyFieldCard, sendAction, setters, showSystemNotice, state.pendingSpell, state.selectedHandIdx]);
 

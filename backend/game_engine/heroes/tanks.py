@@ -478,6 +478,7 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
     role_raw = str(caster.extra.get("_skill_target_role") or "").lower()
     slot_raw = caster.extra.get("_skill_target_slot_index")
     slot_index = int(slot_raw) if slot_raw is not None else None
+    side = str(caster.extra.get("_skill_target_side") or "opponent").lower()
 
     if zone not in {Zone.MAIN.value, Zone.SIDE.value}:
         return {"success": False, "message": "가시벽 설치 위치는 main 또는 side 여야 합니다"}
@@ -494,12 +495,13 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
     role = Role(role_raw)
     slot = 0 if slot_index is None else int(slot_index)
     target_zone = Zone(zone)
+    target_field = game.get_my_field(caster) if side in {"ally", "my"} else game.get_enemy_field(caster)
+    is_ally_wall = target_field.find_card(caster.uid) is not None
 
-    enemy_field = game.get_enemy_field(caster)
     hp = int(caster.extra.get("hazard_wall_hp", 6) or 6)
     wall_description = str(caster.extra.get("hazard_wall_description") or "해저드 설치물")
 
-    cards_in_zone = enemy_field.main_cards if target_zone == Zone.MAIN else enemy_field.side_cards
+    cards_in_zone = target_field.main_cards if target_zone == Zone.MAIN else target_field.side_cards
     for card in cards_in_zone:
         if not card.alive:
             continue
@@ -509,13 +511,14 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
         if card_slot == slot:
             return {"success": False, "message": "선택한 칸이 비어있지 않습니다"}
 
-    existing_walls = [
-        c for c in enemy_field.main_cards
-        if c.alive and c.extra.get("token_kind") == "hazard_wall" and c.extra.get("source_uid") == caster.uid
-    ]
-    for wall in existing_walls:
-        wall.current_hp = 0
-    enemy_field.remove_dead()
+    for field in (game.get_my_field(caster), game.get_enemy_field(caster)):
+        existing_walls = [
+            c for c in (field.main_cards + field.side_cards)
+            if c.alive and c.extra.get("token_kind") == "hazard_wall" and c.extra.get("source_uid") == caster.uid
+        ]
+        for wall in existing_walls:
+            wall.current_hp = 0
+        field.remove_dead()
 
     wall = FC(
         uid=uuid.uuid4().hex[:8],
@@ -535,13 +538,14 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
     wall.extra["_hero_key"] = "hazard_wall"
     wall.extra["slot_index"] = slot
     wall.zone = target_zone
-    wall.add_status(Exposed(duration=-1, source_uid=caster.uid))
-    wall.add_status(HealBlock(duration=-1, source_uid=caster.uid))
+    if not is_ally_wall:
+        wall.add_status(Exposed(duration=-1, source_uid=caster.uid))
+        wall.add_status(HealBlock(duration=-1, source_uid=caster.uid))
 
     if target_zone == Zone.MAIN:
-        enemy_field.main_cards.append(wall)
+        target_field.main_cards.append(wall)
     else:
-        enemy_field.side_cards.append(wall)
+        target_field.side_cards.append(wall)
 
     return {
         "success": True,
@@ -552,6 +556,7 @@ def hazard_thorn_wall(caster: FieldCard, target: FieldCard, game: GameState) -> 
         "zone": target_zone.value,
         "role": role.value,
         "slot_index": slot,
+        "side": "ally" if is_ally_wall else "opponent",
     }
 
 

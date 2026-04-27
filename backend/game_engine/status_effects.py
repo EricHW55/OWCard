@@ -609,21 +609,20 @@ class Immortality(StatusEffect):
 
 @dataclass
 class Reflect(StatusEffect):
-    """튕겨내기: 치명타 반사. 1회성."""
+    """튕겨내기: 치명타 반사. 발동한 턴 동안 유지."""
     name: str = "reflect"
     visible_to_opponent: bool = False
     tags: list[str] = field(default_factory=lambda: ["buff"])
+    triggered: bool = False
 
     def on_take_damage(self, card, damage, **kwargs):
-        if card.current_hp - damage <= 0:
-            # 발동 즉시 소모
-            card.remove_status(self.name)
+        if self.triggered or card.current_hp - damage <= 0:
+            self.triggered = True
             return {"damage": 0, "reflect": damage}
         return {"damage": damage}
     
     def on_death(self, card):
-        # 지속/상태 효과로 인한 치명 피해에도 1회 생존 보장
-        card.remove_status(self.name)
+        self.triggered = True
         return {"prevent_death": True, "set_hp": 1}
 
 

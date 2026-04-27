@@ -1148,7 +1148,8 @@ class GameEngine:
                   skill_key: str, target_uid: str | None = None,
                   target_zone: str | None = None,
                   target_role: str | None = None,
-                  target_slot_index: int | None = None) -> dict:
+                  target_slot_index: int | None = None,
+                  target_side: str | None = None) -> dict:
         """스킬 사용. 레지스트리에서 함수를 찾아 실행."""
         if player_id != self.current_player_id or self.phase != GamePhase.ACTION:
             return {"error": "Not your turn / wrong phase"}
@@ -1215,6 +1216,7 @@ class GameEngine:
             "_skill_target_zone": target_zone,
             "_skill_target_role": target_role,
             "_skill_target_slot_index": target_slot_index,
+            "_skill_target_side": target_side,
         }
         original_target_keys = {k: caster.extra.get(k) for k in temp_target_keys}
         try:
@@ -1448,6 +1450,8 @@ class GameEngine:
         turn_end_logs = ps.field.process_all_turn_end()
         ps.placement_cost_used = 0
         turn_end_logs.extend(self._process_pending_end_turn_effects(player_id))
+        turn_end_logs.extend(ps.field.clear_triggered_reflects())
+        turn_end_logs.extend(opp.field.clear_triggered_reflects())
 
         # 양쪽 사망 카드 → 각자 트래시로 (전체 카드 데이터 저장)
         self._collect_dead_to_trash(ps)

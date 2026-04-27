@@ -743,6 +743,15 @@ class Field:
             logs.extend(card.process_turn_end())
         return logs
 
+    def clear_triggered_reflects(self) -> list[dict]:
+        removed: list[dict] = []
+        for card in self.all_cards():
+            for status in list(card.statuses):
+                if status.name == "reflect" and bool(getattr(status, "triggered", False)):
+                    card.remove_status(status.name)
+                    removed.append({"uid": card.uid, "status_expired": status.name})
+        return removed
+
     def mark_all_available(self):
         for card in self.all_cards():
             card.placed_this_turn = False

@@ -348,6 +348,7 @@ async def _handle_action(game_id: str, player_id: int, data: dict, engine: GameE
             target_zone=data.get("target_zone"),
             target_role=data.get("target_role"),
             target_slot_index=data.get("target_slot_index"),
+            target_side=data.get("target_side"),
         )
     elif action == "execute_spell":
         result = engine.execute_spell(

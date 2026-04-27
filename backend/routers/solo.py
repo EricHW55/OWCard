@@ -172,6 +172,7 @@ async def act_solo(solo_game_id: str, req: SoloActionRequest):
             target_zone=payload.get('target_zone'),
             target_role=payload.get('target_role'),
             target_slot_index=payload.get('target_slot_index'),
+            target_side=payload.get('target_side'),
         )
     elif action == 'execute_spell':
         result = engine.execute_spell(

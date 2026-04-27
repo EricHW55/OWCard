@@ -876,13 +876,17 @@ def spell_deflect(caster: FieldCard, target: FieldCard, game: GameState) -> dict
     if not target:
         return {"success": False, "message": "아군을 선택하세요"}
 
+    raw_meta = (caster.skill_meta or {}).get("skill_1", {})
+    if not isinstance(raw_meta, dict):
+        raw_meta = {}
+    duration = int(raw_meta.get("duration", -1) or -1)
     target.add_status(Reflect(
-        duration=-1,  # 발동될 때까지 영구
+        duration=duration,
         source_uid="spell",
         visible_to_opponent=False,
         tags=["buff", "install"],
     ))
-    return {"success": True, "skill": "튕겨내기", "target": target.uid, "hidden": True}
+    return {"success": True, "skill": "튕겨내기", "target": target.uid, "hidden": True, "duration": duration}
 
 
 @register_skill("spell_steel_trap", "skill_1")
