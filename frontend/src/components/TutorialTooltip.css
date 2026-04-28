@@ -3,7 +3,7 @@
     inset: 0;
     z-index: 84;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
     padding: 22px;
     box-sizing: border-box;
@@ -55,9 +55,27 @@
 }
 
 .tutorial-tooltip-text {
+    min-height: 54px;
     font-size: 18px;
     line-height: 1.5;
     font-weight: 800;
+}
+
+.tutorial-tooltip-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    margin-left: 2px;
+    background: #ffbe62;
+    vertical-align: -0.14em;
+    animation: tutorialCaretBlink 620ms steps(2, end) infinite;
+}
+
+@keyframes tutorialCaretBlink {
+    0%,
+    45% { opacity: 1; }
+    46%,
+    100% { opacity: 0; }
 }
 
 .tutorial-tooltip-hint {

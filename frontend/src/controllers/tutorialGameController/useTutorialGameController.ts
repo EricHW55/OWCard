@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BattleLogActor, BattleLogEntry, CardVisualEffect, FieldCard, FieldState, HandCard, StatusEffect } from '../../types/game';
 import type { TutorialTooltipData } from '../../components/TutorialTooltip';
+import type { AnnouncerData } from '../../components/GameAnnouncer';
 import { TUTORIAL_CARDS, TUTORIAL_OPPONENT_HAND, TUTORIAL_PLAYER_HAND, TUTORIAL_SCRIPT, type TutorialCardDefinition, type TutorialScriptAction } from './tutorialScript';
 import { getCardArtCandidates, getCardImageSrc } from '../../utils/heroImage';
 
@@ -112,6 +113,7 @@ export function useTutorialGameController() {
   const [detailCard, setDetailCard] = useState<FieldCard | HandCard | null>(null);
   const [logs, setLogs] = useState<BattleLogEntry[]>([]);
   const [cardEffects, setCardEffects] = useState<Record<string, CardVisualEffect>>({});
+  const [announcerData, setAnnouncerData] = useState<AnnouncerData | null>(null);
   const [busy, setBusy] = useState(false);
   const timersRef = useRef<number[]>([]);
   const logSeqRef = useRef(0);
@@ -124,6 +126,10 @@ export function useTutorialGameController() {
 
   const pushLog = useCallback((entry: Omit<BattleLogEntry, 'id'>) => {
     setLogs((prev) => [...prev.slice(-199), { ...entry, id: `tutorial-log-${Date.now()}-${logSeqRef.current++}` }]);
+  }, []);
+
+  const showPhaseAnnouncer = useCallback((title: string, subtitle?: string, duration = 1500) => {
+    setAnnouncerData({ type: 'phase', title, subtitle, duration });
   }, []);
 
   const showBlocked = useCallback((text = expectedHint || '지금은 튜토리얼이 안내하는 행동만 할 수 있습니다.') => {
@@ -303,11 +309,13 @@ export function useTutorialGameController() {
       if (step.type === 'auto_place') {
         setActiveSide('opponent');
         setPhase('placement');
+        showPhaseAnnouncer('상대 배치 단계', '튜토리얼 대본에 따라 상대가 행동합니다.', 1500);
         placeCardByKey('opponent', step.cardKey, step.zone, step.slotIndex);
       } else if (step.type === 'auto_end_placement') {
         setPhase('action');
         setPlayers((prev) => ({ ...prev, top: { ...prev.top, field: setPlacedReady(prev.top.field), placementUsed: 0 } }));
         pushLog({ type: 'turn', team: 'neutral', text: '상대 전투 단계' });
+        showPhaseAnnouncer('상대 전투 단계', '상대 영웅이 스킬을 사용합니다.', 1500);
       } else if (step.type === 'auto_skill') {
         setPhase('action');
         executeSkill(step.casterUid, step.targetUid, 'opponent');
@@ -320,12 +328,13 @@ export function useTutorialGameController() {
           top: { ...prev.top, field: setPlacedReady(prev.top.field), placementUsed: 0 },
         }));
         pushLog({ type: 'turn_end', team: 'opponent', text: '상대 턴 종료' });
+        showPhaseAnnouncer('내 배치 단계', `${round + 1}턴을 시작합니다.`, 1500);
       }
       setBusy(false);
       setStepIndex((prev) => prev + 1);
     }, step.delayMs);
     timersRef.current.push(timerId);
-  }, [executeSkill, placeCardByKey, pushLog, stepIndex]);
+  }, [executeSkill, placeCardByKey, pushLog, round, showPhaseAnnouncer, stepIndex]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (tooltip || busy || activeSide !== 'player') {
@@ -385,6 +394,7 @@ export function useTutorialGameController() {
       setPhase('action');
       setPlayers((prev) => ({ ...prev, bottom: { ...prev.bottom, field: setPlacedReady(prev.bottom.field), placementUsed: 0 } }));
       pushLog({ type: 'turn', team: 'neutral', text: '전투 단계' });
+      showPhaseAnnouncer('전투 단계', '배치한 영웅의 스킬을 사용할 수 있습니다.', 1500);
       advance();
       return;
     }
@@ -393,11 +403,12 @@ export function useTutorialGameController() {
       setPhase('placement');
       setPlayers((prev) => ({ ...prev, top: { ...prev.top, placementUsed: 0 } }));
       pushLog({ type: 'turn_end', team: 'my', text: '턴 종료' });
+      showPhaseAnnouncer('상대 턴', '잠시 후 상대가 자동으로 행동합니다.', 1500);
       advance();
       return;
     }
     showBlocked();
-  }, [advance, busy, currentStep, pushLog, showBlocked, tooltip]);
+  }, [advance, busy, currentStep, pushLog, showBlocked, showPhaseAnnouncer, tooltip]);
 
   const prepareSkill = useCallback((skillKey: string) => {
     if (tooltip || busy || currentStep?.type !== 'player_skill' || !selectedMyFieldCard || selectedMyFieldCard.uid !== currentStep.casterUid || skillKey !== 'skill_1') {
@@ -457,6 +468,8 @@ export function useTutorialGameController() {
   return {
     loading: false,
     error: null,
+    announcerData,
+    closeAnnouncer: () => setAnnouncerData(null),
     players,
     phase,
     round,

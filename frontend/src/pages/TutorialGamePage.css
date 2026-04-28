@@ -1,13 +1,46 @@
-.tutorial-context-stack {
-    display: grid;
-    gap: 10px;
-}
-
-.tutorial-hint-panel {
-    border-color: rgba(255, 190, 98, 0.72);
-    box-shadow: 0 0 18px rgba(255, 190, 98, 0.18);
-}
-
 .tutorial-endturn {
     box-shadow: 0 0 14px rgba(255, 190, 98, 0.28);
+}
+
+.tutorial-goal-banner {
+    position: fixed;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    z-index: 52;
+    width: min(760px, calc(100vw - 28px));
+    transform: translateX(-50%);
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    text-align: center;
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 190, 98, 0.74);
+    background: rgba(7, 16, 43, 0.88);
+    color: #f7fbff;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34), 0 0 20px rgba(255, 190, 98, 0.18);
+    pointer-events: none;
+}
+
+.tutorial-goal-banner span {
+    color: #ffbe62;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.tutorial-goal-banner strong {
+    font-size: 22px;
+    line-height: 1.25;
+    font-weight: 900;
+}
+
+@media (max-width: 720px) {
+    .tutorial-goal-banner {
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        padding: 10px 12px;
+    }
+
+    .tutorial-goal-banner strong {
+        font-size: 17px;
+    }
 }

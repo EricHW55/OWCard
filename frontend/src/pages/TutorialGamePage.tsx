@@ -17,14 +17,20 @@ const TutorialGamePage: React.FC = () => {
 
   return (
     <GameScreen
-      announcerData={null}
-      onCloseAnnouncer={noop}
+      announcerData={vm.announcerData}
+      onCloseAnnouncer={vm.closeAnnouncer}
       topbarLeft={<><span className="game-round-pill">Tutorial</span><span className="game-phase-pill">{phaseLabel(vm.phase)}</span></>}
       topbarCenter={<>튜토리얼 {vm.round}턴</>}
       topbarRight={<button onClick={() => navigate('/')} style={{ ...BTN_SM, background: '#1a2342' }}>나가기</button>}
       banners={[
+        vm.expectedHint ? (
+          <div key="tutorial-goal" className="tutorial-goal-banner">
+            <span>튜토리얼 목표</span>
+            <strong>{vm.expectedHint}</strong>
+          </div>
+        ) : null,
         <TutorialTooltip key="tutorial-tooltip" tooltip={vm.tooltip} onRead={vm.readTooltip} />,
-      ]}
+      ].filter(Boolean)}
       topField={{
         field: vm.players.top.field,
         isOpponent: true,
@@ -56,14 +62,6 @@ const TutorialGamePage: React.FC = () => {
       }}
       contextPanel={
         <div className="tutorial-context-stack">
-          {vm.expectedHint && (
-            <div className="game-context-panel tutorial-hint-panel">
-              <div className="game-context-head">
-                <span className="game-toolbar-title">튜토리얼 목표</span>
-                <span className="game-context-subtext">{vm.expectedHint}</span>
-              </div>
-            </div>
-          )}
           <OnlineContextPanel
             show={vm.showContextPanel}
             phase={vm.phase}
