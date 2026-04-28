@@ -2,12 +2,31 @@ export type BgmType = 'lobby' | 'ingame';
 
 const BGM_SOURCE: Record<BgmType, string[]> = {
     lobby: ['/sounds/bgm/lobby.ogg', '/sounds/bgm/lobby.mp3'],
-    ingame: ['/sounds/bgm/ingame.ogg'],
+    ingame: ['/sounds/bgm/game.ogg', '/sounds/bgm/game.mp3'],
 };
 
 const DEFAULT_BGM_VOLUME = 0.4;
-const PLACE_VOLUME = 1;
+const DEFAULT_PLACEMENT_VOLUME = 1;
+const BGM_VOLUME_STORAGE_KEY = 'ow_card_game_bgm_volume';
+const PLACEMENT_VOLUME_STORAGE_KEY = 'ow_card_game_placement_volume';
 const UNLOCK_EVENT_OPTIONS: AddEventListenerOptions = { capture: true, passive: true };
+
+function clampVolume(value: number): number {
+    return Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+}
+
+function readStoredVolume(key: string, fallback: number): number {
+    if (typeof window === 'undefined') return fallback;
+    const raw = window.localStorage.getItem(key);
+    if (raw === null) return fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? clampVolume(parsed) : fallback;
+}
+
+function writeStoredVolume(key: string, value: number) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(key, String(clampVolume(value)));
+}
 
 function fadeOutAudio(audio: HTMLAudioElement, durationMs = 450): Promise<void> {
     return new Promise((resolve) => {
@@ -44,6 +63,31 @@ class SoundManager {
     private placementAudio: HTMLAudioElement | null = null;
     private pendingBgmType: BgmType | null = null;
     private unlockListenersAttached = false;
+    private bgmVolume = readStoredVolume(BGM_VOLUME_STORAGE_KEY, DEFAULT_BGM_VOLUME);
+    private placementVolume = readStoredVolume(PLACEMENT_VOLUME_STORAGE_KEY, DEFAULT_PLACEMENT_VOLUME);
+
+    getVolumeSettings() {
+        return {
+            bgmVolume: this.bgmVolume,
+            placementVolume: this.placementVolume,
+        };
+    }
+
+    setBgmVolume(value: number) {
+        this.bgmVolume = clampVolume(value);
+        writeStoredVolume(BGM_VOLUME_STORAGE_KEY, this.bgmVolume);
+        if (this.bgmAudio) {
+            this.bgmAudio.volume = this.bgmVolume;
+        }
+    }
+
+    setPlacementVolume(value: number) {
+        this.placementVolume = clampVolume(value);
+        writeStoredVolume(PLACEMENT_VOLUME_STORAGE_KEY, this.placementVolume);
+        if (this.placementAudio) {
+            this.placementAudio.volume = this.placementVolume;
+        }
+    }
 
     async ensureBgm(type: BgmType): Promise<void> {
         if (typeof window === 'undefined') return;
@@ -54,14 +98,14 @@ class SoundManager {
                     this.pendingBgmType = null;
                     this.detachUnlockListeners();
                     if (this.bgmAudio.volume <= 0.01) {
-                        this.fadeIn(this.bgmAudio, DEFAULT_BGM_VOLUME, 500);
+                        this.fadeIn(this.bgmAudio, this.bgmVolume, 500);
                     }
                 } catch {
                     this.pendingBgmType = type;
                     this.attachUnlockListeners();
                 }
             } else if (this.bgmAudio.volume <= 0.01) {
-                this.fadeIn(this.bgmAudio, DEFAULT_BGM_VOLUME, 500);
+                this.fadeIn(this.bgmAudio, this.bgmVolume, 500);
             }
             return;
         }
@@ -104,7 +148,7 @@ class SoundManager {
         this.pendingBgmType = null;
         this.detachUnlockListeners();
 
-        this.fadeIn(nextAudio, DEFAULT_BGM_VOLUME, 500);
+        this.fadeIn(nextAudio, this.bgmVolume, 500);
     }
 
     private fadeIn(audio: HTMLAudioElement, targetVolume: number, durationMs = 500) {
@@ -130,7 +174,7 @@ class SoundManager {
 
         const nextAudio = new Audio(soundUrl);
         nextAudio.preload = 'auto';
-        nextAudio.volume = PLACE_VOLUME;
+        nextAudio.volume = this.placementVolume;
 
         const previous = this.placementAudio;
         this.placementAudio = nextAudio;

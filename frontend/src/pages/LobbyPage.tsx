@@ -10,6 +10,7 @@ import {
     preloadImageAssets,
 } from '../utils/heroImage';
 import { soundManager } from '../utils/soundManager';
+import SettingsModal from '../components/SettingsModal';
 import './LobbyPage.css';
 
 interface RoomInfo {
@@ -144,6 +145,7 @@ const LobbyPage: React.FC = () => {
     const [showPlayModal, setShowPlayModal] = useState(false);
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
     const [showSoloDeckModal, setShowSoloDeckModal] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [isLobbyReady, setIsLobbyReady] = useState(false);
     const [quickMatchDeckId, setQuickMatchDeckId] = useState<number>(1);
     const [soloBottomDeckId, setSoloBottomDeckId] = useState<number>(1);
@@ -900,6 +902,16 @@ const LobbyPage: React.FC = () => {
 
     return (
         <div className={`lobby-page ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
+            {useCompactMenuLayout && (
+                <button
+                    type="button"
+                    className="mobile-settings-button"
+                    onClick={() => setShowSettingsModal(true)}
+                    aria-label="설정"
+                >
+                    ⚙
+                </button>
+            )}
             {queueing && (
                 <div className={`queue-status-banner ${useCompactMenuLayout ? 'mobile' : 'desktop'}`}>
                     <div className="queue-status-left">
@@ -965,6 +977,7 @@ const LobbyPage: React.FC = () => {
                                     {session?.is_admin && (
                                         <button className={`menu-text-item ${activeMenu === 'admin' ? 'active' : ''}`} onClick={() => openMenu('admin')}>관리자 페이지</button>
                                     )}
+                                    <button className="menu-text-item settings-menu-text-item" onClick={() => setShowSettingsModal(true)}>설정</button>
                                 </div>
                             )}
                         </>
@@ -1233,6 +1246,8 @@ const LobbyPage: React.FC = () => {
                     <div className="lobby-initial-loader-text">로비 리소스를 불러오는 중입니다…</div>
                 </div>
             )}
+
+            <SettingsModal open={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
 
             <div className="lobby-critical-assets" aria-hidden="true">
                 {CRITICAL_LOBBY_ICON_SOURCES.map((src) => (
