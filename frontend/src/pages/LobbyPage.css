@@ -624,6 +624,59 @@
     font-size: 18px;
 }
 
+.rules-choice-modal {
+    width: min(620px, 92vw);
+}
+
+.rules-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.rules-choice-card {
+    min-height: 150px;
+    border: 1px solid rgba(109, 141, 230, 0.55);
+    border-radius: 14px;
+    background: linear-gradient(160deg, rgba(42, 57, 112, 0.92), rgba(22, 34, 80, 0.92));
+    color: #f3f7ff;
+    padding: 18px;
+    display: grid;
+    align-content: space-between;
+    gap: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 200ms ease, border-color 200ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+
+.rules-choice-card:hover {
+    border-color: rgba(255, 255, 255, 0.92);
+    transform: translateY(-4px) scale(1.02);
+}
+
+.rules-choice-card.tutorial:hover {
+    background: linear-gradient(160deg, rgba(31, 161, 155, 0.94), rgba(17, 87, 120, 0.94));
+    box-shadow: 0 18px 40px rgba(60, 224, 210, 0.38);
+}
+
+.rules-choice-card.notion:hover {
+    background: linear-gradient(160deg, rgba(84, 103, 214, 0.94), rgba(43, 57, 144, 0.94));
+    box-shadow: 0 18px 40px rgba(84, 103, 214, 0.38);
+}
+
+.rules-choice-title {
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 900;
+}
+
+.rules-choice-desc {
+    color: #d3deff;
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
 .play-entry-grid {
     display: grid;
     gap: 14px;
@@ -1015,6 +1068,14 @@
     .play-entry-desc {
         font-size: 14px;
         line-height: 1.35;
+    }
+
+    .rules-choice-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rules-choice-card {
+        min-height: 120px;
     }
 }
 @media (max-height: 640px) {

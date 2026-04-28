@@ -143,6 +143,7 @@ const LobbyPage: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
     const [playMode, setPlayMode] = useState<PlayMode>('none');
     const [showPlayModal, setShowPlayModal] = useState(false);
+    const [showRulesModal, setShowRulesModal] = useState(false);
     const [showQuickDeckModal, setShowQuickDeckModal] = useState(false);
     const [showSoloDeckModal, setShowSoloDeckModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -702,7 +703,7 @@ const LobbyPage: React.FC = () => {
             navigate('/deck-builder');
         }
         if (key === 'rules') {
-            navigate('/rules');
+            setShowRulesModal(true);
             return;
         }
         if (key === 'status-effects') {
@@ -1154,6 +1155,40 @@ const LobbyPage: React.FC = () => {
                                 <div className="play-entry-icon play-entry-icon-tutorial" aria-hidden="true" />
                                 <div className="play-entry-title">튜토리얼</div>
                                 <div className="play-entry-desc">정해진 대본을 따라 한 판을 끝까지 진행하며 기본 규칙을 익힙니다.</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showRulesModal && (
+                <div className="play-modal-backdrop" role="dialog" aria-modal="true">
+                    <div className="play-modal rules-choice-modal">
+                        <button className="play-modal-close" onClick={() => setShowRulesModal(false)}>×</button>
+                        <h3>게임 규칙</h3>
+                        <p>원하는 방식으로 규칙을 확인하세요.</p>
+                        <div className="rules-choice-grid">
+                            <button
+                                className="rules-choice-card tutorial"
+                                type="button"
+                                onClick={() => {
+                                    setShowRulesModal(false);
+                                    void ensureGameImageWarmup().then(() => navigate('/tutorial-game'));
+                                }}
+                            >
+                                <span className="rules-choice-title">튜토리얼 모드</span>
+                                <span className="rules-choice-desc">직접 플레이하면서 배치, 전투, 스킬 흐름을 익힙니다.</span>
+                            </button>
+                            <button
+                                className="rules-choice-card notion"
+                                type="button"
+                                onClick={() => {
+                                    setShowRulesModal(false);
+                                    navigate('/rules');
+                                }}
+                            >
+                                <span className="rules-choice-title">노션 규칙</span>
+                                <span className="rules-choice-desc">정리된 규칙 문서를 열어 자세한 내용을 확인합니다.</span>
                             </button>
                         </div>
                     </div>
