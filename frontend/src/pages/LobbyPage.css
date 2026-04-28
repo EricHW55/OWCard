@@ -630,7 +630,7 @@
 }
 
 .play-entry-grid.desktop {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .play-entry-grid.mobile {
@@ -786,6 +786,15 @@
     mask-image: url('../../public/UI/solo.svg');
 }
 
+.play-entry-icon-tutorial {
+    --entry-icon-color: #6fffd2;
+    --entry-glow-soft: rgba(111, 255, 210, 0.62);
+    --entry-glow-hard: rgba(226, 255, 247, 0.98);
+    --entry-ray-color: rgba(190, 255, 236, 0.98);
+    -webkit-mask-image: url('../../public/UI/solo.svg');
+    mask-image: url('../../public/UI/solo.svg');
+}
+
 .play-entry-icon-private::before {
     inset: -17px;
 }
@@ -884,6 +893,13 @@
     border-color: rgba(255, 255, 255, 0.92);
     transform: translateY(-5px) scale(1.03);
     box-shadow: 0 18px 40px rgba(255, 198, 62, 0.42);
+}
+
+.play-entry-card.tutorial:hover {
+    background: linear-gradient(160deg, rgba(31, 161, 155, 0.94), rgba(17, 87, 120, 0.94));
+    border-color: rgba(255, 255, 255, 0.92);
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 18px 40px rgba(60, 224, 210, 0.38);
 }
 
 .play-modal-close {

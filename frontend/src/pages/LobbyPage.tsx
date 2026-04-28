@@ -52,7 +52,7 @@ interface CardTemplateLite {
 type MenuKey = 'play' | 'deck' | 'rules' | 'status-effects' | 'admin';
 type PlayMode = 'none' | 'quick' | 'private';
 type MatchFormat = 'bo1' | 'bo3';
-type PlayEntryType = 'solo' | 'quick' | 'competitive' | 'private';
+type PlayEntryType = 'solo' | 'tutorial' | 'quick' | 'competitive' | 'private';
 type BackgroundMotionAxis = 'none' | 'horizontal' | 'vertical';
 const CRITICAL_LOBBY_ICON_SOURCES = ['/UI/quick.svg', '/UI/rank.svg', '/UI/private.svg', '/UI/solo.svg'] as const;
 
@@ -773,6 +773,13 @@ const LobbyPage: React.FC = () => {
     };
 
     const handlePlayEntrySelect = (entryType: PlayEntryType) => {
+        if (entryType === 'tutorial') {
+            setShowPlayModal(false);
+            void ensureGameImageWarmup().then(() => {
+                navigate('/tutorial-game');
+            });
+            return;
+        }
         if (entryType === 'solo') {
             setShowPlayModal(false);
             setShowSoloDeckModal(true);
@@ -1138,6 +1145,15 @@ const LobbyPage: React.FC = () => {
                                 <div className="play-entry-icon play-entry-icon-solo" aria-hidden="true" />
                                 <div className="play-entry-title">솔로 모드</div>
                                 <div className="play-entry-desc">혼자서 양쪽 진영을 조작하며 카드 배치와 스킬 흐름을 연습합니다.</div>
+                            </button>
+                            <button
+                                className="play-entry-card tutorial"
+                                onClick={() => handlePlayEntrySelect('tutorial')}
+                                type="button"
+                            >
+                                <div className="play-entry-icon play-entry-icon-tutorial" aria-hidden="true" />
+                                <div className="play-entry-title">튜토리얼</div>
+                                <div className="play-entry-desc">정해진 대본을 따라 한 판을 끝까지 진행하며 기본 규칙을 익힙니다.</div>
                             </button>
                         </div>
                     </div>

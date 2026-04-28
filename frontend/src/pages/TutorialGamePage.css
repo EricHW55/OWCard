@@ -1,0 +1,13 @@
+.tutorial-context-stack {
+    display: grid;
+    gap: 10px;
+}
+
+.tutorial-hint-panel {
+    border-color: rgba(255, 190, 98, 0.72);
+    box-shadow: 0 0 18px rgba(255, 190, 98, 0.18);
+}
+
+.tutorial-endturn {
+    box-shadow: 0 0 14px rgba(255, 190, 98, 0.28);
+}

@@ -5,6 +5,7 @@ import GamePage from './pages/GamePage';
 import DeckBuilderPage from './pages/DeckBuilderPage';
 import GameRulesPage from './pages/GameRulesPage';
 import SoloGamePage from './pages/SoloGamePage';
+import TutorialGamePage from './pages/TutorialGamePage';
 import StatusEffectsPage from './pages/StatusEffectsPage';
 import AdminPage from './pages/AdminPage';
 import { soundManager } from './utils/soundManager';
@@ -13,7 +14,7 @@ const RouteBgmController: React.FC = () => {
     const location = useLocation();
 
     React.useEffect(() => {
-        const isInGame = location.pathname.startsWith('/game/') || location.pathname === '/solo-game';
+        const isInGame = location.pathname.startsWith('/game/') || location.pathname === '/solo-game' || location.pathname === '/tutorial-game';
         void soundManager.ensureBgm(isInGame ? 'ingame' : 'lobby');
     }, [location.pathname]);
 
@@ -78,6 +79,7 @@ const App: React.FC = () => {
                 <Route path="/rules" element={<GameRulesPage />} />
                 <Route path="/game/:gameId" element={<GamePage />} />
                 <Route path="/solo-game" element={<SoloGamePage />} />
+                <Route path="/tutorial-game" element={<TutorialGamePage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
