@@ -25,6 +25,8 @@ const cloneHandCard = (key: string): HandCard => ({ ...TUTORIAL_CARDS[key] });
 const uidToKey = (uid: string) => Object.keys(TUTORIAL_CARDS).find((key) => TUTORIAL_CARDS[key].uid === uid) || '';
 type AutoTutorialStep = Extract<TutorialScriptAction, { delayMs: number }>;
 const isAutoStep = (step?: TutorialScriptAction): step is AutoTutorialStep => !!step && step.type.startsWith('auto_');
+const TUTORIAL_DAMAGE_FLOAT_MS = 850;
+const TUTORIAL_DESTROY_ANIMATION_MS = 820;
 
 function makeFieldCard(def: TutorialCardDefinition, zone: 'main' | 'side', slotIndex?: 0 | 1): FieldCard {
   return {
@@ -66,6 +68,14 @@ function removeDead(field: FieldState): FieldState {
     main: field.main.filter((card) => card.current_hp > 0),
     side: field.side.filter((card) => card.current_hp > 0),
   };
+}
+
+function nextNonTooltipStep(startIndex: number): TutorialScriptAction | undefined {
+  for (let index = startIndex; index < TUTORIAL_SCRIPT.length; index += 1) {
+    const step = TUTORIAL_SCRIPT[index];
+    if (step?.type !== 'tooltip') return step;
+  }
+  return undefined;
 }
 
 function setPlacedReady(field: FieldState): FieldState {
@@ -136,15 +146,25 @@ export function useTutorialGameController() {
     pushLog({ type: 'system', team: 'neutral', text });
   }, [expectedHint, pushLog]);
 
-  const flashEffect = useCallback((uid: string, damage?: number) => {
-    setCardEffects((prev) => ({ ...prev, [uid]: { floatingDamage: damage, hpTransitionMs: 450, destroying: false } }));
+  const flashEffect = useCallback((uid: string, damage?: number, destroying = false) => {
+    setCardEffects((prev) => ({ ...prev, [uid]: { floatingDamage: damage, hpTransitionMs: 450, destroying } }));
     const timerId = window.setTimeout(() => {
       setCardEffects((prev) => {
         const next = { ...prev };
         delete next[uid];
         return next;
       });
-    }, 850);
+    }, Math.max(TUTORIAL_DAMAGE_FLOAT_MS, destroying ? TUTORIAL_DESTROY_ANIMATION_MS : 0) + 120);
+    timersRef.current.push(timerId);
+  }, []);
+
+  const scheduleRemoveDeadCard = useCallback((uid: string) => {
+    const timerId = window.setTimeout(() => {
+      setPlayers((prev) => ({
+        bottom: { ...prev.bottom, field: removeDead(prev.bottom.field) },
+        top: { ...prev.top, field: removeDead(prev.top.field) },
+      }));
+    }, TUTORIAL_DESTROY_ANIMATION_MS + 60);
     timersRef.current.push(timerId);
   }, []);
 
@@ -171,8 +191,8 @@ export function useTutorialGameController() {
         side: field.side.map((card) => card.uid === uid ? updater(card) : card),
       });
       return {
-        bottom: { ...prev.bottom, field: removeDead(updateField(prev.bottom.field)) },
-        top: { ...prev.top, field: removeDead(updateField(prev.top.field)) },
+        bottom: { ...prev.bottom, field: updateField(prev.bottom.field) },
+        top: { ...prev.top, field: updateField(prev.top.field) },
       };
     });
   }, []);
@@ -191,7 +211,8 @@ export function useTutorialGameController() {
       dealt = remaining;
       return { ...card, statuses, current_hp: Math.max(0, card.current_hp - remaining) };
     });
-    flashEffect(target.uid, amount);
+    const isFatal = dealt >= target.current_hp;
+    flashEffect(target.uid, amount, isFatal);
     pushLog({
       type: 'damage',
       team,
@@ -200,10 +221,11 @@ export function useTutorialGameController() {
       target: toActor(target),
       damage: amount,
     });
-    if (dealt >= target.current_hp) {
+    if (isFatal) {
+      scheduleRemoveDeadCard(target.uid);
       pushLog({ type: 'destroy', team: target.uid.startsWith('tut-reaper') || target.uid === 'tut-hazard' ? 'opponent' : 'my', actor: toActor(target), text: `${target.name} 제거` });
     }
-  }, [flashEffect, mutateCard, pushLog]);
+  }, [flashEffect, mutateCard, pushLog, scheduleRemoveDeadCard]);
 
   const applyHeal = useCallback((source: FieldCard, target: FieldCard, amount: number) => {
     mutateCard(target.uid, (card) => ({ ...card, current_hp: Math.min(card.max_hp, card.current_hp + amount) }));
@@ -319,15 +341,17 @@ export function useTutorialGameController() {
         setPhase('action');
         executeSkill(step.casterUid, step.targetUid, 'opponent');
       } else if (step.type === 'auto_end_turn') {
+        const nextPlayerStep = nextNonTooltipStep(stepIndex + 1);
+        const nextPhase = nextPlayerStep?.type === 'player_skill' ? 'action' : 'placement';
         setActiveSide('player');
-        setPhase('placement');
+        setPhase(nextPhase);
         setRound((prev) => prev + 1);
         setPlayers((prev) => ({
           bottom: { ...prev.bottom, field: setPlacedReady(prev.bottom.field), placementUsed: 0, placementLimit: 2 },
           top: { ...prev.top, field: setPlacedReady(prev.top.field), placementUsed: 0 },
         }));
         pushLog({ type: 'turn_end', team: 'opponent', text: '상대 턴 종료' });
-        showPhaseAnnouncer('내 배치 단계', `${round + 1}턴을 시작합니다.`, 1500);
+        showPhaseAnnouncer(nextPhase === 'action' ? '내 전투 단계' : '내 배치 단계', `${round + 1}턴을 시작합니다.`, 1500);
       }
       setBusy(false);
       setStepIndex((prev) => prev + 1);

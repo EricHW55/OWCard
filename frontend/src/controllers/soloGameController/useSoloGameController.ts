@@ -12,7 +12,7 @@ import { useSharedGameFlowActions } from '../shared/useSharedGameFlowActions';
 import { normalizeGameError } from '../shared/gameErrorPolicy';
 import { createSoloHttpTransport } from './transport';
 import { getSoloActionableUids, buildSoloPlayersView, resolveActiveSideFromState } from './rules';
-import { SOLO_UI } from './constants';
+import { SOLO_DAMAGE_FLOAT_MS, SOLO_DESTROY_ANIMATION_MS, SOLO_HP_ANIMATION_MS, SOLO_UI } from './constants';
 import type { SoloSide, SoloTransport } from './types';
 import { useSoloActionRunner } from './useSoloActionRunner';
 import { phaseLabel } from '../../utils/ui';
@@ -112,6 +112,9 @@ export function useSoloGameController(options?: { transport?: SoloTransport; bot
     phaseLabel: soloPhaseLabel,
     phaseSubtitle: soloPhaseSubtitle,
     uiPreset: ONLINE_GAME_UI_PRESET,
+    hpAnimationMs: SOLO_HP_ANIMATION_MS,
+    destroyAnimationMs: SOLO_DESTROY_ANIMATION_MS,
+    damageFloatMs: SOLO_DAMAGE_FLOAT_MS,
   });
   const soloEventHandlers = useMemo(() => ({
     handleActionResultMessage: gameEvents.handleActionResultMessage,
