@@ -9,6 +9,7 @@ export type TutorialScriptAction =
   | { type: 'player_end_placement'; hint: string }
   | { type: 'player_end_turn'; hint: string }
   | { type: 'player_skill'; casterUid: string; targetUid: string; hint: string }
+  | { type: 'player_free_skill'; targetUid: string; hint: string }
   | { type: 'auto_place'; owner: 'opponent'; cardKey: string; zone: TutorialZone; slotIndex?: 0 | 1; delayMs: number }
   | { type: 'auto_skill'; owner: 'opponent'; casterUid: string; targetUid: string; delayMs: number }
   | { type: 'auto_end_placement'; owner: 'opponent'; delayMs: number }
@@ -212,6 +213,8 @@ export const TUTORIAL_SCRIPT: TutorialScriptAction[] = [
   { type: 'player_end_turn', hint: '턴 종료 버튼을 눌러 상대 턴으로 넘기세요.' },
   { type: 'auto_skill', owner: 'opponent', casterUid: 'tut-reaper-2', targetUid: 'tut-soldier-b', delayMs: 1500 },
   { type: 'tooltip', tooltip: { speaker: '튜토리얼', text: '사이드 영웅은 탱커가 있어도 상대 공격 대상이 될 수 있습니다.' } },
-  { type: 'player_skill', casterUid: 'tut-ana', targetUid: 'tut-reaper-2', hint: '아나로 리퍼를 제거하세요.' },
+  { type: 'auto_end_turn', owner: 'opponent', delayMs: 1100 },
+  { type: 'player_end_placement', hint: '배치 종료 버튼을 눌러 마지막 전투 단계로 넘어가세요.' },
+  { type: 'player_free_skill', targetUid: 'tut-reaper-2', hint: '남은 영웅으로 리퍼를 제거하세요.' },
   { type: 'victory', tooltip: { speaker: '튜토리얼', text: '승리했습니다. 이제 실제 게임에서도 같은 흐름으로 배치, 스킬, 턴 종료를 진행하면 됩니다.' } },
 ];

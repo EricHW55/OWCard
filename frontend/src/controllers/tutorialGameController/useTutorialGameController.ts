@@ -27,6 +27,9 @@ type AutoTutorialStep = Extract<TutorialScriptAction, { delayMs: number }>;
 const isAutoStep = (step?: TutorialScriptAction): step is AutoTutorialStep => !!step && step.type.startsWith('auto_');
 const TUTORIAL_DAMAGE_FLOAT_MS = 850;
 const TUTORIAL_DESTROY_ANIMATION_MS = 820;
+const isPlayerAttackStep = (step?: TutorialScriptAction): step is Extract<TutorialScriptAction, { type: 'player_skill' | 'player_free_skill' }> => (
+  step?.type === 'player_skill' || step?.type === 'player_free_skill'
+);
 
 function makeFieldCard(def: TutorialCardDefinition, zone: 'main' | 'side', slotIndex?: 0 | 1): FieldCard {
   return {
@@ -388,7 +391,7 @@ export function useTutorialGameController() {
         return;
       } else if (step.type === 'auto_end_turn') {
         const nextPlayerStep = nextNonTooltipStep(stepIndex + 1);
-        const nextPhase = nextPlayerStep?.type === 'player_skill' ? 'action' : 'placement';
+        const nextPhase = isPlayerAttackStep(nextPlayerStep) ? 'action' : 'placement';
         setActiveSide('player');
         setPhase(nextPhase);
         setRound((prev) => prev + 1);
@@ -483,7 +486,10 @@ export function useTutorialGameController() {
   }, [advance, busy, currentStep, pushLog, showBlocked, showPhaseAnnouncer, tooltip]);
 
   const prepareSkill = useCallback((skillKey: string) => {
-    if (tooltip || busy || currentStep?.type !== 'player_skill' || !selectedMyFieldCard || selectedMyFieldCard.uid !== currentStep.casterUid || skillKey !== 'skill_1') {
+    const canUseCurrentSkill = currentStep?.type === 'player_skill'
+      ? selectedMyFieldCard?.uid === currentStep.casterUid
+      : currentStep?.type === 'player_free_skill';
+    if (tooltip || busy || !canUseCurrentSkill || !selectedMyFieldCard || skillKey !== 'skill_1') {
       showBlocked(currentStep && 'hint' in currentStep ? currentStep.hint : undefined);
       return;
     }
@@ -495,13 +501,16 @@ export function useTutorialGameController() {
       showBlocked();
       return;
     }
-    if (currentStep?.type !== 'player_skill') {
+    if (!isPlayerAttackStep(currentStep)) {
       if (!isOpponent) setDetailCard(card);
       else showBlocked();
       return;
     }
     if (!selectedFieldUid) {
-      if (card.uid !== currentStep.casterUid || isOpponent) {
+      const canSelectCaster = currentStep.type === 'player_skill'
+        ? card.uid === currentStep.casterUid
+        : !card.placed_this_turn && !card.acted_this_turn && card.current_hp > 0;
+      if (!canSelectCaster || isOpponent) {
         showBlocked(currentStep.hint);
         return;
       }
@@ -509,7 +518,7 @@ export function useTutorialGameController() {
       setActionMode(null);
       return;
     }
-    if (selectedFieldUid !== currentStep.casterUid || !actionMode) {
+    if ((currentStep.type === 'player_skill' && selectedFieldUid !== currentStep.casterUid) || !actionMode) {
       showBlocked(currentStep.hint);
       return;
     }
@@ -518,7 +527,8 @@ export function useTutorialGameController() {
       return;
     }
     setBusy(true);
-    showSkillThenExecute(currentStep.casterUid, currentStep.targetUid, 'my', () => {
+    const casterUid = currentStep.type === 'player_skill' ? currentStep.casterUid : selectedFieldUid;
+    showSkillThenExecute(casterUid, currentStep.targetUid, 'my', () => {
       setBusy(false);
       advance();
     });
@@ -526,7 +536,10 @@ export function useTutorialGameController() {
 
   const selectedHeroKey = selectedMyFieldCard?.hero_key || selectedMyFieldCard?.extra?._hero_key || '';
   const fieldSkills = useMemo(() => {
-    if (!selectedMyFieldCard || currentStep?.type !== 'player_skill' || selectedMyFieldCard.uid !== currentStep.casterUid || phase !== 'action') return [];
+    const canShowSkills = currentStep?.type === 'player_skill'
+      ? selectedMyFieldCard?.uid === currentStep.casterUid
+      : currentStep?.type === 'player_free_skill';
+    if (!selectedMyFieldCard || !canShowSkills || phase !== 'action') return [];
     return Object.entries(selectedMyFieldCard.skill_meta || {})
       .filter(([key]) => key.startsWith('skill_'))
       .map(([key, meta]: any) => ({
@@ -546,9 +559,12 @@ export function useTutorialGameController() {
   ) ? TUTORIAL_CARDS[currentStep.cardKey]?.id : null;
 
   const tutorialFieldHighlightUids = (() => {
-    if (activeSide !== 'player' || tooltip || busy || currentStep?.type !== 'player_skill') return [];
-    if (selectedFieldUid === currentStep.casterUid && actionMode) return [currentStep.targetUid];
-    return [currentStep.casterUid];
+    if (activeSide !== 'player' || tooltip || busy || !isPlayerAttackStep(currentStep)) return [];
+    if (selectedFieldUid && actionMode) return [currentStep.targetUid];
+    if (currentStep.type === 'player_skill') return [currentStep.casterUid];
+    return allCards(players.bottom.field)
+      .filter((card) => card.current_hp > 0 && !card.placed_this_turn && !card.acted_this_turn)
+      .map((card) => card.uid);
   })();
 
   const tutorialPlacementSlot = (() => {
