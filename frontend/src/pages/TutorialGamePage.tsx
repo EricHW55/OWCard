@@ -59,6 +59,12 @@ const TutorialGamePage: React.FC = () => {
         cardEffects: vm.cardEffects,
         placingCard: vm.phase === 'placement' && vm.selectedHandCard && !vm.selectedHandCard.is_spell ? vm.selectedHandCard : null,
         onPlaceClick: vm.handlePlace,
+        canPlaceInSlot: ({ zone, role, slotIndex }) => (
+          !!vm.tutorialPlacementSlot
+          && vm.tutorialPlacementSlot.zone === zone
+          && vm.tutorialPlacementSlot.role === role
+          && vm.tutorialPlacementSlot.slotIndex === slotIndex
+        ),
       }}
       contextPanel={
         <OnlineContextPanel

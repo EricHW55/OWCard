@@ -19,6 +19,7 @@ interface Props {
     cardEffects?: Record<string, CardVisualEffect>;
     placingCard: HandCardType | null;
     onPlaceClick: (zone: 'main' | 'side', slotIndex?: 0 | 1) => void;
+    canPlaceInSlot?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => boolean;
     allowOpponentPlacement?: boolean;
     canSelectEmptySlot?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => boolean;
     onEmptySlotSelect?: (params: { zone: 'main' | 'side'; role: 'tank' | 'dealer' | 'healer'; slotIndex: 0 | 1; isOpponent: boolean }) => void;
@@ -62,7 +63,7 @@ const FieldSection: React.FC<Props> = ({
                                            field, isOpponent, actionIsOpponent, isMyTurn, phase,
                                            selectedUid, canActUids, onCardClick, onCardLongPress, cardEffects,
                                            placingCard, onPlaceClick, allowOpponentPlacement = false,
-                                           canSelectEmptySlot, onEmptySlotSelect,
+                                           canPlaceInSlot, canSelectEmptySlot, onEmptySlotSelect,
                                        }) => {
     const targetIsOpponent = actionIsOpponent ?? isOpponent;
     const tanks = (field?.main || []).filter(c => c.role === 'tank');
@@ -225,11 +226,15 @@ const FieldSection: React.FC<Props> = ({
             const slottedCard = cardBySlot.get(i);
             const mainSlotIndex = (i === 0 || i === 1) ? i as 0 | 1 : undefined;
             const roleTyped = role as 'tank' | 'dealer' | 'healer';
+            const canPlaceHere = mainSlotIndex !== undefined
+                && canPlace
+                && placingRole === role
+                && (!canPlaceInSlot || canPlaceInSlot({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent: targetIsOpponent }));
             const selectableBySkill = mainSlotIndex !== undefined
                 && !!canSelectEmptySlot?.({ zone: 'main', role: roleTyped, slotIndex: mainSlotIndex, isOpponent: targetIsOpponent });
             if (slottedCard) {
                 slots.push(renderCard(slottedCard, hiddenFieldCardUids.has(slottedCard.uid)));
-            } else if (canPlace && placingRole === role) {
+            } else if (canPlaceHere) {
                 slots.push(<EmptySlot key={`e-${role}-${i}`} highlight onClick={() => onPlaceClick('main', mainSlotIndex)} />);
             } else if (mainSlotIndex !== undefined && selectableBySkill) {
                 slots.push(
@@ -283,7 +288,9 @@ const FieldSection: React.FC<Props> = ({
             <div className="field-lanes">
                 {mainRows.map(({ role, cards, max }, idx) => {
                     const sideDef = sideRowDefs[idx];
-                    const canPlaceSide = canPlace && placingRole === sideDef.role;
+                    const canPlaceSide = canPlace
+                        && placingRole === sideDef.role
+                        && (!canPlaceInSlot || canPlaceInSlot({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent: targetIsOpponent }));
                     const canSelectSide = !!canSelectEmptySlot?.({ zone: 'side', role: sideDef.role, slotIndex: 0, isOpponent: targetIsOpponent });
                     return (
                         <div key={role} className="field-lane-row">

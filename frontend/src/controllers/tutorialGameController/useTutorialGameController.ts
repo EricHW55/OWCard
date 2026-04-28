@@ -475,6 +475,17 @@ export function useTutorialGameController() {
     return [currentStep.casterUid];
   })();
 
+  const tutorialPlacementSlot = (() => {
+    if (activeSide !== 'player' || tooltip || busy || currentStep?.type !== 'player_place') return null;
+    const expected = TUTORIAL_CARDS[currentStep.cardKey];
+    if (!expected) return null;
+    return {
+      zone: currentStep.zone,
+      role: expected.role,
+      slotIndex: currentStep.slotIndex ?? 0,
+    };
+  })();
+
   const canActBottom = tutorialFieldHighlightUids.filter((uid) => allCards(players.bottom.field).some((card) => card.uid === uid));
   const canActTop = tutorialFieldHighlightUids.filter((uid) => allCards(players.top.field).some((card) => card.uid === uid));
 
@@ -502,6 +513,7 @@ export function useTutorialGameController() {
     tooltip,
     cardEffects,
     tutorialHandHighlightId,
+    tutorialPlacementSlot,
     canActTop,
     canActBottom,
     logs,
