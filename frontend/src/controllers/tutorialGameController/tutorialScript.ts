@@ -18,6 +18,7 @@ export type TutorialScriptAction =
 export type TutorialCardDefinition = HandCard & {
   uid: string;
   fieldName?: string;
+  spellDescription?: string;
   tutorialDamage?: number;
   tutorialHeal?: number;
 };
@@ -106,6 +107,7 @@ export const TUTORIAL_CARDS: Record<string, TutorialCardDefinition> = {
     skill_damages: {},
     skill_meta: {},
     description: '모든 아군에게 추가 생명력 15를 부여합니다.',
+    spellDescription: '모든 아군에게 추가 생명력 15를 부여합니다.',
     is_spell: true,
   },
   hazard: {
@@ -201,11 +203,13 @@ export const TUTORIAL_SCRIPT: TutorialScriptAction[] = [
   { type: 'player_skill', casterUid: 'tut-soldier-a', targetUid: 'tut-reaper-1', hint: '솔저로 리퍼를 공격하세요.' },
   { type: 'player_end_turn', hint: '턴 종료 버튼을 눌러 상대 턴으로 넘기세요.' },
   { type: 'auto_skill', owner: 'opponent', casterUid: 'tut-reaper-1', targetUid: 'tut-winston', delayMs: 1500 },
+  { type: 'auto_skill', owner: 'opponent', casterUid: 'tut-reaper-2', targetUid: 'tut-winston', delayMs: 1500 },
   { type: 'auto_end_turn', owner: 'opponent', delayMs: 1100 },
   { type: 'tooltip', tooltip: { speaker: '튜토리얼', text: '추가 생명력은 피해를 먼저 흡수하고, 지속 시간이 끝나면 사라집니다.' } },
   { type: 'player_skill', casterUid: 'tut-soldier-b', targetUid: 'tut-reaper-1', hint: '사이드의 솔저로 리퍼를 제거하세요.' },
   { type: 'player_skill', casterUid: 'tut-soldier-a', targetUid: 'tut-reaper-2', hint: '솔저로 리퍼를 공격하세요.' },
   { type: 'player_skill', casterUid: 'tut-winston', targetUid: 'tut-reaper-2', hint: '윈스턴으로 리퍼를 이어서 공격하세요.' },
+  { type: 'player_end_turn', hint: '턴 종료 버튼을 눌러 상대 턴으로 넘기세요.' },
   { type: 'auto_skill', owner: 'opponent', casterUid: 'tut-reaper-2', targetUid: 'tut-soldier-b', delayMs: 1500 },
   { type: 'tooltip', tooltip: { speaker: '튜토리얼', text: '사이드 영웅은 탱커가 있어도 상대 공격 대상이 될 수 있습니다.' } },
   { type: 'player_skill', casterUid: 'tut-ana', targetUid: 'tut-reaper-2', hint: '아나로 리퍼를 제거하세요.' },

@@ -127,6 +127,7 @@ export function useTutorialGameController() {
   const [busy, setBusy] = useState(false);
   const timersRef = useRef<number[]>([]);
   const logSeqRef = useRef(0);
+  const announcerDoneRef = useRef<(() => void) | null>(null);
 
   const currentStep = TUTORIAL_SCRIPT[stepIndex];
   const bottom = players.bottom;
@@ -140,6 +141,20 @@ export function useTutorialGameController() {
 
   const showPhaseAnnouncer = useCallback((title: string, subtitle?: string, duration = 1500) => {
     setAnnouncerData({ type: 'phase', title, subtitle, duration });
+  }, []);
+
+  const showSkillAnnouncer = useCallback((caster: FieldCard | HandCard, skillName: string, description?: string, onDone?: () => void) => {
+    announcerDoneRef.current = onDone || null;
+    setAnnouncerData({
+      type: 'skill',
+      title: skillName,
+      subtitle: `${caster.name} 사용`,
+      description,
+      heroKey: String((caster as any)?.hero_key || (caster as any)?.extra?._hero_key || ''),
+      imageName: caster.name,
+      isSpell: !!(caster as any)?.is_spell,
+      duration: 1800,
+    });
   }, []);
 
   const showBlocked = useCallback((text = expectedHint || '지금은 튜토리얼이 안내하는 행동만 할 수 있습니다.') => {
@@ -260,6 +275,21 @@ export function useTutorialGameController() {
     markActed(caster.uid);
   }, [applyDamage, applyHeal, findCardWithOwner, flashEffect, markActed, mutateCard, pushLog]);
 
+  const showSkillThenExecute = useCallback((casterUid: string, targetUid: string, team: 'my' | 'opponent', onDone?: () => void) => {
+    const casterInfo = findCardWithOwner(casterUid);
+    if (!casterInfo) {
+      executeSkill(casterUid, targetUid, team);
+      onDone?.();
+      return;
+    }
+    const caster = casterInfo.card;
+    const skillMeta = Object.values(caster.skill_meta || {})[0] as any;
+    showSkillAnnouncer(caster, skillMeta?.name || '스킬', skillMeta?.description || caster.description || '', () => {
+      executeSkill(casterUid, targetUid, team);
+      onDone?.();
+    });
+  }, [executeSkill, findCardWithOwner, showSkillAnnouncer]);
+
   const placeCardByKey = useCallback((owner: Side, cardKey: string, zone: 'main' | 'side', slotIndex?: 0 | 1) => {
     const def = TUTORIAL_CARDS[cardKey];
     if (!def) return;
@@ -301,6 +331,18 @@ export function useTutorialGameController() {
     pushLog({ type: 'skill', team: 'my', actor: toActor(spell), skillName: spell.name });
   }, [pushLog]);
 
+  const showSpellThenExecute = useCallback((cardKey: string, onDone?: () => void) => {
+    const spell = TUTORIAL_CARDS[cardKey];
+    if (!spell) {
+      onDone?.();
+      return;
+    }
+    showSkillAnnouncer(spell, spell.name, spell.spellDescription || spell.description || '', () => {
+      executeSpell(cardKey);
+      onDone?.();
+    });
+  }, [executeSpell, showSkillAnnouncer]);
+
   useEffect(() => () => {
     timersRef.current.forEach((timerId) => window.clearTimeout(timerId));
     timersRef.current = [];
@@ -339,7 +381,11 @@ export function useTutorialGameController() {
         showPhaseAnnouncer('상대 전투 단계', '상대 영웅이 스킬을 사용합니다.', 1500);
       } else if (step.type === 'auto_skill') {
         setPhase('action');
-        executeSkill(step.casterUid, step.targetUid, 'opponent');
+        showSkillThenExecute(step.casterUid, step.targetUid, 'opponent', () => {
+          setBusy(false);
+          setStepIndex((prev) => prev + 1);
+        });
+        return;
       } else if (step.type === 'auto_end_turn') {
         const nextPlayerStep = nextNonTooltipStep(stepIndex + 1);
         const nextPhase = nextPlayerStep?.type === 'player_skill' ? 'action' : 'placement';
@@ -357,7 +403,7 @@ export function useTutorialGameController() {
       setStepIndex((prev) => prev + 1);
     }, step.delayMs);
     timersRef.current.push(timerId);
-  }, [executeSkill, placeCardByKey, pushLog, round, showPhaseAnnouncer, stepIndex]);
+  }, [placeCardByKey, pushLog, round, showPhaseAnnouncer, showSkillThenExecute, stepIndex]);
 
   const handleHandClick = useCallback((card: HandCard, index: number) => {
     if (tooltip || busy || activeSide !== 'player') {
@@ -404,9 +450,12 @@ export function useTutorialGameController() {
       showBlocked(currentStep.hint);
       return;
     }
-    executeSpell(currentStep.cardKey);
-    advance();
-  }, [advance, bottom.hand, busy, currentStep, executeSpell, selectedHandIdx, showBlocked, tooltip]);
+    setBusy(true);
+    showSpellThenExecute(currentStep.cardKey, () => {
+      setBusy(false);
+      advance();
+    });
+  }, [advance, bottom.hand, busy, currentStep, selectedHandIdx, showBlocked, showSpellThenExecute, tooltip]);
 
   const handleEndMainButton = useCallback(() => {
     if (tooltip || busy) {
@@ -468,9 +517,12 @@ export function useTutorialGameController() {
       showBlocked(currentStep.hint);
       return;
     }
-    executeSkill(currentStep.casterUid, currentStep.targetUid, 'my');
-    advance();
-  }, [actionMode, activeSide, advance, busy, currentStep, executeSkill, selectedFieldUid, showBlocked, tooltip]);
+    setBusy(true);
+    showSkillThenExecute(currentStep.casterUid, currentStep.targetUid, 'my', () => {
+      setBusy(false);
+      advance();
+    });
+  }, [actionMode, activeSide, advance, busy, currentStep, selectedFieldUid, showBlocked, showSkillThenExecute, tooltip]);
 
   const selectedHeroKey = selectedMyFieldCard?.hero_key || selectedMyFieldCard?.extra?._hero_key || '';
   const fieldSkills = useMemo(() => {
@@ -517,7 +569,12 @@ export function useTutorialGameController() {
     loading: false,
     error: null,
     announcerData,
-    closeAnnouncer: () => setAnnouncerData(null),
+    closeAnnouncer: () => {
+      const onDone = announcerDoneRef.current;
+      announcerDoneRef.current = null;
+      setAnnouncerData(null);
+      onDone?.();
+    },
     players,
     phase,
     round,
