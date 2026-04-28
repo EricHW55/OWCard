@@ -489,19 +489,19 @@ export function useTutorialGameController() {
     const canUseCurrentSkill = currentStep?.type === 'player_skill'
       ? selectedMyFieldCard?.uid === currentStep.casterUid
       : currentStep?.type === 'player_free_skill';
-    if (tooltip || busy || !canUseCurrentSkill || !selectedMyFieldCard || skillKey !== 'skill_1') {
+    if (tooltip || busy || phase !== 'action' || !canUseCurrentSkill || !selectedMyFieldCard || skillKey !== 'skill_1') {
       showBlocked(currentStep && 'hint' in currentStep ? currentStep.hint : undefined);
       return;
     }
     setActionMode(skillKey);
-  }, [busy, currentStep, selectedMyFieldCard, showBlocked, tooltip]);
+  }, [busy, currentStep, phase, selectedMyFieldCard, showBlocked, tooltip]);
 
   const handleFieldClick = useCallback((card: FieldCard, isOpponent: boolean) => {
     if (tooltip || busy || activeSide !== 'player') {
       showBlocked();
       return;
     }
-    if (!isPlayerAttackStep(currentStep)) {
+    if (!isPlayerAttackStep(currentStep) || phase !== 'action') {
       if (!isOpponent) setDetailCard(card);
       else showBlocked();
       return;
@@ -532,7 +532,7 @@ export function useTutorialGameController() {
       setBusy(false);
       advance();
     });
-  }, [actionMode, activeSide, advance, busy, currentStep, selectedFieldUid, showBlocked, showSkillThenExecute, tooltip]);
+  }, [actionMode, activeSide, advance, busy, currentStep, phase, selectedFieldUid, showBlocked, showSkillThenExecute, tooltip]);
 
   const selectedHeroKey = selectedMyFieldCard?.hero_key || selectedMyFieldCard?.extra?._hero_key || '';
   const fieldSkills = useMemo(() => {
@@ -559,7 +559,7 @@ export function useTutorialGameController() {
   ) ? TUTORIAL_CARDS[currentStep.cardKey]?.id : null;
 
   const tutorialFieldHighlightUids = (() => {
-    if (activeSide !== 'player' || tooltip || busy || !isPlayerAttackStep(currentStep)) return [];
+    if (activeSide !== 'player' || phase !== 'action' || tooltip || busy || !isPlayerAttackStep(currentStep)) return [];
     if (selectedFieldUid && actionMode) return [currentStep.targetUid];
     if (currentStep.type === 'player_skill') return [currentStep.casterUid];
     return allCards(players.bottom.field)
@@ -608,6 +608,7 @@ export function useTutorialGameController() {
     showContextPanel: fieldSkills.length > 0 || !!selectedHandCard?.is_spell,
     expectedHint,
     tooltip,
+    tutorialComplete: phase === 'game_over' && !tooltip,
     cardEffects,
     tutorialHandHighlightId,
     tutorialPlacementSlot,
