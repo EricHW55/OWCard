@@ -61,40 +61,38 @@ const TutorialGamePage: React.FC = () => {
         onPlaceClick: vm.handlePlace,
       }}
       contextPanel={
-        <div className="tutorial-context-stack">
-          <OnlineContextPanel
-            show={vm.showContextPanel}
-            phase={vm.phase}
-            mulliganDone
-            selectedMulligan={[]}
-            onRunMulligan={noop}
-            onSkipMulligan={noop}
-            selectedFieldName={vm.selectedMyFieldCard?.name}
-            selectedHeroKey={vm.selectedHeroKey}
-            selectedFieldImageCandidates={vm.selectedFieldImageCandidates}
-            fieldSkills={vm.fieldSkills}
-            actionMode={vm.actionMode}
-            actionModeLabel={vm.actionModeLabel}
-            onPrepareSkill={vm.prepareSkill}
-            onCancelSkillSelection={vm.cancelSkillSelection}
-            columnChoice={null}
-            enemyColumns={[]}
-            onSelectColumn={noop}
-            onCancelColumnChoice={noop}
-            pendingSpell={null}
-            pendingSpellName={null}
-            onCancelPendingSpell={noop}
-            selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
-            onUseSelectedSpell={vm.useSelectedSpell}
-            onCancelSelectedHand={vm.cancelSelectedHand}
-            pendingPassive={null}
-            onResolveMercy={noop}
-            onSkipMercy={noop}
-            onSkipJetpackCat={noop}
-            pendingSpellChoice={null}
-            onResolveSpellChoice={noop}
-          />
-        </div>
+        <OnlineContextPanel
+          show={vm.showContextPanel}
+          phase={vm.phase}
+          mulliganDone
+          selectedMulligan={[]}
+          onRunMulligan={noop}
+          onSkipMulligan={noop}
+          selectedFieldName={vm.selectedMyFieldCard?.name}
+          selectedHeroKey={vm.selectedHeroKey}
+          selectedFieldImageCandidates={vm.selectedFieldImageCandidates}
+          fieldSkills={vm.fieldSkills}
+          actionMode={vm.actionMode}
+          actionModeLabel={vm.actionModeLabel}
+          onPrepareSkill={vm.prepareSkill}
+          onCancelSkillSelection={vm.cancelSkillSelection}
+          columnChoice={null}
+          enemyColumns={[]}
+          onSelectColumn={noop}
+          onCancelColumnChoice={noop}
+          pendingSpell={null}
+          pendingSpellName={null}
+          onCancelPendingSpell={noop}
+          selectedHandSpellName={vm.selectedHandCard?.is_spell ? vm.selectedHandCard.name : null}
+          onUseSelectedSpell={vm.useSelectedSpell}
+          onCancelSelectedHand={vm.cancelSelectedHand}
+          pendingPassive={null}
+          onResolveMercy={noop}
+          onSkipMercy={noop}
+          onSkipJetpackCat={noop}
+          pendingSpellChoice={null}
+          onResolveSpellChoice={noop}
+        />
       }
       handCards={vm.players.bottom.hand}
       handOwnerKey="tutorial-player"
