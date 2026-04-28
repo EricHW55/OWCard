@@ -484,7 +484,7 @@ export function useTutorialGameController() {
     fieldSkills,
     actionMode,
     actionModeLabel: selectedMyFieldCard && actionMode ? selectedMyFieldCard.skill_meta?.[actionMode]?.name || actionMode : null,
-    showContextPanel: !!expectedHint || fieldSkills.length > 0 || !!selectedHandCard?.is_spell,
+    showContextPanel: fieldSkills.length > 0 || !!selectedHandCard?.is_spell,
     expectedHint,
     tooltip,
     cardEffects,
