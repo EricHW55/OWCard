@@ -123,7 +123,7 @@ export const TUTORIAL_CARDS: Record<string, TutorialCardDefinition> = {
     base_defense: 0,
     base_attack_range: 1,
     skill_damages: { skill_2: 5 },
-    skill_meta: { skill_2: skill('덮쳐들기', '대상에게 5 피해를 줍니다.') },
+    skill_meta: { skill_2: skill('덤벼들기', '대상에게 5 피해를 줍니다.') },
     description: '공격받으면 반격 피해를 주는 탱커입니다.',
     tutorialDamage: 5,
   },

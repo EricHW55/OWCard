@@ -270,13 +270,29 @@ export function useTutorialGameController() {
       applyDamage(caster, target, damage, team);
       if (target.uid === 'tut-hazard' && target.current_hp > damage && team === 'my') {
         const retaliation = 2;
-        mutateCard(caster.uid, (card) => ({ ...card, current_hp: Math.max(0, card.current_hp - retaliation) }));
+        let dealt = retaliation;
+        mutateCard(caster.uid, (card) => {
+          let remaining = retaliation;
+          const statuses = card.statuses.map((status) => {
+            if (status.name !== 'extra_hp' || !remaining) return status;
+            const extraHp = Number((status as any).extra_hp || 0);
+            const absorbed = Math.min(extraHp, remaining);
+            remaining -= absorbed;
+            return { ...status, extra_hp: Math.max(0, extraHp - absorbed) };
+          }).filter((status) => status.name !== 'extra_hp' || Number((status as any).extra_hp || 0) > 0);
+          dealt = remaining;
+          return { ...card, statuses, current_hp: Math.max(0, card.current_hp - remaining) };
+        });
         flashEffect(caster.uid, retaliation);
-        pushLog({ type: 'damage', team: 'opponent', actor: toActor(target), skillName: '가시 반격', target: toActor(caster), damage: retaliation });
+        pushLog({ type: 'damage', team: 'opponent', actor: toActor(target), skillName: '날카로운 저항', target: toActor(caster), damage: retaliation });
+        if (dealt >= caster.current_hp) {
+          scheduleRemoveDeadCard(caster.uid);
+          pushLog({ type: 'destroy', team: 'my', actor: toActor(caster), text: `${caster.name} 제거` });
+        }
       }
     }
     markActed(caster.uid);
-  }, [applyDamage, applyHeal, findCardWithOwner, flashEffect, markActed, mutateCard, pushLog]);
+  }, [applyDamage, applyHeal, findCardWithOwner, flashEffect, markActed, mutateCard, pushLog, scheduleRemoveDeadCard]);
 
   const showSkillThenExecute = useCallback((casterUid: string, targetUid: string, team: 'my' | 'opponent', onDone?: () => void) => {
     const casterInfo = findCardWithOwner(casterUid);
