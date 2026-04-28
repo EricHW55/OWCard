@@ -2096,6 +2096,17 @@
     z-index: 4;
 }
 
+.hand-card-3d--tutorial-highlight::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 8px;
+    border: 2px solid rgba(102, 221, 255, 0.74);
+    box-shadow: 0 0 12px rgba(102, 221, 255, 0.74), 0 0 24px rgba(102, 221, 255, 0.38);
+    pointer-events: none;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
 .hand-card-3d--fullart:hover {
     filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.52));
 }

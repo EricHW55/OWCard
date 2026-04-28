@@ -186,7 +186,7 @@ export const TUTORIAL_SCRIPT: TutorialScriptAction[] = [
   { type: 'tooltip', tooltip: { speaker: '튜토리얼', text: '배치된 영웅은 다음 전투 단계부터 스킬을 사용할 수 있습니다.' } },
   { type: 'player_end_placement', hint: '배치 종료 버튼을 누르세요.' },
   { type: 'player_skill', casterUid: 'tut-soldier-a', targetUid: 'tut-hazard', hint: '솔저 A로 해저드를 다시 공격하세요.' },
-  { type: 'player_skill', casterUid: 'tut-winston', targetUid: 'tut-hazard', hint: '윈스턴으로 해저드를 마무리하세요.' },
+  { type: 'player_skill', casterUid: 'tut-winston', targetUid: 'tut-hazard', hint: '윈스턴으로 해저드를 공격해 3 HP로 남기세요.' },
   { type: 'auto_place', owner: 'opponent', cardKey: 'reaper2', zone: 'main', slotIndex: 1, delayMs: 900 },
   { type: 'auto_end_placement', owner: 'opponent', delayMs: 700 },
   { type: 'auto_skill', owner: 'opponent', casterUid: 'tut-reaper-1', targetUid: 'tut-winston', delayMs: 900 },

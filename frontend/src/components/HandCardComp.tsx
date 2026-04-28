@@ -7,6 +7,7 @@ import { CardFaceContent } from './CardFaceContent';
 interface Props {
     card: HandCard;
     selected?: boolean;
+    highlighted?: boolean;
     onClick?: () => void;
     hidden?: boolean;
     index: number;
@@ -15,7 +16,7 @@ interface Props {
     handTransition?: 'enter' | 'exit' | 'enter-immediate';
 }
 
-const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index, total, focusedIndex, handTransition }) => {
+const HandCardComp: React.FC<Props> = ({ card, selected, highlighted, onClick, hidden, index, total, focusedIndex, handTransition }) => {
     const color = card.is_spell ? '#ffaa22' : ROLE_COLOR[card.role] || '#888';
     const { currentImageSrc, imgError, onError, usingFullCardArt } = useCardImage(
         card as any,
@@ -31,7 +32,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
     const cardLift = selected ? -12 : 0;
     const cardScale = selected ? 1.03 : 1;
     const baseZIndex = 100 + index;
-    const frameColor = selected ? '#ff9b30' : color;
+    const frameColor = selected ? '#ff9b30' : highlighted ? '#66ddff' : color;
 
     const cardTransform = `translateX(${spreadOffset}px) translateY(${cardLift + arcDrop}px) rotate(${baseRotate}deg) scale(${cardScale})`;
     const centerIndex = total <= 1 ? 0 : (total - 1) / 2;
@@ -39,7 +40,7 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
     return (
         <div
             onClick={onClick}
-            className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''} ${handTransition ? `hand-card-3d--${handTransition}` : ''}`}
+            className={`hand-card-3d ${usingFullCardArt ? 'hand-card-3d--fullart' : ''} ${highlighted ? 'hand-card-3d--tutorial-highlight' : ''} ${handTransition ? `hand-card-3d--${handTransition}` : ''}`}
             style={{
                 ['--hand-card-transform' as string]: cardTransform,
                 ['--hand-card-index' as string]: String(index),
@@ -61,7 +62,9 @@ const HandCardComp: React.FC<Props> = ({ card, selected, onClick, hidden, index,
                 overflow: 'hidden',
                 boxShadow: selected
                     ? '0 0 14px rgba(255,155,48,0.5)'
-                    : (usingFullCardArt ? '0 6px 12px rgba(0,0,0,0.3)' : 'none'),
+                    : highlighted
+                        ? '0 0 12px rgba(102,221,255,0.72), 0 0 24px rgba(102,221,255,0.38)'
+                        : (usingFullCardArt ? '0 6px 12px rgba(0,0,0,0.3)' : 'none'),
                 marginInline: '-14px',
                 zIndex: selected ? 320 : baseZIndex,
                 transform: 'var(--hand-card-transform)',

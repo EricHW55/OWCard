@@ -43,6 +43,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
   contextPanel,
   handCards,
   isHandSelected,
+  isHandHighlighted,
   onHandClick,
   mulliganAnimatingIndex = null,
   mulliganCinematicCard = null,
@@ -207,6 +208,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
             key={`${transition || 'hand'}-${card.id}-${index}`}
             card={card}
             selected={transition ? false : isHandSelected(index)}
+            highlighted={!transition && !!isHandHighlighted?.(card, index)}
             hidden={!transition && mulliganAnimatingIndex === index}
             index={index}
             total={cards.length}
@@ -215,7 +217,7 @@ const GameScreen: React.FC<GameScreenProps> = ({
             onClick={clickEnabled ? () => onHandClick(card, index) : undefined}
         />
     ));
-  }, [isHandSelected, mulliganAnimatingIndex, onHandClick]);
+  }, [isHandHighlighted, isHandSelected, mulliganAnimatingIndex, onHandClick]);
 
   const renderBattleLog = React.useCallback((entry: BattleLogEntry) => {
     if (entry.type === 'turn_end') return <div className="game-log-neutral">{entry.text || '턴 종료'}</div>;

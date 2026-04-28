@@ -226,7 +226,6 @@ export function useTutorialGameController() {
     } else {
       const key = uidToKey(caster.uid);
       let damage = TUTORIAL_CARDS[key]?.tutorialDamage || 5;
-      if (caster.uid === 'tut-winston' && target.uid === 'tut-hazard' && target.current_hp <= 8) damage = target.current_hp;
       if (caster.uid === 'tut-ana' && target.uid === 'tut-reaper-2') damage = target.current_hp;
       applyDamage(caster, target, damage, team);
       if (target.uid === 'tut-hazard' && target.current_hp > damage && team === 'my') {
@@ -463,7 +462,21 @@ export function useTutorialGameController() {
       }));
   }, [currentStep, phase, selectedMyFieldCard]);
 
-  const canActBottom = currentStep?.type === 'player_skill' && phase === 'action' && activeSide === 'player' && !tooltip && !busy ? [currentStep.casterUid] : [];
+  const tutorialHandHighlightId = (
+    activeSide === 'player'
+    && !tooltip
+    && !busy
+    && (currentStep?.type === 'player_place' || currentStep?.type === 'player_spell')
+  ) ? TUTORIAL_CARDS[currentStep.cardKey]?.id : null;
+
+  const tutorialFieldHighlightUids = (() => {
+    if (activeSide !== 'player' || tooltip || busy || currentStep?.type !== 'player_skill') return [];
+    if (selectedFieldUid === currentStep.casterUid && actionMode) return [currentStep.targetUid];
+    return [currentStep.casterUid];
+  })();
+
+  const canActBottom = tutorialFieldHighlightUids.filter((uid) => allCards(players.bottom.field).some((card) => card.uid === uid));
+  const canActTop = tutorialFieldHighlightUids.filter((uid) => allCards(players.top.field).some((card) => card.uid === uid));
 
   return {
     loading: false,
@@ -488,7 +501,8 @@ export function useTutorialGameController() {
     expectedHint,
     tooltip,
     cardEffects,
-    canActTop: [],
+    tutorialHandHighlightId,
+    canActTop,
     canActBottom,
     logs,
     detailCard,

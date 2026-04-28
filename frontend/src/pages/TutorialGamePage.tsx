@@ -97,6 +97,7 @@ const TutorialGamePage: React.FC = () => {
       handCards={vm.players.bottom.hand}
       handOwnerKey="tutorial-player"
       isHandSelected={(index) => vm.selectedHandIdx === index}
+      isHandHighlighted={(card) => card.id === vm.tutorialHandHighlightId}
       onHandClick={vm.handleHandClick}
       bottomMeta={<>손패 {vm.players.bottom.hand.length}장</>}
       bottomActions={
