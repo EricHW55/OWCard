@@ -1,4 +1,4 @@
-import type { FieldState, GameState, HandCard } from '../../types/game';
+import type { FieldState, GameState, HandCard, PendingPassive, PendingSpellChoice } from '../../types/game';
 
 export type SoloSide = 'top' | 'bottom';
 
@@ -9,6 +9,10 @@ export type SoloPlayerView = {
   mulliganDone: boolean;
   placementUsed: number;
   placementLimit: number;
+  pending_passive?: PendingPassive | null;
+  pendingPassive?: PendingPassive | null;
+  pending_spell?: PendingSpellChoice | null;
+  pendingSpell?: PendingSpellChoice | null;
 };
 
 export type SoloPlayersView = Record<SoloSide, SoloPlayerView>;

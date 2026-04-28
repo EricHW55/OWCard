@@ -108,6 +108,24 @@ describe('solo game rules', () => {
     expect(players.top.hand).toEqual([]);
   });
 
+  test('shared state projection preserves pending spell choices for the active side', () => {
+    const pendingSpell = {
+      type: 'spell_maximilian_select' as const,
+      hero_key: 'spell_maximilian',
+      title: '막시밀리앙',
+      options: [{ index: 0, name: 'Tracer', role: 'dealer' }],
+    };
+    const players = buildSoloPlayersView(gameState({
+      my_state: {
+        ...gameState().my_state,
+        pending_spell: pendingSpell,
+      },
+    }), 'bottom');
+
+    expect(players.bottom.pending_spell).toEqual(pendingSpell);
+    expect(players.bottom.pendingSpell).toEqual(pendingSpell);
+  });
+
   test('abnormal spell result only keeps pending spell when target selection is required', () => {
     expect(shouldClearSoloSpellAfterAction('place_card', { needs_target: true })).toBe(false);
     expect(shouldClearSoloSpellAfterAction('place_card', { needs_choice: true })).toBe(false);

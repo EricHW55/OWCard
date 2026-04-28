@@ -20,6 +20,10 @@ export function buildSoloPlayersView(state: GameState, activeSide: SoloSide): So
     mulliganDone: !!my.mulligan_done,
     placementUsed: my.placement_cost_used || 0,
     placementLimit: Number(my.placement_limit ?? 2),
+    pending_passive: my.pending_passive ?? my.pendingPassive ?? null,
+    pendingPassive: my.pendingPassive ?? my.pending_passive ?? null,
+    pending_spell: my.pending_spell ?? my.pendingSpell ?? null,
+    pendingSpell: my.pendingSpell ?? my.pending_spell ?? null,
   };
   const opponentView = {
     hand: [],
@@ -28,6 +32,10 @@ export function buildSoloPlayersView(state: GameState, activeSide: SoloSide): So
     mulliganDone: !!opponent.mulligan_done,
     placementUsed: opponent.placement_cost_used || 0,
     placementLimit: Number(opponent.placement_limit ?? 2),
+    pending_passive: opponent.pending_passive ?? opponent.pendingPassive ?? null,
+    pendingPassive: opponent.pendingPassive ?? opponent.pending_passive ?? null,
+    pending_spell: opponent.pending_spell ?? opponent.pendingSpell ?? null,
+    pendingSpell: opponent.pendingSpell ?? opponent.pending_spell ?? null,
   };
   return activeSide === 'bottom'
       ? { bottom: ownView, top: opponentView }

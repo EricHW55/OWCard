@@ -86,6 +86,18 @@ export interface PendingPassive {
   options?: PendingPassiveOption[];
 }
 
+export interface PendingSpellChoice {
+  type: 'spell_rescue_select' | 'spell_maximilian_select';
+  hero_key: string;
+  title?: string;
+  options?: Array<{
+    index: number;
+    name: string;
+    role?: string;
+    is_spell?: boolean;
+  }>;
+}
+
 export interface PlayerState {
   player_id: number;
   username: string;
@@ -100,6 +112,9 @@ export interface PlayerState {
   placement_cost_used: number;
   placement_limit?: number;
   pending_passive?: PendingPassive | null;
+  pendingPassive?: PendingPassive | null;
+  pending_spell?: PendingSpellChoice | null;
+  pendingSpell?: PendingSpellChoice | null;
 }
 
 export interface GameState {
